@@ -1,0 +1,55 @@
+package br.com.evento.adapters.in.web;
+
+import br.com.evento.application.usecase.ConsultarAgendaUseCase;
+import br.com.evento.application.usecase.InscreverParticipanteUseCase;
+import br.com.evento.application.usecase.SelecionarAtividadeUseCase;
+import br.com.evento.domain.model.entity.AgendaDoParticipante;
+import br.com.evento.domain.model.entity.Inscricao;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+@RestController
+@RequestMapping("/api/inscricoes")
+public class InscricaoRestController {
+
+    private final InscreverParticipanteUseCase inscreverParticipanteUseCase;
+    private final ConsultarAgendaUseCase consultarAgendaUseCase;
+    private final SelecionarAtividadeUseCase selecionarAtividadeUseCase;
+
+    public InscricaoRestController(InscreverParticipanteUseCase inscreverParticipanteUseCase,
+                                   ConsultarAgendaUseCase consultarAgendaUseCase,
+                                   SelecionarAtividadeUseCase selecionarAtividadeUseCase) {
+        this.inscreverParticipanteUseCase = inscreverParticipanteUseCase;
+        this.consultarAgendaUseCase = consultarAgendaUseCase;
+        this.selecionarAtividadeUseCase = selecionarAtividadeUseCase;
+    }
+
+    @PostMapping
+    public ResponseEntity<InscricaoDTO> inscrever(@RequestBody InscreverRequest request) {
+        Inscricao inscricao = inscreverParticipanteUseCase.executar(request.participanteId(), request.eventoId());
+        return ResponseEntity.ok(new InscricaoDTO(inscricao.getId(), inscricao.getParticipanteId(), inscricao.getEventoId()));
+    }
+
+    @PostMapping("/{inscricaoId}/atividades/{atividadeId}")
+    public ResponseEntity<Void> selecionarAtividade(@PathVariable String inscricaoId, @PathVariable String atividadeId) {
+        selecionarAtividadeUseCase.executar(inscricaoId, atividadeId);
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/{inscricaoId}/agenda")
+    public ResponseEntity<AgendaDTO> consultarAgenda(@PathVariable String inscricaoId) {
+        AgendaDoParticipante agenda = consultarAgendaUseCase.executar(inscricaoId);
+        List<AtividadeDTO> atividades = agenda.getAtividades().stream()
+                .map(a -> new AtividadeDTO(a.getId(), a.getTitulo(), a.getPeriodo().getInicio().toString(), a.getPeriodo().getFim().toString(), a.getLocal()))
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(new AgendaDTO(agenda.getParticipanteId(), atividades));
+    }
+
+    public record InscreverRequest(String participanteId, String eventoId) {}
+    public record InscricaoDTO(String id, String participanteId, String eventoId) {}
+    public record AtividadeDTO(String id, String titulo, String inicio, String fim, String local) {}
+    public record AgendaDTO(String participanteId, List<AtividadeDTO> atividades) {}
+}
