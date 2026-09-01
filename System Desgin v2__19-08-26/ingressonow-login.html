@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1">
+ <title>Login - IngressoNow</title>
+ <style>
+ :root{
+ --bg:#F8FAFC;--surface:#FFFFFF;--ink:#0F172A;--muted:#64748B;--line:#E2E8F0;
+ --navy:#1E3A8A;--navy-dark:#0F172A;--cyan:#0284C7;--cyan-soft:#E0F2FE;
+ --font-ui:"Segoe UI",Aptos,system-ui,sans-serif
+ }
+ *{box-sizing:border-box}
+ html,body{height:100%;margin:0}
+ body{background:var(--bg);color:var(--ink);font:400 15px/1.55 var(--font-ui);display:flex;align-items:center;justify-content:center;padding:20px}
+ button,input{font:inherit}
+ button{cursor:pointer}
+ button:focus-visible,input:focus-visible{outline:3px solid var(--cyan-soft);outline-offset:2px}
+
+ .auth-container{width:100%;max-width:420px}
+ .auth-card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:40px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+
+ .logo{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:32px}
+ .logo-mark{width:40px;height:40px;border-radius:6px;background:var(--navy);border:1px solid #2749A1;display:grid;place-items:center;color:#fff;font-size:13px;font-weight:800;letter-spacing:.05em}
+ .logo-text{font-size:26px;font-weight:700;letter-spacing:-.02em;color:var(--navy-dark)}
+ .logo-text-now{color:#38BDF8}
+
+ .auth-title{font-size:22px;font-weight:700;color:var(--navy);margin:0 0 8px;text-align:center;letter-spacing:-.02em}
+ .auth-subtitle{font-size:14px;color:var(--muted);margin:0 0 32px;text-align:center;line-height:1.5}
+
+ .form-group{margin-bottom:20px}
+ .form-label{display:block;font-size:13px;font-weight:600;color:var(--navy);margin-bottom:6px}
+ .form-input{width:100%;height:44px;border:1px solid var(--line);border-radius:6px;padding:0 12px;font-size:14px;color:var(--ink);background:#fff;transition:all .15s ease}
+ .form-input::placeholder{color:var(--muted)}
+ .form-input:hover{border-color:var(--cyan)}
+ .form-input:focus{outline:0;border-color:var(--cyan);box-shadow:0 0 0 3px rgba(2, 132, 199, 0.1)}
+
+ .form-footer{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+ .form-checkbox-wrapper{display:flex;align-items:center;gap:8px}
+ .form-checkbox{width:16px;height:16px;cursor:pointer;accent-color:var(--cyan)}
+ .form-checkbox-label{font-size:13px;color:var(--ink);cursor:pointer;user-select:none}
+ .form-link{font-size:13px;color:var(--cyan);text-decoration:none;font-weight:600;transition:color .15s ease}
+ .form-link:hover{color:var(--navy)}
+
+ .btn-primary{width:100%;height:48px;border:0;border-radius:6px;background:#2563EB;color:#fff;font-size:14px;font-weight:700;letter-spacing:.02em;transition:all .15s ease}
+ .btn-primary:hover{background:#1D4ED8;transform:translateY(-1px)}
+ .btn-primary:active{transform:translateY(0)}
+
+ .auth-footer{margin-top:28px;text-align:center;padding-top:24px;border-top:1px solid var(--line)}
+ .auth-footer-text{font-size:14px;color:var(--muted);margin:0}
+ .auth-footer-link{color:var(--cyan);text-decoration:none;font-weight:600;transition:color .15s ease}
+ .auth-footer-link:hover{color:var(--navy);text-decoration:underline}
+
+ @media(max-width:480px){
+  body{padding:16px}
+  .auth-card{padding:28px 24px}
+  .logo{margin-bottom:24px}
+  .logo-mark{width:36px;height:36px;font-size:11px}
+  .logo-text{font-size:22px}
+  .auth-title{font-size:19px}
+  .auth-subtitle{font-size:13px;margin-bottom:24px}
+  .form-footer{flex-direction:column;align-items:flex-start;gap:12px}
+ }
+ </style>
+</head>
+<body>
+ <div class="auth-container" data-od-id="login-container">
+ <div class="auth-card" data-od-id="login-card">
+ <div class="logo" data-od-id="brand-logo">
+ <div class="logo-mark">IN</div>
+ <div class="logo-text">Ingresso<span class="logo-text-now">Now</span></div>
+ </div>
+
+ <h1 class="auth-title">Bem-vindo de volta</h1>
+ <p class="auth-subtitle">Entre com sua conta para acessar o sistema</p>
+
+ <form data-od-id="login-form">
+ <div class="form-group">
+ <label class="form-label" for="email">E-mail</label>
+ <input
+ type="email"
+ id="email"
+ class="form-input"
+ placeholder="seuemail@instituicao.edu.br"
+ required
+ data-od-id="email-input">
+ </div>
+
+ <div class="form-group">
+ <label class="form-label" for="password">Senha</label>
+ <input
+ type="password"
+ id="password"
+ class="form-input"
+ placeholder="Digite sua senha"
+ required
+ data-od-id="password-input">
+ </div>
+
+ <div class="form-footer">
+ <label class="form-checkbox-wrapper">
+ <input type="checkbox" class="form-checkbox" id="remember" data-od-id="remember-checkbox">
+ <span class="form-checkbox-label">Lembrar de mim</span>
+ </label>
+ <a href="#" class="form-link" data-od-id="forgot-password-link">Esqueceu a senha?</a>
+ </div>
+
+ <button type="submit" class="btn-primary" data-od-id="login-button">Entrar no Sistema</button>
+ </form>
+
+ <div class="auth-footer">
+ <p class="auth-footer-text">
+ Ainda não tem conta? <a href="ingressonow-cadastro.html" class="auth-footer-link" data-od-id="signup-link">Cadastre-se</a>
+ </p>
+ </div>
+ </div>
+ </div>
+
+ <script>
+ document.querySelector('[data-od-id="login-form"]').addEventListener('submit', function(e) {
+ e.preventDefault();
+ const email = document.getElementById('email').value;
+ const password = document.getElementById('password').value;
+ if (email && password) {
+ alert('Login simulado! Em produção, aqui seria feita a autenticação real.');
+ window.location.href = 'ingressonow-interface.html';
+ }
+ });
+ </script>
+</body>
+</html>

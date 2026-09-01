@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1">
+ <title>IngressoNow - Portal Acadêmico | Painel da Comissão Organizadora</title>
+ <style>
+ :root{
+ --bg:#F8FAFC;--surface:#FFFFFF;--ink:#0F172A;--muted:#64748B;--line:#E2E8F0;
+ --navy:#1E3A8A;--navy-dark:#0F172A;--nav-active:#1E293B;--cyan:#0284C7;--cyan-soft:#E0F2FE;
+ --mist:#BAE6FD;--font-ui:"Segoe UI",Aptos,system-ui,sans-serif;--font-mono:"SFMono-Regular",Consolas,monospace
+ }
+ *{box-sizing:border-box} html{background:var(--bg)} body{margin:0;color:var(--ink);font:400 15px/1.55 var(--font-ui);background:var(--bg)}
+ button,input{font:inherit} button{cursor:pointer} button:focus-visible,input:focus-visible{outline:3px solid var(--mist);outline-offset:2px}.icon{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto}
+ .app{min-height:100vh;display:grid;grid-template-columns:260px minmax(0,1fr)}
+ .sidebar{background:var(--navy-dark);color:#fff;padding:20px 0;display:flex;flex-direction:column;position:sticky;inset:0 auto 0 0;height:100vh;overflow-y:auto}
+ .brand{display:flex;align-items:center;gap:10px;margin:0 10px 40px;font-size:20px;font-weight:650;letter-spacing:-.03em}.mark{width:30px;height:30px;border-radius:6px;background:var(--navy);border:1px solid #2749A1;display:grid;place-items:center;color:#fff;font:700 10px var(--font-mono);letter-spacing:.08em}.brand-now{color:#38BDF8}
+ .nav{display:grid;gap:2px}.nav-group{margin:19px 10px 7px;color:#93A7C6;font:600 10px var(--font-mono);letter-spacing:.08em;text-transform:uppercase}.nav-btn{border:0;border-radius:6px;background:transparent;color:#D9E4F4;padding:10px 11px;display:flex;align-items:center;gap:10px;text-align:left;font-size:13px;font-weight:550;transition:background .15s ease,color .15s ease}.nav-btn:hover{background:#16223A;color:#fff}.nav-btn.active{background:var(--nav-active);color:var(--mist);box-shadow:inset 2px 0 0 var(--cyan)}.org{margin-top:auto;border-top:1px solid #283854;padding:16px 10px 0;color:#B7C8E0;font-size:12px}.org strong{display:block;color:#fff;font-weight:600;margin-top:2px}
+ .workspace{min-width:0}.topbar{height:68px;background:var(--surface);border-bottom:1px solid var(--line);padding:0 34px;display:flex;align-items:center;justify-content:space-between;gap:18px;position:sticky;top:0;z-index:2}.search-box{position:relative}.search-box .icon{position:absolute;left:11px;top:10px;color:var(--muted);pointer-events:none;width:16px;height:16px}.search{width:min(392px,45vw);height:38px;border:1px solid var(--line);border-radius:6px;background:#fff;padding:0 12px 0 34px;color:var(--ink)}.search::placeholder{color:#64748B}.profile{display:flex;align-items:center;gap:10px;font-size:12px;font-weight:600}.avatar{width:31px;height:31px;border-radius:50%;background:var(--cyan-soft);color:var(--navy);display:grid;place-items:center;font-size:11px;font-weight:750}
+ .main{max-width:1440px;padding:35px 42px 64px}.context{display:flex;align-items:end;justify-content:space-between;gap:24px;padding-bottom:25px;border-bottom:1px solid var(--line)}.context-label{margin:0 0 7px;color:var(--muted);font:600 11px var(--font-mono);letter-spacing:.06em;text-transform:uppercase}.context h1{margin:0;color:var(--navy);font-size:32px;line-height:1.12;letter-spacing:-.025em;font-weight:650}.context p{margin:8px 0 0;color:var(--muted);max-width:61ch}.primary{border:0;border-radius:6px;background:var(--cyan);color:#fff;padding:11px 15px;font-size:13px;font-weight:700;letter-spacing:.02em;white-space:nowrap;transition:background .15s ease,transform .1s ease}.primary:hover{background:#0369A1}.primary:active{transform:translateY(1px)}
+ .metrics{display:grid;grid-template-columns:repeat(4,1fr);margin:28px 0 34px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}.metric{padding:17px 18px 18px 0;border-right:1px solid var(--line);margin-right:18px}.metric:last-child{border-right:0;margin-right:0}.metric span{display:block;color:var(--muted);font-size:12px}.metric b{display:block;color:var(--navy);font-size:31px;line-height:1.05;letter-spacing:-.04em;font-weight:650;margin:8px 0 4px}.metric small{color:#1D4ED8;font-size:11px;font-weight:650}
+ .layout{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(300px,.8fr);gap:44px}.section-title{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:14px}.section-title h2{margin:0;font-size:19px;letter-spacing:-.015em;font-weight:650}.section-title a{border:0;background:none;color:#0369A1;font-size:12px;font-weight:700;padding:4px}.section-title a:hover{text-decoration:underline}
+ .event-list{border-top:1px solid var(--line)}.event{display:grid;grid-template-columns:minmax(0,1.65fr) .65fr .7fr .4fr 30px;align-items:center;gap:14px;padding:16px 0;border-bottom:1px solid var(--line)}.event-title{font-weight:700;font-size:13px}.event-meta{display:block;color:var(--muted);font-size:11px;margin-top:3px}.event-cell{font-size:12px;color:var(--muted)}.status{display:inline-block;padding:3px 7px;border-radius:999px;background:var(--cyan-soft);color:#075985;font-size:10px;font-weight:700}.status.draft{background:#F1F5F9;color:#475569}.row-action{border:0;background:none;color:var(--navy);font-weight:800;font-size:16px;padding:6px}.row-action:hover{color:var(--cyan)}
+ .today{border-top:1px solid var(--line)}.session{display:grid;grid-template-columns:52px 1fr;gap:12px;padding:14px 0;border-bottom:1px solid var(--line)}.session-time{color:var(--navy);font:600 12px var(--font-mono);padding-top:2px}.session h3{margin:0;font-size:13px;line-height:1.35}.session p{margin:3px 0 0;color:var(--muted);font-size:11px}.capacity{margin-top:24px;padding-top:17px;border-top:1px solid var(--line)}.capacity p{margin:0 0 12px;color:var(--muted);font-size:12px}.capacity-line{display:flex;justify-content:space-between;gap:18px;padding:8px 0;border-bottom:1px solid var(--line);font-size:12px}.capacity-line b{font-weight:700;color:var(--navy)}
+ .operational{display:grid;grid-template-columns:1fr auto;gap:22px;align-items:center;margin-top:38px;padding:18px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}.operational h2{margin:0;font-size:16px}.operational p{margin:4px 0 0;color:var(--muted);font-size:12px}.quick-actions{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}.secondary{border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--navy);padding:9px 11px;font-size:12px;font-weight:700}.secondary:hover{border-color:var(--cyan);color:#075985;background:var(--cyan-soft)}.secondary:active{transform:translateY(1px)}
+ .notice{margin-top:22px;padding:13px 15px;border:1px solid #BAE6FD;background:#F0F9FF;color:#075985;font-size:12px}.notice strong{color:var(--navy)}.mobile-nav{display:none}
+ .primary{background:#2563EB}.primary:hover{background:#1D4ED8}.primary.gradient{background:#2563EB;font-weight:700}.primary.gradient:hover{background:#1D4ED8}
+ @media(max-width:980px){.app{grid-template-columns:76px minmax(0,1fr)}.sidebar{padding:22px 9px}.brand{margin:0 auto 30px}.brand span:not(.mark),.nav-group,.nav-btn{font-size:0}.nav-btn{height:42px;text-align:center}.nav-btn::first-letter{font-size:13px}.org{display:none}.main{padding:30px}.layout{gap:28px}.event{grid-template-columns:minmax(0,1.5fr) .65fr .7fr 24px}.event .event-cell:nth-of-type(3){display:none}}
+ @media(max-width:980px) and (min-width:701px){.nav-btn{justify-content:center;font-size:0}.nav-btn::first-letter{font-size:0}.nav-btn .icon{width:18px;height:18px}}
+ @media(max-width:700px){.app{display:block}.sidebar{display:none}.topbar{height:61px;padding:0 16px}.search{width:54vw}.profile span:last-child{display:none}.main{padding:25px 16px 86px}.context{display:block}.context h1{font-size:28px}.context p{font-size:13px}.primary{margin-top:18px;min-height:44px}.metrics{grid-template-columns:1fr 1fr;margin:25px 0}.metric{padding:14px 0;margin:0;border-right:0}.metric:nth-child(odd){border-right:1px solid var(--line);padding-right:14px}.metric:nth-child(even){padding-left:14px}.metric:nth-child(-n+2){border-bottom:1px solid var(--line)}.layout{grid-template-columns:1fr;gap:30px}.event{grid-template-columns:minmax(0,1fr) .7fr 24px}.event .event-cell:nth-of-type(2){display:none}.operational{grid-template-columns:1fr}.quick-actions{justify-content:flex-start}.mobile-nav{position:fixed;display:flex;z-index:4;bottom:0;left:0;right:0;height:66px;background:var(--navy-dark);justify-content:space-around;padding:7px 8px}.mobile-nav button{border:0;background:transparent;color:#BAE6FD;font-size:11px;font-weight:650}.mobile-nav button.active{color:#fff;border-top:2px solid var(--cyan)}}
+ </style>
+</head>
+<body>
+ <svg aria-hidden="true" width="0" height="0" style="position:absolute;overflow:hidden">
+ <defs>
+ <symbol id="i-home" viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1Z"/><path d="M9 21v-7h6v7"/></symbol>
+ <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/></symbol>
+ <symbol id="i-grid" viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></symbol>
+ <symbol id="i-schedule" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v5l3 2"/></symbol>
+ <symbol id="i-inscrição" viewBox="0 0 24 24"><path d="M4 7a2 2 0 0 0 0 4v2a2 2 0 0 0 0 4v1h16v-1a2 2 0 0 0 0-4v-2a2 2 0 0 0 0-4V6H4Z"/><path d="M13 7v10"/></symbol>
+ <symbol id="i-scan" viewBox="0 0 24 24"><path d="M5 9V5h4M15 5h4v4M19 15v4h-4M9 19H5v-4"/><path d="M8 11h3v3H8zM14 10h2v2h-2zM14 14h2v2h-2z"/></symbol>
+ <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.8-5.4 2.8 1-6.1-4.4-4.3 6.1-.9Z"/></symbol>
+ <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 19V5M4 19h16"/><path d="M8 16v-4M12 16V8M16 16v-7"/></symbol>
+ <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M16 5.3a3 3 0 0 1 0 5.4M18 14c1.8.8 3 2.6 3 4.7"/></symbol>
+ <symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.1 2.1-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5v.2h-3v-.2a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1-2.1-2.1.1-.1A1.7 1.7 0 0 0 7 15a1.7 1.7 0 0 0-1.5-1H5.3v-3h.2A1.7 1.7 0 0 0 7 10a1.7 1.7 0 0 0-.3-1.9l-.1-.1 2.1-2.1.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.5v-.2h3v.2a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1 2.1 2.1-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.5 1h.2v3h-.2a1.7 1.7 0 0 0-1.4 1Z"/></symbol>
+ <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="m16 16 4 4"/></symbol>
+ <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="19" cy="12" r="1" fill="currentColor"/></symbol>
+ </defs>
+ </svg>
+ <main class="app" data-od-id="organizer-dashboard">
+ <aside class="sidebar" data-od-id="admin-sidebar">
+ <div class="brand" data-od-id="brand-logo"><span class="mark">IN</span><span>Ingresso<span class="brand-now">Now</span></span></div>
+ <nav class="nav" aria-label="Navegação administrativa">
+ <p class="nav-group">Operacional</p>
+ <button class="nav-btn active" data-od-id="nav-dashboard"><svg class="icon" aria-hidden="true"><use href="#i-home"/></svg>Dashboard</button>
+ <button class="nav-btn" data-od-id="nav-events"><svg class="icon" aria-hidden="true"><use href="#i-calendar"/></svg>Eventos</button>
+ <button class="nav-btn" data-od-id="nav-activities"><svg class="icon" aria-hidden="true"><use href="#i-grid"/></svg>Atividades</button>
+ <button class="nav-btn" data-od-id="nav-schedule"><svg class="icon" aria-hidden="true"><use href="#i-schedule"/></svg>Programação</button>
+ <button class="nav-btn" data-od-id="nav-enrollments"><svg class="icon" aria-hidden="true"><use href="#i-inscrição"/></svg>Inscrições</button>
+ <button class="nav-btn" data-od-id="nav-attendance"><svg class="icon" aria-hidden="true"><use href="#i-scan"/></svg>Frequência</button>
+ <button class="nav-btn" data-od-id="nav-evaluations"><svg class="icon" aria-hidden="true"><use href="#i-star"/></svg>Avaliações</button>
+ <button class="nav-btn" data-od-id="nav-reports"><svg class="icon" aria-hidden="true"><use href="#i-chart"/></svg>Relatórios</button>
+ <p class="nav-group">Administração</p>
+ <button class="nav-btn" data-od-id="nav-users"><svg class="icon" aria-hidden="true"><use href="#i-users"/></svg>Usuários</button>
+ <button class="nav-btn" data-od-id="nav-settings"><svg class="icon" aria-hidden="true"><use href="#i-settings"/></svg>Configurações</button>
+ </nav>
+ <div class="org">Organização acadêmica<strong>Centro de Eventos Sul</strong></div>
+ </aside>
+ <section class="workspace">
+ <header class="topbar" data-od-id="admin-header">
+ <div class="search-box"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg><input class="search" data-od-id="global-search" aria-label="Buscar no painel" placeholder="Buscar eventos, participantes ou atividades"></div>
+ <div class="profile"><span class="avatar">MA</span><span>Mariana Azevedo<br><small>Organizadora</small></span></div>
+ </header>
+ <section class="main" data-od-id="dashboard-content">
+ <header class="context" data-od-id="dashboard-heading">
+ <div><p class="context-label">Painel da Comissão Organizadora</p><h1>VI Simpósio de Sistemas de Informação 2026</h1><p>Gestão centralizada de inscrições acadêmicas, programação de minicursos, frequência e emissão de certificados de horas complementares.</p></div>
+ <button class="primary" data-od-id="create-event-cta">+ Cadastrar Minicurso</button>
+ </header>
+ <section class="metrics" data-od-id="metrics-summary">
+ <article class="metric" data-od-id="metric-active-events"><span>Total de Inscritos</span><b>1.240</b><small>Discentes & Docentes</small></article>
+ <article class="metric" data-od-id="metric-published-events"><span>Minicursos com Vagas Esgotadas</span><b>8/12</b><small>Salas ocupadas</small></article>
+ <article class="metric" data-od-id="metric-activities"><span>Presença Média</span><b>88.4%</b><small>Apto para Certificado</small></article>
+ <article class="metric" data-od-id="metric-participants"><span>Carga Horária Total</span><b>30h</b><small>Horas Complementares</small></article>
+ </section>
+ <div class="layout">
+ <section data-od-id="upcoming-events"><div class="section-title"><h2>Grade de Horários & Lotação</h2><a href="#" data-od-id="view-all-events">Ver todos</a></div><div class="event-list">
+ <article class="event" data-od-id="event-congresso-tecnologia"><div><span class="event-title">Abertura e Palestra Inaugural</span><span class="event-meta">Prof. Dr. João Silva • Auditório A</span></div><span class="event-cell">09:00</span><span class="status">Confirmada</span><span class="event-cell">200/200</span><button class="row-action" aria-label="Ações da palestra inaugural"><svg class="icon" aria-hidden="true"><use href="#i-more"/></svg></button></article>
+ <article class="event" data-od-id="event-simposio-dados"><div><span class="event-title">Workshop: Python para Análise de Dados</span><span class="event-meta">Dra. Marina Costa • Lab 2 - Bloco A</span></div><span class="event-cell">10:45</span><span class="status">Confirmada</span><span class="event-cell">30/40</span><button class="row-action" aria-label="Ações do workshop"><svg class="icon" aria-hidden="true"><use href="#i-more"/></svg></button></article>
+ <article class="event" data-od-id="event-jornada-arquitetura"><div><span class="event-title">Minicurso: Cloud Computing na Prática</span><span class="event-meta">Prof. Carlos Mendes • Sala 105</span></div><span class="event-cell">11:00</span><span class="status">Lotado</span><span class="event-cell">35/35</span><button class="row-action" aria-label="Ações do minicurso"><svg class="icon" aria-hidden="true"><use href="#i-more"/></svg></button></article>
+ </div></section>
+ <aside data-od-id="today-schedule"><div class="section-title"><h2>Ações Rápidas</h2></div><div class="today">
+ <article class="session" data-od-id="session-opening"><time class="session-time">Câmera</time><div><h3>Abrir Scanner QR</h3><p>Validação de QR Code para credenciamento em tempo real.</p></div></article>
+ <article class="session" data-od-id="session-workshop"><time class="session-time">Cert.</time><div><h3>Liberar Certificados</h3><p>Emissão automática para aprovados (≥75% frequência).</p></div></article>
+ </div><div class="capacity" data-od-id="capacity-summary"><p>Resumo de Participação</p><div class="capacity-line"><span>Presentes no Evento</span><b>1.320 (71.6%)</b></div><div class="capacity-line"><span>Frequência Média Acumulada</span><b>88.4%</b></div></div>
+ </aside>
+ </div>
+ <section class="operational" data-od-id="quick-actions"><div><h2>Ações Rápidas de Portaria</h2><p>Acesse os recursos de validação em tempo real e liberação de certificados para os aprovados.</p></div><div class="quick-actions"><button class="primary gradient" data-od-id="create-activity-btn">Abrir Scanner QR</button><button class="secondary">Liberar Certificados</button><button class="secondary">Exportar Relatório</button><button class="secondary">Consultar Presença</button></div></section>
+ <div class="notice" data-od-id="operational-notice"><strong>Aviso:</strong> 2 atividades aguardam revisão de capacidade. Confira a frequência mínima antes de publicar os certificados na programação.</div>
+ </section>
+ </section>
+ </main>
+ <nav class="mobile-nav" aria-label="Navegação móvel"><button class="active">Início</button><button>Eventos</button><button>Agenda</button><button>Mais</button></nav>
+ <script>
+ document.querySelectorAll('.nav-btn').forEach(function(button){button.addEventListener('click',function(){document.querySelectorAll('.nav-btn').forEach(function(item){item.classList.remove('active')});button.classList.add('active')})});
+ </script>
+</body>
+</html>

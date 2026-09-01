@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1">
+ <title>Meus Ingressos & Certificados - IngressoNow</title>
+ <style>
+ :root{
+ --bg:#F8FAFC;--surface:#FFFFFF;--ink:#0F172A;--muted:#64748B;--line:#E2E8F0;
+ --navy:#1E3A8A;--navy-dark:#0F172A;--cyan:#0284C7;--cyan-soft:#E0F2FE;
+ --mist:#BAE6FD;--font-ui:"Segoe UI",Aptos,system-ui,sans-serif;--font-mono:"SFMono-Regular",Consolas,monospace
+ }
+ *{box-sizing:border-box} html{background:var(--bg)} body{margin:0;color:var(--ink);font:400 15px/1.55 var(--font-ui);background:var(--bg)}
+ button,input,select{font:inherit} button{cursor:pointer} button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--mist);outline-offset:2px}.icon{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;display:inline}
+
+ header.participant-header{background:var(--navy-dark);color:#fff;padding:16px 42px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;border-bottom:1px solid rgba(255,255,255,.1)}
+ .logo{display:flex;align-items:center;gap:8px;font-size:22px;font-weight:700;letter-spacing:-.02em}.logo-now{color:#38BDF8}.logo-img{width:32px;height:32px;border-radius:4px;background:var(--navy);border:1px solid #2749A1;display:grid;place-items:center;color:#fff;font-size:10px;font-weight:800}
+
+ .nav-participant{display:flex;align-items:center;gap:32px}.nav-link{color:#D9E4F4;font-size:13px;font-weight:550;text-decoration:none;transition:color .15s ease}.nav-link:hover{color:#fff}.nav-link.active{color:#fff}.profile-section{display:flex;align-items:center;gap:12px;cursor:pointer}.avatar-sm{width:32px;height:32px;border-radius:50%;background:var(--cyan-soft);color:var(--navy);display:grid;place-items:center;font-size:11px;font-weight:750}.profile-text{font-size:12px;font-weight:550;color:#fff}.profile-name{display:block}.profile-role{display:block;font-size:10px;color:#BAE6FD}
+
+ .main{max-width:1200px;margin:0 auto;padding:40px 42px 80px}
+ .page-header{margin-bottom:32px}
+ .page-title{font-size:32px;line-height:1.12;letter-spacing:-.025em;font-weight:700;color:var(--navy);margin:0 0 8px}
+ .page-subtitle{font-size:14px;color:var(--muted);margin:0;max-width:61ch}
+
+ .content-tabs{display:flex;gap:0;border-bottom:2px solid var(--line);margin:28px 0 32px;overflow-x:auto}
+ .content-tab{border:0;background:transparent;color:var(--muted);padding:14px 20px;font-size:13px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s ease;white-space:nowrap;position:relative}
+ .content-tab:hover{color:var(--navy)}
+ .content-tab.active{color:var(--navy);background:none;border-bottom-color:var(--navy)}
+ .tab-badge{display:inline-block;background:var(--navy);color:#fff;border-radius:999px;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;margin-left:6px}
+
+ .ticket-card{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.06);margin-bottom:24px;display:grid;grid-template-columns:1fr 280px}
+
+ .ticket-details{padding:28px;display:flex;flex-direction:column;justify-content:space-between}
+ .ticket-event-name{font-size:16px;font-weight:700;color:var(--navy);margin:0 0 12px;line-height:1.3}
+ .ticket-event-info{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+ .ticket-info-item{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}.ticket-info-item strong{color:var(--ink);font-weight:600}
+
+ .ticket-badges{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;padding-top:16px;border-top:1px solid var(--line)}
+ .badge{display:inline-block;padding:4px 10px;border-radius:999px;font-size:10px;font-weight:700;white-space:nowrap}
+ .badge-category{background:var(--cyan-soft);color:#075985}
+ .badge-status{background:#D4EDDA;color:#1B5E20;display:flex;align-items:center;gap:4px}
+
+ .ticket-qr{background:#2563EB;padding:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-left:1px solid var(--line)}
+ .qr-placeholder{width:180px;height:180px;background:#fff;border:2px solid var(--line);border-radius:8px;display:grid;place-items:center;color:var(--muted);font-size:60px;margin-bottom:12px}
+ .ticket-code{font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--navy);text-align:center;margin-bottom:12px;letter-spacing:.02em;word-break:break-all}
+ .qr-button{border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--navy);padding:8px 12px;font-size:11px;font-weight:700;cursor:pointer;transition:all .15s ease;width:100%;text-align:center;white-space:nowrap}
+ .qr-button:hover{border-color:var(--cyan);color:var(--cyan);background:var(--cyan-soft)}
+
+ .certificates-section{margin-top:40px}
+ .section-title{font-size:18px;font-weight:700;color:var(--navy);margin:0 0 16px;letter-spacing:-.015em}
+
+ .certificate-card{background:#fff;border:1px solid var(--line);border-radius:8px;padding:20px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+ .certificate-info{flex:1;display:flex;flex-direction:column;gap:4px}
+ .certificate-name{font-weight:700;font-size:13px;color:var(--navy)}
+ .certificate-details{font-size:12px;color:var(--muted)}.certificate-details strong{color:var(--ink);font-weight:600}
+ .certificate-actions{display:flex;gap:8px}
+ .download-btn{border:0;border-radius:6px;background:#2563EB;color:#fff;padding:10px 16px;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s ease;white-space:nowrap}
+ .download-btn:hover{box-shadow:0 6px 16px rgba(2, 132, 199, 0.35)}
+ .download-btn:active{transform:translateY(1px)}
+
+ .empty-state{text-align:center;padding:40px 20px;color:var(--muted)}
+ .empty-icon{font-size:48px;margin-bottom:12px}
+ .empty-text{font-size:14px;margin:0}
+
+ .profile-tab-content{display:flex;flex-direction:column;gap:20px}
+ .profile-section-card{background:#fff;border:1px solid var(--line);border-radius:8px;padding:20px}
+ .profile-section-title{font-size:14px;font-weight:700;color:var(--navy);margin:0 0 12px;text-transform:uppercase;letter-spacing:.05em}
+ .profile-field{display:grid;grid-template-columns:140px 1fr;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}.profile-field:last-child{border-bottom:0}
+ .profile-label{font-size:12px;font-weight:600;color:var(--muted)}.profile-value{font-size:13px;color:var(--ink)}
+
+ @media(max-width:1000px){header.participant-header{padding:14px 24px}.nav-participant{gap:16px}.main{padding:30px 24px}.ticket-card{grid-template-columns:1fr}.ticket-qr{border-left:0;border-top:1px solid var(--line);padding:16px}.qr-placeholder{width:140px;height:140px;font-size:48px}}
+ @media(max-width:700px){header.participant-header{padding:12px 16px}.nav-participant{gap:12px}.nav-link{font-size:11px}.profile-text{font-size:11px}.main{padding:24px 16px}.page-title{font-size:24px}.content-tabs{margin:16px -16px 20px}.content-tab{padding:12px 16px;font-size:12px}.ticket-card{margin-bottom:16px}.ticket-details{padding:16px}.ticket-event-name{font-size:14px}.ticket-info-item{font-size:11px}.ticket-qr{padding:12px}.qr-placeholder{width:120px;height:120px;font-size:40px}.certificate-card{padding:16px;flex-direction:column;align-items:flex-start}.certificate-actions{width:100%}.download-btn{width:100%;text-align:center}}
+ </style>
+</head>
+<body>
+ <header class="participant-header" data-od-id="participant-header">
+ <div class="logo" data-od-id="logo-brand">
+ <div class="logo-img">IN</div>
+ <span>Ingresso<span class="logo-now">Now</span></span>
+ </div>
+ <nav class="nav-participant" data-od-id="main-nav">
+ <a href="#" class="nav-link">Explorar Eventos</a>
+ <a href="#" class="nav-link active">Meus Ingressos</a>
+ <a href="#" class="nav-link">Validar Certificado</a>
+ <div class="profile-section" data-od-id="profile-menu">
+ <div class="avatar-sm">MA</div>
+ <div class="profile-text">
+ <span class="profile-name">Mariana Azevedo</span>
+ <span class="profile-role">Participante</span>
+ </div>
+ <span>▾</span>
+ </div>
+ </nav>
+ </header>
+
+ <main class="main" data-od-id="main-content">
+ <header class="page-header" data-od-id="page-heading">
+ <h1 class="page-title">Meus Ingressos & Certificados</h1>
+ <p class="page-subtitle">Consulte seus bilhetes ativos, apresente seu QR Code na portaria e baixe seus certificados de participação.</p>
+ </header>
+
+ <nav class="content-tabs" data-od-id="content-tabs">
+ <button class="content-tab active" data-od-id="tab-active">
+ Próximos Eventos / Ativos
+ <span class="tab-badge">1</span>
+ </button>
+ <button class="content-tab" data-od-id="tab-history">
+ Eventos Anteriores & Certificados
+ <span class="tab-badge">3</span>
+ </button>
+ <button class="content-tab" data-od-id="tab-profile">
+ Meus Dados / Perfil
+ </button>
+ </nav>
+
+ <!-- TAB 1: PRÓXIMOS EVENTOS / ATIVOS -->
+ <div data-od-id="tab-content-active">
+ <div class="ticket-card" data-od-id="ticket-active">
+ <div class="ticket-details">
+ <div>
+ <h2 class="ticket-event-name">Congresso Brasileiro de Tecnologia e Inovação 2026</h2>
+ <div class="ticket-event-info">
+ <div class="ticket-info-item">
+ <span></span>
+ <strong>10 a 12 de Outubro de 2026</strong>
+ <span>• 09:00</span>
+ </div>
+ <div class="ticket-info-item">
+ <span></span>
+ <strong>Centro de Convenções Sul</strong>
+ <span>• Auditório Principal</span>
+ </div>
+ </div>
+ </div>
+ <div class="ticket-badges">
+ <span class="badge badge-category">Estudante / Acadêmico</span>
+ <span class="badge badge-status"> Confirmada (Check-in Liberado)</span>
+ </div>
+ </div>
+ <div class="ticket-qr">
+ <div class="qr-placeholder">🔲</div>
+ <div class="ticket-code">#ING-2026-9842</div>
+ <button class="qr-button"> Expandir QR / Carteira</button>
+ </div>
+ </div>
+ </div>
+
+ <!-- TAB 2: EVENTOS ANTERIORES & CERTIFICADOS -->
+ <div data-od-id="tab-content-history" style="display:none">
+ <section class="certificates-section">
+ <h2 class="section-title">Certificados de Participação</h2>
+
+ <div class="certificate-card">
+ <div class="certificate-info">
+ <div class="certificate-name">Simpósio de Engenharia de Software 2025</div>
+ <div class="certificate-details">Carga horária: <strong>20h</strong> • Presença: <strong>85%</strong> • 15 a 17 de Setembro, 2025</div>
+ </div>
+ <div class="certificate-actions">
+ <button class="download-btn"> Baixar (PDF)</button>
+ </div>
+ </div>
+
+ <div class="certificate-card">
+ <div class="certificate-info">
+ <div class="certificate-name">Workshop de APIs REST em Java 2025</div>
+ <div class="certificate-details">Carga horária: <strong>8h</strong> • Presença: <strong>100%</strong> • 22 de Agosto, 2025</div>
+ </div>
+ <div class="certificate-actions">
+ <button class="download-btn"> Baixar (PDF)</button>
+ </div>
+ </div>
+
+ <div class="certificate-card">
+ <div class="certificate-info">
+ <div class="certificate-name">Masterclass: Escalabilidade de Sistemas 2025</div>
+ <div class="certificate-details">Carga horária: <strong>4h</strong> • Presença: <strong>92%</strong> • 10 de Julho, 2025</div>
+ </div>
+ <div class="certificate-actions">
+ <button class="download-btn"> Baixar (PDF)</button>
+ </div>
+ </div>
+ </section>
+ </div>
+
+ <!-- TAB 3: MEUS DADOS / PERFIL -->
+ <div data-od-id="tab-content-profile" style="display:none">
+ <div class="profile-tab-content">
+ <div class="profile-section-card">
+ <div class="profile-section-title">Informações Pessoais</div>
+ <div class="profile-field">
+ <div class="profile-label">Nome Completo</div>
+ <div class="profile-value">Mariana Azevedo Silva</div>
+ </div>
+ <div class="profile-field">
+ <div class="profile-label">E-mail</div>
+ <div class="profile-value">mariana.azevedo@email.com</div>
+ </div>
+ <div class="profile-field">
+ <div class="profile-label">CPF</div>
+ <div class="profile-value">123.456.789-01</div>
+ </div>
+ <div class="profile-field">
+ <div class="profile-label">Data de Nascimento</div>
+ <div class="profile-value">15 de Março de 1995</div>
+ </div>
+ </div>
+
+ <div class="profile-section-card">
+ <div class="profile-section-title">Endereço & Contato</div>
+ <div class="profile-field">
+ <div class="profile-label">Telefone</div>
+ <div class="profile-value">(11) 99999-8888</div>
+ </div>
+ <div class="profile-field">
+ <div class="profile-label">Instituição</div>
+ <div class="profile-value">Universidade Federal do Sul</div>
+ </div>
+ <div class="profile-field">
+ <div class="profile-label">Curso / Área</div>
+ <div class="profile-value">Engenharia de Software</div>
+ </div>
+ <div class="profile-field">
+ <div class="profile-label">Endereço</div>
+ <div class="profile-value">Rua das Flores, 123 - São Paulo, SP</div>
+ </div>
+ </div>
+
+ <div class="profile-section-card">
+ <div class="profile-section-title">Preferências</div>
+ <div class="profile-field">
+ <div class="profile-label">Receber E-mails</div>
+ <div class="profile-value">Sim - Novidades e eventos</div>
+ </div>
+ <div class="profile-field">
+ <div class="profile-label">Membro desde</div>
+ <div class="profile-value">12 de Julho de 2024</div>
+ </div>
+ </div>
+ </div>
+ </div>
+ </main>
+
+ <script>
+ // Tab navigation
+ document.querySelectorAll('.content-tab').forEach(function(tab){tab.addEventListener('click',function(){const tabName=this.getAttribute('data-od-id').replace('tab-','');document.querySelectorAll('.content-tab').forEach(function(t){t.classList.remove('active')});document.querySelectorAll('[data-od-id^="tab-content-"]').forEach(function(c){c.style.display='none'});this.classList.add('active');document.querySelector('[data-od-id="tab-content-'+tabName+'"]').style.display='block'})});
+ </script>
+</body>
+</html>

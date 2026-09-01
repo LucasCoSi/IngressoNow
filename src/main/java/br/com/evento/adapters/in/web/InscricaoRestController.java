@@ -1,10 +1,12 @@
 package br.com.evento.adapters.in.web;
 
+import br.com.evento.adapters.in.web.dto.InscreverRequest;
 import br.com.evento.application.usecase.ConsultarAgendaUseCase;
 import br.com.evento.application.usecase.InscreverParticipanteUseCase;
 import br.com.evento.application.usecase.SelecionarAtividadeUseCase;
 import br.com.evento.domain.model.entity.AgendaDoParticipante;
 import br.com.evento.domain.model.entity.Inscricao;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -28,7 +30,7 @@ public class InscricaoRestController {
     }
 
     @PostMapping
-    public ResponseEntity<InscricaoDTO> inscrever(@RequestBody InscreverRequest request) {
+    public ResponseEntity<InscricaoDTO> inscrever(@Valid @RequestBody InscreverRequest request) {
         Inscricao inscricao = inscreverParticipanteUseCase.executar(request.participanteId(), request.eventoId());
         return ResponseEntity.ok(new InscricaoDTO(inscricao.getId(), inscricao.getParticipanteId(), inscricao.getEventoId()));
     }
@@ -48,7 +50,6 @@ public class InscricaoRestController {
         return ResponseEntity.ok(new AgendaDTO(agenda.getParticipanteId(), atividades));
     }
 
-    public record InscreverRequest(String participanteId, String eventoId) {}
     public record InscricaoDTO(String id, String participanteId, String eventoId) {}
     public record AtividadeDTO(String id, String titulo, String inicio, String fim, String local) {}
     public record AgendaDTO(String participanteId, List<AtividadeDTO> atividades) {}

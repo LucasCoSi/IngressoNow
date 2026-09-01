@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro - IngressoNow</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="auth-card">
+            <h1>Cadastro</h1>
+            <div id="error-container"></div>
+
+            <form id="cadastro-form">
+                <div class="form-group">
+                    <label for="nome">Nome completo</label>
+                    <input type="text" id="nome" name="nome" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">E-mail</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="senha">Senha (mínimo 6 caracteres)</label>
+                    <input type="password" id="senha" name="senha" minlength="6" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="tipo">Tipo de usuário</label>
+                    <select id="tipo" name="tipo" required>
+                        <option value="">Selecione...</option>
+                        <option value="PARTICIPANTE">Participante</option>
+                        <option value="ORGANIZADOR">Organizador</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Cadastrar</button>
+            </form>
+
+            <p class="auth-link">
+                Já tem uma conta? <a href="/login.html">Faça login</a>
+            </p>
+        </div>
+    </div>
+
+    <script src="/js/api-client.js"></script>
+    <script>
+        // Se já estiver autenticado, redireciona para home
+        if (Auth.isAuthenticated()) {
+            window.location.href = '/index.html';
+        }
+
+        document.getElementById('cadastro-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const nome = document.getElementById('nome').value;
+            const email = document.getElementById('email').value;
+            const senha = document.getElementById('senha').value;
+            const tipo = document.getElementById('tipo').value;
+
+            try {
+                await API.Auth.cadastro(nome, email, senha, tipo);
+                API.exibirSucesso('Cadastro realizado com sucesso! Redirecionando...');
+                setTimeout(() => {
+                    window.location.href = '/index.html';
+                }, 2000);
+            } catch (error) {
+                API.exibirErro(error);
+            }
+        });
+    </script>
+</body>
+</html>

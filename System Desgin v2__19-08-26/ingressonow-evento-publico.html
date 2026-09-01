@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1">
+ <title>Congresso Brasileiro de Tecnologia e Inovação 2026 - IngressoNow</title>
+ <style>
+ :root{
+ --bg:#F8FAFC;--surface:#FFFFFF;--ink:#0F172A;--muted:#64748B;--line:#E2E8F0;
+ --navy:#1E3A8A;--navy-dark:#0F172A;--cyan:#0284C7;--cyan-soft:#E0F2FE;
+ --mist:#BAE6FD;--font-ui:"Segoe UI",Aptos,system-ui,sans-serif;--font-mono:"SFMono-Regular",Consolas,monospace
+ }
+ *{box-sizing:border-box} html{background:var(--bg)} body{margin:0;color:var(--ink);font:400 15px/1.55 var(--font-ui);background:var(--bg)}
+ button,input,select{font:inherit} button{cursor:pointer} button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--mist);outline-offset:2px}.icon{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;display:inline}
+
+ header.public-header{background:var(--navy-dark);color:#fff;padding:18px 42px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;border-bottom:1px solid rgba(255,255,255,.1)}
+ .logo{display:flex;align-items:center;gap:10px;font-size:22px;font-weight:700;letter-spacing:-.02em;cursor:pointer}.logo-now{color:#38BDF8}.logo-mark{width:34px;height:34px;border-radius:6px;background:var(--navy);border:1px solid #2749A1;display:grid;place-items:center;color:#fff;font-size:11px;font-weight:800;letter-spacing:.05em}
+
+ .nav-public{display:flex;align-items:center;gap:28px}.nav-link{color:#D9E4F4;font-size:13px;font-weight:550;text-decoration:none;transition:color .15s ease;white-space:nowrap}.nav-link:hover{color:#fff}.nav-link.cta{background:#2563EB;color:#fff;padding:10px 18px;border-radius:6px;transition:all .15s ease}.nav-link.cta:hover{background:#1D4ED8;transform:translateY(-1px)}
+
+ .hero-banner{height:480px;background:linear-gradient(135deg, #1E3A8A 0%, #0F172A 100%);position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
+ .hero-banner::after{content:'';position:absolute;inset:0;background:rgba(0,0,0,.3);z-index:1}
+ .hero-content{position:relative;z-index:2;text-align:center;color:#fff;max-width:840px;padding:0 24px}
+ .hero-title{font-size:48px;line-height:1.1;letter-spacing:-.03em;font-weight:700;margin:0 0 20px}
+ .hero-badges{display:flex;gap:12px;justify-content:center;margin-bottom:24px;flex-wrap:wrap}
+ .hero-badge{background:rgba(255,255,255,.12);backdrop-filter:blur(12px);color:#fff;padding:8px 16px;border-radius:6px;font-size:11px;font-weight:700;letter-spacing:.04em;border:1px solid rgba(255,255,255,.18);text-transform:uppercase}
+ .hero-meta{display:flex;gap:28px;justify-content:center;font-size:14px;margin-top:20px;flex-wrap:wrap;font-weight:550}
+ .hero-meta-item{display:flex;align-items:center;gap:7px}
+
+ .event-tabs{display:flex;gap:0;background:#fff;border-bottom:2px solid var(--line);position:sticky;top:68px;z-index:99;padding:0 42px;overflow-x:auto}
+ .event-tab{border:0;background:transparent;color:var(--muted);padding:16px 20px;font-size:13px;font-weight:600;cursor:pointer;border-bottom:3px solid transparent;transition:all .15s ease;white-space:nowrap}
+ .event-tab:hover{color:var(--navy);background:var(--bg)}
+ .event-tab.active{color:var(--navy);border-bottom-color:var(--navy)}
+
+ .main-layout{display:grid;grid-template-columns:1fr 360px;gap:48px;max-width:1440px;margin:0 auto;padding:44px 42px 88px}
+
+ .content-section{background:#fff;border-radius:8px;padding:28px;margin-bottom:32px;border:1px solid var(--line)}
+ .section-title{font-size:22px;font-weight:700;color:var(--navy);margin:0 0 18px;letter-spacing:-.02em}
+ .section-text{font-size:14px;line-height:1.65;color:var(--muted);margin:0 0 16px}
+ .section-text strong{color:var(--navy);font-weight:650}
+
+ .schedule-day{margin-bottom:24px}
+ .schedule-day-title{font-size:12px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px;padding:10px 0;border-top:2px solid var(--line);padding-top:20px}
+ .schedule-item{display:grid;grid-template-columns:90px 1fr;gap:14px;padding:14px;background:var(--bg);border-radius:6px;margin-bottom:10px;border-left:3px solid var(--cyan);transition:all .15s ease}
+ .schedule-item:hover{background:var(--cyan-soft);border-left-color:var(--navy)}
+ .schedule-time{font-weight:700;font-size:13px;color:var(--navy)}
+ .schedule-activity{display:flex;flex-direction:column;gap:4px}.schedule-activity-name{font-weight:700;font-size:14px;color:var(--navy)}.schedule-activity-location{font-size:12px;color:var(--muted)}
+
+ .speakers-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+ .speaker-card{text-align:center;padding:16px;border-radius:8px;border:1px solid var(--line);background:#fff;transition:all .15s ease}
+ .speaker-card:hover{border-color:var(--cyan);background:var(--cyan-soft);transform:translateY(-2px)}
+ .speaker-photo{width:100%;aspect-ratio:1;border-radius:8px;background:linear-gradient(135deg, #2563EB 0%, #1E3A8A 100%);display:grid;place-items:center;color:#fff;font-size:42px;margin-bottom:14px}
+ .speaker-name{font-weight:700;font-size:14px;color:var(--navy);margin:0 0 4px}
+ .speaker-title{font-size:12px;color:var(--muted);margin:0 0 2px;font-weight:550}
+ .speaker-org{font-size:11px;color:var(--muted);margin:0}
+
+ .sidebar{position:sticky;top:140px;height:fit-content}
+ .inscription-card{background:#fff;border:1px solid var(--line);border-radius:8px;padding:28px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+ .inscription-title{font-size:18px;font-weight:700;color:var(--navy);margin:0 0 22px;letter-spacing:-.015em}
+ .category-badge{background:var(--cyan-soft);border:1px solid var(--cyan);border-radius:6px;padding:16px;margin-bottom:22px;text-align:center}
+ .category-badge-label{font-size:11px;font-weight:700;color:var(--cyan);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+ .category-badge-value{font-size:14px;font-weight:700;color:var(--navy)}
+ .category-badge-price{font-size:22px;font-weight:700;color:var(--cyan);margin-top:8px}
+
+ .benefits-list{background:var(--bg);border-radius:6px;padding:16px;margin-bottom:24px;border-left:3px solid var(--cyan)}
+ .benefits-item{display:flex;gap:10px;font-size:13px;color:var(--ink);margin-bottom:10px;align-items:flex-start}
+ .benefits-item:last-child{margin-bottom:0}
+ .benefits-icon{color:var(--cyan);font-weight:700;flex:0 0 auto;font-size:14px}
+
+ .cta-button{width:100%;border:0;border-radius:6px;background:#2563EB;color:#fff;padding:16px;font-size:14px;font-weight:700;letter-spacing:.02em;cursor:pointer;transition:all .15s ease;min-height:48px}
+ .cta-button:hover{background:#1D4ED8;transform:translateY(-1px);box-shadow:0 4px 12px rgba(37, 99, 235, 0.3)}
+ .cta-button:active{transform:translateY(0)}
+
+ @media(max-width:1200px){.main-layout{grid-template-columns:1fr;padding:40px 32px}.event-tabs{padding:0 32px}.hero-banner{height:400px}.hero-title{font-size:40px}.speakers-grid{grid-template-columns:repeat(2,1fr)}.sidebar{position:static;max-width:480px;margin:0 auto}}
+ @media(max-width:768px){header.public-header{padding:16px 18px}.nav-public{gap:14px}.logo{font-size:19px}.logo-mark{width:30px;height:30px;font-size:10px}.nav-link{display:none}.nav-link.cta{display:inline-block;padding:9px 14px;font-size:12px}.hero-banner{height:340px}.hero-title{font-size:30px;line-height:1.15}.hero-meta{font-size:13px;gap:16px}.hero-badge{font-size:10px;padding:7px 12px}.event-tabs{padding:0 18px}.event-tab{padding:14px 16px;font-size:12px}.main-layout{grid-template-columns:1fr;padding:32px 18px 64px;gap:28px}.content-section{padding:20px}.section-title{font-size:18px}.schedule-item{grid-template-columns:75px 1fr;padding:12px}.speakers-grid{grid-template-columns:1fr}.speaker-photo{font-size:36px}.inscription-card{padding:22px}.benefits-list{padding:14px}}
+ </style>
+</head>
+<body>
+ <header class="public-header" data-od-id="public-header">
+ <div class="logo" data-od-id="logo-brand">
+ <div class="logo-mark">IN</div>
+ <span>Ingresso<span class="logo-now">Now</span></span>
+ </div>
+ <nav class="nav-public" data-od-id="main-nav">
+ <a href="#" class="nav-link">Explorar Eventos</a>
+ <a href="#" class="nav-link">Programação</a>
+ <a href="#" class="nav-link">Validar Certificado</a>
+ <a href="#" class="nav-link">Minhas Inscrições</a>
+ <a href="#" class="nav-link cta">Área do Participante</a>
+ </nav>
+ </header>
+
+ <section class="hero-banner" data-od-id="hero-banner">
+ <div class="hero-content" data-od-id="hero-content">
+ <h1 class="hero-title">Congresso Brasileiro de Tecnologia e Inovação 2026</h1>
+ <div class="hero-badges">
+ <span class="hero-badge">Certificado 20h Garantido</span>
+ <span class="hero-badge">Presencial & Online</span>
+ <span class="hero-badge">Inscrição Gratuita</span>
+ </div>
+ <div class="hero-meta" data-od-id="event-quick-info">
+ <div class="hero-meta-item">📅 10 a 12 de Outubro 2026</div>
+ <div class="hero-meta-item">📍 Centro de Convenções Sul</div>
+ <div class="hero-meta-item">👥 Vagas Limitadas</div>
+ </div>
+ </div>
+ </section>
+
+ <nav class="event-tabs" data-od-id="event-tabs">
+ <button class="event-tab active" data-od-id="tab-about">Apresentação</button>
+ <button class="event-tab" data-od-id="tab-schedule">Programação & Grade</button>
+ <button class="event-tab" data-od-id="tab-speakers">Palestrantes</button>
+ <button class="event-tab" data-od-id="tab-registration">Inscrição</button>
+ <button class="event-tab" data-od-id="tab-location">Local e Mapa</button>
+ </nav>
+
+ <div class="main-layout" data-od-id="main-content">
+ <main data-od-id="content-main">
+ <!-- TAB 1: APRESENTAÇÃO -->
+ <div data-od-id="tab-content-about">
+ <section class="content-section" data-od-id="section-about">
+ <h2 class="section-title">Sobre o Evento</h2>
+ <p class="section-text">O <strong>Congresso Brasileiro de Tecnologia e Inovação 2026</strong> é o maior encontro de profissionais, empresas e estudiosos de tecnologia do Brasil. Com mais de 1.800 inscritos, o evento reúne palestrantes renomados, workshops práticos e networking de alto nível.</p>
+ <p class="section-text">Durante os 3 dias de congresso, você terá acesso a palestras em múltiplas trilhas de conhecimento, desde desenvolvimento backend e frontend até arquitetura de sistemas, inteligência artificial e inovação digital.</p>
+ <p class="section-text"><strong>Público-alvo:</strong> Desenvolvedores, arquitetos de software, gestores de TI, empreendedores, estudantes da área de tecnologia e profissionais em transição de carreira.</p>
+ </section>
+
+ <section class="content-section" data-od-id="section-schedule-preview">
+ <h2 class="section-title">Grade de Programação</h2>
+
+ <div class="schedule-day">
+ <div class="schedule-day-title">Dia 1 - 10 de Outubro</div>
+ <div class="schedule-item">
+ <div class="schedule-time">09:00</div>
+ <div class="schedule-activity">
+ <div class="schedule-activity-name">Abertura e Palestra Inaugural</div>
+ <div class="schedule-activity-location">Auditório A • Dra. Helena Souza</div>
+ </div>
+ </div>
+ <div class="schedule-item">
+ <div class="schedule-time">10:30</div>
+ <div class="schedule-activity">
+ <div class="schedule-activity-name">Workshop de APIs REST em Java</div>
+ <div class="schedule-activity-location">Lab 2 • Prof. Carlos Lima</div>
+ </div>
+ </div>
+ <div class="schedule-item">
+ <div class="schedule-time">13:00</div>
+ <div class="schedule-activity">
+ <div class="schedule-activity-name">Painel: Inteligência Artificial na Prática</div>
+ <div class="schedule-activity-location">Auditório B • Carlos Brandão (Moderador)</div>
+ </div>
+ </div>
+ </div>
+
+ <div class="schedule-day">
+ <div class="schedule-day-title">Dia 2 - 11 de Outubro</div>
+ <div class="schedule-item">
+ <div class="schedule-time">09:00</div>
+ <div class="schedule-activity">
+ <div class="schedule-activity-name">Fundamentos de React Moderno</div>
+ <div class="schedule-activity-location">Lab 1 • Prof. Ana Costa</div>
+ </div>
+ </div>
+ <div class="schedule-item">
+ <div class="schedule-time">11:00</div>
+ <div class="schedule-activity">
+ <div class="schedule-activity-name">Design Patterns em Microserviços</div>
+ <div class="schedule-activity-location">Sala B • Dr. Marcelo Costa</div>
+ </div>
+ </div>
+ <div class="schedule-item">
+ <div class="schedule-time">14:00</div>
+ <div class="schedule-activity">
+ <div class="schedule-activity-name">Masterclass: Escalabilidade de Sistemas</div>
+ <div class="schedule-activity-location">Auditório A • Dra. Juliana Rocha</div>
+ </div>
+ </div>
+ </div>
+ </section>
+
+ <section class="content-section" data-od-id="section-speakers">
+ <h2 class="section-title">Palestrantes Confirmados</h2>
+ <div class="speakers-grid">
+ <div class="speaker-card">
+ <div class="speaker-photo">HS</div>
+ <h3 class="speaker-name">Dra. Helena Souza</h3>
+ <p class="speaker-title">CTO & Engenheira de Sistemas</p>
+ <p class="speaker-org">Universidade Federal do Sul</p>
+ </div>
+ <div class="speaker-card">
+ <div class="speaker-photo">CL</div>
+ <h3 class="speaker-name">Prof. Carlos Lima</h3>
+ <p class="speaker-title">Arquiteto de Software</p>
+ <p class="speaker-org">TechCorp Solutions</p>
+ </div>
+ <div class="speaker-card">
+ <div class="speaker-photo">CB</div>
+ <h3 class="speaker-name">Carlos Brandão</h3>
+ <p class="speaker-title">Especialista em IA & ML</p>
+ <p class="speaker-org">AI Innovation Lab</p>
+ </div>
+ <div class="speaker-card">
+ <div class="speaker-photo">AC</div>
+ <h3 class="speaker-name">Prof. Ana Costa</h3>
+ <p class="speaker-title">Frontend Lead</p>
+ <p class="speaker-org">Digital Startup Hub</p>
+ </div>
+ <div class="speaker-card">
+ <div class="speaker-photo">MC</div>
+ <h3 class="speaker-name">Dr. Marcelo Costa</h3>
+ <p class="speaker-title">Diretor de Engenharia</p>
+ <p class="speaker-org">Global Tech Company</p>
+ </div>
+ <div class="speaker-card">
+ <div class="speaker-photo">JR</div>
+ <h3 class="speaker-name">Dra. Juliana Rocha</h3>
+ <p class="speaker-title">Consultora de Performance</p>
+ <p class="speaker-org">Excellence Advisory</p>
+ </div>
+ </div>
+ </section>
+ </div>
+
+ <!-- PLACEHOLDER TABS -->
+ <div data-od-id="tab-content-schedule" style="display:none">
+ <section class="content-section">
+ <h2 class="section-title">Programação Completa</h2>
+ <p class="section-text">Programação em desenvolvimento...</p>
+ </section>
+ </div>
+
+ <div data-od-id="tab-content-speakers" style="display:none">
+ <section class="content-section">
+ <h2 class="section-title">Todos os Palestrantes</h2>
+ <p class="section-text">Lista completa de palestrantes em desenvolvimento...</p>
+ </section>
+ </div>
+
+ <div data-od-id="tab-content-registration" style="display:none">
+ <section class="content-section">
+ <h2 class="section-title">Inscrição</h2>
+ <p class="section-text">Detalhes de inscrição em desenvolvimento...</p>
+ </section>
+ </div>
+
+ <div data-od-id="tab-content-location" style="display:none">
+ <section class="content-section">
+ <h2 class="section-title">Local e Mapa</h2>
+ <p class="section-text">Informações de localização em desenvolvimento...</p>
+ </section>
+ </div>
+ </main>
+
+ <aside class="sidebar" data-od-id="sidebar-inscription">
+ <div class="inscription-card" data-od-id="inscription-card">
+ <h3 class="inscription-title">Garantir Sua Vaga</h3>
+
+ <div class="category-badge" data-od-id="category-info">
+ <div class="category-badge-label">Modalidade Selecionada</div>
+ <div class="category-badge-value">Inscrição Acadêmica / Comunidade</div>
+ <div class="category-badge-price">Gratuito</div>
+ </div>
+
+ <div class="benefits-list" data-od-id="benefits">
+ <div class="benefits-item">
+ <span class="benefits-icon">✓</span>
+ <span>Acesso a todas as palestras</span>
+ </div>
+ <div class="benefits-item">
+ <span class="benefits-icon">✓</span>
+ <span>Certificado digital de 20h</span>
+ </div>
+ <div class="benefits-item">
+ <span class="benefits-icon">✓</span>
+ <span>Credencial com QR Code</span>
+ </div>
+ <div class="benefits-item">
+ <span class="benefits-icon">✓</span>
+ <span>Networking com profissionais</span>
+ </div>
+ <div class="benefits-item">
+ <span class="benefits-icon">✓</span>
+ <span>Acesso ao portal de conteúdo</span>
+ </div>
+ </div>
+
+ <button class="cta-button" data-od-id="inscription-cta">Realizar Inscrição Gratuita</button>
+ </div>
+ </aside>
+ </div>
+
+ <script>
+ // Event tabs navigation
+ document.querySelectorAll('.event-tab').forEach(function(tab){tab.addEventListener('click',function(){const tabName=this.getAttribute('data-od-id').replace('tab-','');document.querySelectorAll('.event-tab').forEach(function(t){t.classList.remove('active')});document.querySelectorAll('[data-od-id^="tab-content-"]').forEach(function(c){c.style.display='none'});this.classList.add('active');document.querySelector('[data-od-id="tab-content-'+tabName+'"]').style.display='block'})});
+ </script>
+</body>
+</html>

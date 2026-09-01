@@ -9,8 +9,8 @@ import java.util.UUID;
 public class Atividade {
     private final String id;
     private String titulo;
-    private final Periodo periodo;
-    private final String local;
+    private Periodo periodo;
+    private String local;
     private PoliticaFrequencia politicaFrequencia;
 
     public Atividade(String id, String titulo, Periodo periodo, String local) {

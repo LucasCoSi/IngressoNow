@@ -1,10 +1,12 @@
 package br.com.evento.adapters.in.web;
 
+import br.com.evento.adapters.in.web.dto.CheckInRequest;
 import br.com.evento.application.usecase.GerarRelatorioPresencaUseCase;
 import br.com.evento.application.usecase.RealizarCheckInQrCodeUseCase;
 import br.com.evento.domain.port.in.QrCodeService;
 import br.com.evento.domain.model.entity.Inscricao;
 import br.com.evento.domain.port.out.InscricaoRepository;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -30,7 +32,7 @@ public class ControlePresencaRestController {
     }
 
     @PostMapping("/checkin")
-    public ResponseEntity<Void> realizarCheckIn(@RequestBody CheckInRequest request) {
+    public ResponseEntity<Void> realizarCheckIn(@Valid @RequestBody CheckInRequest request) {
         checkInUseCase.executar(request.qrCodeToken());
         return ResponseEntity.ok().build();
     }
@@ -51,6 +53,4 @@ public class ControlePresencaRestController {
                 .contentType(MediaType.parseMediaType("text/csv"))
                 .body(csv);
     }
-
-    public record CheckInRequest(String qrCodeToken) {}
 }

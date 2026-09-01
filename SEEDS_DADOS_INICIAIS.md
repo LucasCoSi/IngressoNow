@@ -1,0 +1,204 @@
+# Seeds de Dados Iniciais - Migration V3
+
+## 📅 Data: 01 de Setembro de 2026
+
+---
+
+## ✅ Implementação Concluída
+
+### Arquivo Criado
+**`src/main/resources/db/migration/V3__insert_initial_data.sql`**
+
+---
+
+## 📊 Dados Inseridos
+
+### 1️⃣ Usuários (2)
+
+| ID | Tipo | Nome | Email | Senha |
+|---|---|---|---|---|
+| `550e8400-e29b-41d4-a716-446655440001` | PARTICIPANTE | Lucas Silva | lucas.silva@email.com | senha123 |
+| `550e8400-e29b-41d4-a716-446655440002` | ORGANIZADOR | Maria Santos | maria.santos@email.com | senha123 |
+
+**Hash BCrypt**: `$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy`
+
+---
+
+### 2️⃣ Eventos (2)
+
+#### Evento 1: Conferência de Tecnologia 2026
+- **ID**: `660e8400-e29b-41d4-a716-446655440001`
+- **Status**: PUBLICADO
+- **Organizador**: Maria Santos
+- **Vagas**: 200
+- **Descrição**: Evento sobre tendências em tecnologia, IA, cloud e desenvolvimento
+
+#### Evento 2: Workshop de Java e Spring Boot
+- **ID**: `660e8400-e29b-41d4-a716-446655440002`
+- **Status**: PUBLICADO
+- **Organizador**: Maria Santos
+- **Vagas**: 50
+- **Descrição**: Workshop prático sobre Java 17, Spring Boot 3 e arquitetura hexagonal
+
+---
+
+### 3️⃣ Atividades (5)
+
+#### Conferência de Tecnologia (3 atividades)
+
+| Título | Data | Horário | Local |
+|--------|------|---------|-------|
+| Palestra: O Futuro da IA | 15/09/2026 | 09:00 - 11:00 | Auditório Principal - Sala 101 |
+| Workshop: Cloud Computing na Prática | 15/09/2026 | 14:00 - 17:00 | Lab. de Informática - Bloco B |
+| Mesa Redonda: Segurança da Informação | 16/09/2026 | 10:00 - 12:00 | Sala de Conferências - 3º Andar |
+
+#### Workshop de Java (2 atividades)
+
+| Título | Data | Horário | Local |
+|--------|------|---------|-------|
+| Módulo 1: Fundamentos do Spring Boot | 20/09/2026 | 09:00 - 12:00 | Lab. de Programação - Sala 201 |
+| Módulo 2: Arquitetura Hexagonal | 20/09/2026 | 14:00 - 17:00 | Lab. de Programação - Sala 201 |
+
+---
+
+### 4️⃣ Inscrições (2)
+
+**Participante**: Lucas Silva
+
+| Evento | Data da Inscrição |
+|--------|-------------------|
+| Conferência de Tecnologia 2026 | 01/09/2026 10:30 |
+| Workshop de Java e Spring Boot | 01/09/2026 11:00 |
+
+---
+
+### 5️⃣ Atividades Selecionadas (3)
+
+**Agenda de Lucas Silva**:
+
+| Evento | Atividade Selecionada |
+|--------|-----------------------|
+| Conferência | Palestra: O Futuro da IA |
+| Conferência | Workshop: Cloud Computing na Prática |
+| Workshop Java | Módulo 1: Fundamentos do Spring Boot |
+
+---
+
+## 🎯 Características do Script
+
+### ✅ Boas Práticas Aplicadas
+
+1. **IDs UUIDs Explícitos**: Não conflita com `BIGSERIAL`, usa UUIDs válidos
+2. **Datas Válidas**: Eventos e atividades em setembro de 2026 (futuro)
+3. **Integridade Referencial**: Todas as FKs apontam para registros existentes
+4. **Dados Realistas**: Nomes, emails e descrições coerentes
+5. **Comentários Detalhados**: Cada seção documentada
+6. **Senhas Seguras**: Hash BCrypt (mesmo para testes)
+7. **Status Correto**: Eventos com status PUBLICADO
+8. **Constraints Respeitadas**: UNIQUE, NOT NULL, FK
+
+---
+
+## 🔄 Como Aplicar a Migration
+
+### Opção 1: Docker (Recomendado)
+```bash
+# Recriar containers com banco limpo
+docker-compose down -v
+docker-compose up -d
+
+# Aguardar inicialização
+docker logs poo2-app -f
+```
+
+### Opção 2: Flyway via Maven
+```bash
+mvn flyway:migrate
+```
+
+### Opção 3: Flyway via Spring Boot
+```bash
+mvn spring-boot:run
+```
+
+O Flyway detecta automaticamente a nova migration V3 e aplica os inserts.
+
+---
+
+## 📝 Validação dos Dados
+
+### Consultas SQL para Verificar
+
+```sql
+-- Ver todos os usuários
+SELECT id, tipo_usuario, nome, email FROM usuarios;
+
+-- Ver todos os eventos
+SELECT id, titulo, status, organizador_id, max_vagas FROM eventos;
+
+-- Ver todas as atividades
+SELECT id, titulo, inicio, fim, local FROM atividades;
+
+-- Ver inscrições com dados do participante
+SELECT i.id, u.nome as participante, e.titulo as evento, i.data_inscricao
+FROM inscricoes i
+JOIN usuarios u ON i.participante_id = u.id
+JOIN eventos e ON i.evento_id = e.id;
+
+-- Ver agenda do participante
+SELECT u.nome, e.titulo as evento, a.titulo as atividade, a.inicio, a.fim
+FROM inscricao_atividades ia
+JOIN inscricoes i ON ia.inscricao_id = i.id
+JOIN usuarios u ON i.participante_id = u.id
+JOIN eventos e ON i.evento_id = e.id
+JOIN atividades a ON ia.atividade_id = a.id
+ORDER BY a.inicio;
+```
+
+---
+
+## 🧪 Testes Possíveis
+
+### APIs que Podem Usar os Seeds
+
+1. **GET /api/eventos**
+   - Deve retornar 2 eventos publicados
+
+2. **GET /api/inscricoes/{inscricaoId}/agenda**
+   - ID: `880e8400-e29b-41d4-a716-446655440001`
+   - Deve retornar 2 atividades da conferência
+
+3. **POST /api/inscricoes**
+   - Criar nova inscrição para o participante Lucas
+
+4. **GET /api/eventos/{eventoId}**
+   - Buscar detalhes dos eventos criados
+
+---
+
+## 🔐 Credenciais para Testes
+
+**Participante**:
+- Email: `lucas.silva@email.com`
+- Senha: `senha123`
+
+**Organizador**:
+- Email: `maria.santos@email.com`
+- Senha: `senha123`
+
+---
+
+## 📌 Notas Importantes
+
+- **UUIDs**: Todos os IDs seguem o padrão UUID v4
+- **Datas**: Eventos em 15, 16 e 20 de setembro de 2026
+- **Timezone**: Horários em UTC (sem fuso horário explícito)
+- **BCrypt**: Hash gerado com custo 10 (padrão Spring Security)
+- **Flyway**: Versão V3, executa após V1 e V2
+- **Rollback**: Flyway não faz rollback automático, faça backup do banco antes
+
+---
+
+**Tarefa #3 Concluída! ✨**
+
+O banco de dados agora possui massa de testes realista para desenvolvimento.

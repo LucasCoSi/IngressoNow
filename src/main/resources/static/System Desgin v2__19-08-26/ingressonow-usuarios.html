@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1">
+ <title>IngressoNow - Gestão de Usuários & Permissões</title>
+ <style>
+ :root{
+ --bg:#F8FAFC;--surface:#FFFFFF;--ink:#0F172A;--muted:#64748B;--line:#E2E8F0;
+ --navy:#1E3A8A;--navy-dark:#0F172A;--nav-active:#1E293B;--cyan:#0284C7;--cyan-soft:#E0F2FE;
+ --mist:#BAE6FD;--font-ui:"Segoe UI",Aptos,system-ui,sans-serif;--font-mono:"SFMono-Regular",Consolas,monospace
+ }
+ *{box-sizing:border-box} html{background:var(--bg)} body{margin:0;color:var(--ink);font:400 15px/1.55 var(--font-ui);background:var(--bg)}
+ button,input,select{font:inherit} button{cursor:pointer} button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--mist);outline-offset:2px}.icon{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto}
+ .app{min-height:100vh;display:grid;grid-template-columns:240px minmax(0,1fr)}
+ .sidebar{background:var(--navy-dark);color:#fff;padding:26px 14px;display:flex;flex-direction:column;position:sticky;inset:0 auto 0 0;height:100vh}
+ .brand{display:flex;align-items:center;gap:10px;margin:0 10px 40px;font-size:20px;font-weight:650;letter-spacing:-.03em}.mark{width:30px;height:30px;border-radius:6px;background:var(--navy);border:1px solid #2749A1;display:grid;place-items:center;color:#fff;font:700 10px var(--font-mono);letter-spacing:.08em}.brand-now{color:#38BDF8}
+ .nav{display:grid;gap:2px}.nav-group{margin:19px 10px 7px;color:#93A7C6;font:600 10px var(--font-mono);letter-spacing:.08em;text-transform:uppercase}.nav-btn{border:0;border-radius:6px;background:transparent;color:#D9E4F4;padding:10px 11px;display:flex;align-items:center;gap:10px;text-align:left;font-size:13px;font-weight:550;transition:background .15s ease,color .15s ease}.nav-btn:hover{background:#16223A;color:#fff}.nav-btn.active{background:var(--nav-active);color:var(--mist);box-shadow:inset 2px 0 0 var(--cyan)}.org{margin-top:auto;border-top:1px solid #283854;padding:16px 10px 0;color:#B7C8E0;font-size:12px}.org strong{display:block;color:#fff;font-weight:600;margin-top:2px}
+ .workspace{min-width:0}.topbar{height:68px;background:var(--surface);border-bottom:1px solid var(--line);padding:0 34px;display:flex;align-items:center;justify-content:space-between;gap:18px;position:sticky;top:0;z-index:2}.search-box{position:relative}.search-box .icon{position:absolute;left:11px;top:10px;color:var(--muted);pointer-events:none;width:16px;height:16px}.search{width:min(392px,45vw);height:38px;border:1px solid var(--line);border-radius:6px;background:#fff;padding:0 12px 0 34px;color:var(--ink)}.search::placeholder{color:#64748B}.profile{display:flex;align-items:center;gap:10px;font-size:12px;font-weight:600}.avatar{width:31px;height:31px;border-radius:50%;background:var(--cyan-soft);color:var(--navy);display:grid;place-items:center;font-size:11px;font-weight:750}
+ .main{max-width:1440px;padding:35px 42px 64px}.context{display:flex;align-items:end;justify-content:space-between;gap:24px;padding-bottom:25px;border-bottom:1px solid var(--line)}.context-label{margin:0 0 7px;color:var(--muted);font:600 11px var(--font-mono);letter-spacing:.06em;text-transform:uppercase}.context h1{margin:0;color:var(--navy);font-size:32px;line-height:1.12;letter-spacing:-.025em;font-weight:650}.context p{margin:8px 0 0;color:var(--muted);max-width:61ch}.context-actions{display:flex;gap:10px;flex-wrap:wrap}
+ .primary{border:0;border-radius:6px;background:#2563EB;color:#fff;padding:11px 15px;font-size:13px;font-weight:700;letter-spacing:.02em;white-space:nowrap;transition:background .15s ease,box-shadow .15s ease;box-shadow:0 6px 16px rgba(2, 132, 199, 0.35)}.primary:active{transform:translateY(1px)}
+ .secondary{border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--navy);padding:9px 12px;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s ease}.secondary:hover{border-color:var(--cyan);color:var(--cyan);background:var(--cyan-soft)}.secondary:active{transform:translateY(1px)}
+
+ .metrics{display:grid;grid-template-columns:repeat(4,1fr);margin:28px 0 34px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}.metric{padding:17px 18px 18px 0;border-right:1px solid var(--line);margin-right:18px}.metric:last-child{border-right:0;margin-right:0}.metric span{display:block;color:var(--muted);font-size:12px;font-weight:550}.metric b{display:block;color:var(--navy);font-size:31px;line-height:1.05;letter-spacing:-.04em;font-weight:650;margin:8px 0 4px}.metric small{color:#10B981;font-size:11px;font-weight:650}
+
+ .filters-section{margin-bottom:24px}.filter-bar{display:flex;align-items:center;gap:16px;padding:18px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+ .search-box.full{flex:1;min-width:300px;position:relative}.search-box.full .icon{width:16px;height:16px}.search-box.full .search{width:100%}
+ .filter-select{border:1px solid var(--line);border-radius:6px;background:#fff;padding:8px 12px;color:var(--ink);font-size:12px;font-weight:550;transition:border-color .15s ease}.filter-select:hover{border-color:var(--cyan)}.filter-select:focus-visible{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(2, 132, 199, 0.1)}
+
+ .users-table{width:100%;border-collapse:collapse;margin-bottom:24px}.users-table thead{border-bottom:2px solid var(--line)}.users-table th{text-align:left;padding:12px 0;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}.users-table tbody tr{border-bottom:1px solid var(--line);transition:background .1s ease}.users-table tbody tr:hover{background:var(--cyan-soft)}.users-table td{padding:16px 0;font-size:13px;color:var(--ink)}.users-table td:first-child{padding-left:0}.users-table td:last-child{text-align:right;padding-right:0}
+
+ .user-info{display:flex;align-items:center;gap:10px}.user-avatar{width:36px;height:36px;border-radius:50%;background:var(--cyan-soft);color:var(--navy);display:grid;place-items:center;font-size:11px;font-weight:700;flex:0 0 auto}.user-details{display:flex;flex-direction:column;gap:2px}.user-name{font-weight:700;font-size:13px}.user-email{font-size:11px;color:var(--muted)}
+
+ .badge{display:inline-block;padding:4px 10px;border-radius:999px;font-size:10px;font-weight:700;white-space:nowrap}
+ .badge-admin{background:#1E3A8A;color:#fff}
+ .badge-organizer{background:var(--cyan-soft);color:#075985}
+ .badge-staff{background:#F1F5F9;color:#475569}
+ .badge-speaker{background:#FEF3C7;color:#92400E}
+ .badge-active{background:#D4EDDA;color:#1B5E20;display:flex;align-items:center;gap:4px}
+ .badge-pending{background:#FEF3CD;color:#856404;display:flex;align-items:center;gap:4px}
+ .badge-inactive{background:#F8D7DA;color:#721C24;display:flex;align-items:center;gap:4px}
+
+ .actions{display:flex;gap:6px}.action-btn{border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--navy);padding:6px 10px;font-size:11px;font-weight:700;cursor:pointer;transition:all .15s ease;white-space:nowrap}.action-btn:hover{border-color:var(--cyan);color:var(--cyan);background:var(--cyan-soft)}.action-btn .icon{width:14px;height:14px}
+
+ .pagination{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:28px;padding-top:28px;border-top:1px solid var(--line)}.pagination-info{font-size:12px;color:var(--muted);min-width:200px;text-align:center}.pagination-btn{border:1px solid var(--line);background:#fff;color:var(--navy);padding:8px 12px;border-radius:4px;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s ease}.pagination-btn:hover:not(:disabled){border-color:var(--cyan);color:var(--cyan);background:var(--cyan-soft)}.pagination-btn:disabled{color:var(--muted);cursor:not-allowed;opacity:.5}
+
+ .mobile-nav{display:none}
+ @media(max-width:1200px){.metrics{grid-template-columns:repeat(2,1fr)}.metric{padding:14px 0;margin:0;border-right:0}.metric:nth-child(odd){border-right:1px solid var(--line);padding-right:14px}.metric:nth-child(even){padding-left:14px}.metric:nth-child(-n+2){border-bottom:1px solid var(--line)}.filter-bar{gap:12px}.search-box.full{flex:1;min-width:200px}}
+ @media(max-width:980px){.app{grid-template-columns:76px minmax(0,1fr)}.sidebar{padding:22px 9px}.brand{margin:0 auto 30px}.brand span:not(.mark),.nav-group,.nav-btn{font-size:0}.nav-btn{height:42px;text-align:center}.nav-btn::first-letter{font-size:13px}.org{display:none}.main{padding:30px}.context{display:block}.context h1{font-size:28px}.context p{font-size:13px}.context-actions{width:100%;margin-top:18px}.primary,.secondary{min-height:44px}.filter-bar{display:grid;grid-template-columns:1fr;gap:12px;padding:12px 0;border:0}.search-box.full{width:100%}.filter-select{width:100%}.users-table th,.users-table td{padding:8px 0;font-size:11px}.users-table th:nth-child(4),.users-table td:nth-child(4){display:none}}
+ @media(max-width:700px){.app{display:block}.sidebar{display:none}.topbar{height:61px;padding:0 16px}.search{width:54vw}.profile span:last-child{display:none}.main{padding:25px 16px 86px}.context{display:block}.context h1{font-size:28px}.context p{font-size:13px}.context-actions{width:100%;margin-top:18px;flex-direction:column}.primary,.secondary{width:100%;min-height:44px;margin-bottom:10px}.metrics{grid-template-columns:1fr;margin:20px 0;border:0}.metric{padding:12px 0;margin:0;border:0}.metric b{font-size:28px}.filter-bar{display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:12px;padding:12px 0;border:0}.search-box.full{width:100%}.filter-select{width:100%;font-size:11px}.users-table{font-size:12px}.users-table th{font-size:10px}.users-table td{padding:12px 0}.users-table th:nth-child(3),.users-table td:nth-child(3),.users-table th:nth-child(4),.users-table td:nth-child(4){display:none}.user-avatar{width:32px;height:32px;font-size:10px}.user-details{gap:1px}.user-name{font-size:12px}.user-email{font-size:10px}.pagination{gap:6px}.pagination-btn{padding:6px 10px;font-size:11px}.pagination-info{min-width:140px}.mobile-nav{position:fixed;display:flex;z-index:4;bottom:0;left:0;right:0;height:66px;background:var(--navy-dark);justify-content:space-around;padding:7px 8px}.mobile-nav button{border:0;background:transparent;color:#BAE6FD;font-size:11px;font-weight:650}.mobile-nav button.active{color:#fff;border-top:2px solid var(--cyan)}}
+ </style>
+</head>
+<body>
+ <svg aria-hidden="true" width="0" height="0" style="position:absolute;overflow:hidden">
+ <defs>
+ <symbol id="i-home" viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1Z"/><path d="M9 21v-7h6v7"/></symbol>
+ <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/></symbol>
+ <symbol id="i-grid" viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></symbol>
+ <symbol id="i-schedule" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v5l3 2"/></symbol>
+ <symbol id="i-inscrição" viewBox="0 0 24 24"><path d="M4 7a2 2 0 0 0 0 4v2a2 2 0 0 0 0 4v1h16v-1a2 2 0 0 0 0-4v-2a2 2 0 0 0 0-4V6H4Z"/><path d="M13 7v10"/></symbol>
+ <symbol id="i-scan" viewBox="0 0 24 24"><path d="M5 9V5h4M15 5h4v4M19 15v4h-4M9 19H5v-4"/><path d="M8 11h3v3H8zM14 10h2v2h-2zM14 14h2v2h-2z"/></symbol>
+ <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.8-5.4 2.8 1-6.1-4.4-4.3 6.1-.9Z"/></symbol>
+ <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 19V5M4 19h16"/><path d="M8 16v-4M12 16V8M16 16v-7"/></symbol>
+ <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M16 5.3a3 3 0 0 1 0 5.4M18 14c1.8.8 3 2.6 3 4.7"/></symbol>
+ <symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.1 2.1-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5v.2h-3v-.2a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1-2.1-2.1.1-.1A1.7 1.7 0 0 0 7 15a1.7 1.7 0 0 0-1.5-1H5.3v-3h.2A1.7 1.7 0 0 0 7 10a1.7 1.7 0 0 0-.3-1.9l-.1-.1 2.1-2.1.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.5v-.2h3v.2a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1 2.1 2.1-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.5 1h.2v3h-.2a1.7 1.7 0 0 0-1.4 1Z"/></symbol>
+ <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="m16 16 4 4"/></symbol>
+ <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="19" cy="12" r="1" fill="currentColor"/></symbol>
+ <symbol id="i-edit" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5Z"/></symbol>
+ <symbol id="i-mail" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 6 10 7 10-7"/></symbol>
+ <symbol id="i-plus" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></symbol>
+ </defs>
+ </svg>
+ <main class="app" data-od-id="users-management">
+ <aside class="sidebar" data-od-id="admin-sidebar">
+ <div class="brand" data-od-id="brand-logo"><span class="mark">IN</span><span>Ingresso<span class="brand-now">Now</span></span></div>
+ <nav class="nav" aria-label="Navegação administrativa">
+ <button class="nav-btn" data-od-id="nav-dashboard"><svg class="icon" aria-hidden="true"><use href="#i-home"/></svg>Dashboard</button>
+ <button class="nav-btn" data-od-id="nav-events"><svg class="icon" aria-hidden="true"><use href="#i-calendar"/></svg>Eventos</button>
+ <button class="nav-btn" data-od-id="nav-activities"><svg class="icon" aria-hidden="true"><use href="#i-grid"/></svg>Atividades</button>
+ <button class="nav-btn" data-od-id="nav-schedule"><svg class="icon" aria-hidden="true"><use href="#i-schedule"/></svg>Programação</button>
+ <button class="nav-btn" data-od-id="nav-enrollments"><svg class="icon" aria-hidden="true"><use href="#i-inscrição"/></svg>Inscrições</button>
+ <button class="nav-btn" data-od-id="nav-attendance"><svg class="icon" aria-hidden="true"><use href="#i-scan"/></svg>Frequência</button>
+ <button class="nav-btn" data-od-id="nav-evaluations"><svg class="icon" aria-hidden="true"><use href="#i-star"/></svg>Avaliações</button>
+ <button class="nav-btn" data-od-id="nav-reports"><svg class="icon" aria-hidden="true"><use href="#i-chart"/></svg>Relatórios</button>
+ <p class="nav-group">Administração</p>
+ <button class="nav-btn active" data-od-id="nav-users"><svg class="icon" aria-hidden="true"><use href="#i-users"/></svg>Usuários</button>
+ <button class="nav-btn" data-od-id="nav-settings"><svg class="icon" aria-hidden="true"><use href="#i-settings"/></svg>Configurações</button>
+ </nav>
+ <div class="org">Organização acadêmica<strong>Centro de Eventos Sul</strong></div>
+ </aside>
+ <section class="workspace">
+ <header class="topbar" data-od-id="admin-header">
+ <div class="search-box"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg><input class="search" data-od-id="global-search" aria-label="Buscar usuários" placeholder="Buscar usuário, evento ou atividade..."></div>
+ <div class="profile"><span class="avatar">MA</span><span>Mariana Azevedo<br><small>Administrador</small></span></div>
+ </header>
+ <section class="main" data-od-id="users-content">
+ <header class="context" data-od-id="users-heading">
+ <div><p class="context-label">Administração & controle</p><h1>Gestão de Usuários & Permissões</h1><p>Gerencie os membros da equipe, atribua papéis de acesso e controle permissões no sistema.</p></div>
+ <div class="context-actions">
+ <button class="primary" data-od-id="invite-user-cta"><svg class="icon" aria-hidden="true" style="width:16px;height:16px"><use href="#i-plus"/></svg> Convidar Novo</button>
+ <button class="secondary" data-od-id="manage-roles-btn"><svg class="icon" aria-hidden="true" style="width:14px;height:14px"><use href="#i-settings"/></svg> Gerenciar Papéis</button>
+ </div>
+ </header>
+
+ <section class="metrics" data-od-id="team-metrics">
+ <article class="metric" data-od-id="metric-total"><span>Total de Membros</span><b>24</b></article>
+ <article class="metric" data-od-id="metric-admins"><span>Organizadores / Admins</span><b>4</b></article>
+ <article class="metric" data-od-id="metric-staff"><span>Equipe de Staff / Check-in</span><b>16</b><small>Operacional</small></article>
+ <article class="metric" data-od-id="metric-pending"><span>Convites Pendentes</span><b>4</b></article>
+ </section>
+
+ <div class="filters-section" data-od-id="filters-container">
+ <div class="filter-bar">
+ <div class="search-box full"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg><input class="search" data-od-id="user-search" placeholder="Buscar usuário por nome, e-mail ou cargo..."></div>
+ <select class="filter-select" data-od-id="role-filter">
+ <option value="">Todos os papéis</option>
+ <option value="admin">Administrador</option>
+ <option value="organizer">Organizador de Evento</option>
+ <option value="staff">Staff / Portaria</option>
+ <option value="speaker">Palestrante</option>
+ </select>
+ <select class="filter-select" data-od-id="status-filter">
+ <option value="">Todos os Status</option>
+ <option value="active">Ativos</option>
+ <option value="pending">Pendentes</option>
+ <option value="inactive">Inativos</option>
+ </select>
+ </div>
+ </div>
+
+ <table class="users-table" data-od-id="users-list">
+ <thead>
+ <tr>
+ <th>Usuário</th>
+ <th>Papel / Função</th>
+ <th>Eventos Atribuídos</th>
+ <th>Último Acesso</th>
+ <th>Status</th>
+ <th style="text-align:right">Ações</th>
+ </tr>
+ </thead>
+ <tbody>
+ <tr data-od-id="user-row-1">
+ <td>
+ <div class="user-info">
+ <div class="user-avatar" style="background:#1E3A8A;color:#fff">MA</div>
+ <div class="user-details">
+ <div class="user-name">Mariana Azevedo</div>
+ <div class="user-email">mariana.azevedo@empresa.com</div>
+ </div>
+ </div>
+ </td>
+ <td><span class="badge badge-admin">Administrador</span></td>
+ <td>Todos os eventos</td>
+ <td>Hoje às 15:10</td>
+ <td><span class="badge badge-active"> Ativo</span></td>
+ <td style="text-align:right">
+ <div class="actions">
+ <button class="action-btn" title="Editar Permissões" data-od-id="edit-perms-1"><svg class="icon" aria-hidden="true"><use href="#i-edit"/></svg></button>
+ <button class="action-btn" title="Opções" data-od-id="menu-user-1"><svg class="icon" aria-hidden="true"><use href="#i-more"/></svg></button>
+ </div>
+ </td>
+ </tr>
+ <tr data-od-id="user-row-2">
+ <td>
+ <div class="user-info">
+ <div class="user-avatar" style="background:var(--cyan-soft);color:#075985">CB</div>
+ <div class="user-details">
+ <div class="user-name">Carlos Brandão</div>
+ <div class="user-email">carlos.brandao@empresa.com</div>
+ </div>
+ </div>
+ </td>
+ <td><span class="badge badge-organizer">Organizador</span></td>
+ <td>Congresso Tecnologia 2026</td>
+ <td>Ontem às 18:45</td>
+ <td><span class="badge badge-active"> Ativo</span></td>
+ <td style="text-align:right">
+ <div class="actions">
+ <button class="action-btn" title="Editar Permissões" data-od-id="edit-perms-2"><svg class="icon" aria-hidden="true"><use href="#i-edit"/></svg></button>
+ <button class="action-btn" title="Opções" data-od-id="menu-user-2"><svg class="icon" aria-hidden="true"><use href="#i-more"/></svg></button>
+ </div>
+ </td>
+ </tr>
+ <tr data-od-id="user-row-3">
+ <td>
+ <div class="user-info">
+ <div class="user-avatar" style="background:#F1F5F9;color:#475569">RG</div>
+ <div class="user-details">
+ <div class="user-name">Rafael Gonçalves</div>
+ <div class="user-email">rafael.goncalves@empresa.com</div>
+ </div>
+ </div>
+ </td>
+ <td><span class="badge badge-staff">Staff / Credenciamento</span></td>
+ <td>Todos os eventos</td>
+ <td>Hoje às 13:22</td>
+ <td><span class="badge badge-active"> Ativo</span></td>
+ <td style="text-align:right">
+ <div class="actions">
+ <button class="action-btn" title="Editar Permissões" data-od-id="edit-perms-3"><svg class="icon" aria-hidden="true"><use href="#i-edit"/></svg></button>
+ <button class="action-btn" title="Opções" data-od-id="menu-user-3"><svg class="icon" aria-hidden="true"><use href="#i-more"/></svg></button>
+ </div>
+ </td>
+ </tr>
+ <tr data-od-id="user-row-4">
+ <td>
+ <div class="user-info">
+ <div class="user-avatar" style="background:var(--cyan-soft);color:#075985">HS</div>
+ <div class="user-details">
+ <div class="user-name">Dra. Helena Souza</div>
+ <div class="user-email">helena.souza@academia.br</div>
+ </div>
+ </div>
+ </td>
+ <td><span class="badge badge-speaker">Palestrante</span></td>
+ <td>Congresso Tecnologia 2026</td>
+ <td>15/08/2026 às 14:05</td>
+ <td><span class="badge badge-active"> Ativo</span></td>
+ <td style="text-align:right">
+ <div class="actions">
+ <button class="action-btn" title="Editar Permissões" data-od-id="edit-perms-4"><svg class="icon" aria-hidden="true"><use href="#i-edit"/></svg></button>
+ <button class="action-btn" title="Opções" data-od-id="menu-user-4"><svg class="icon" aria-hidden="true"><use href="#i-more"/></svg></button>
+ </div>
+ </td>
+ </tr>
+ <tr data-od-id="user-row-5">
+ <td>
+ <div class="user-info">
+ <div class="user-avatar" style="background:#F1F5F9;color:#475569">AC</div>
+ <div class="user-details">
+ <div class="user-name">Ana Costa</div>
+ <div class="user-email">ana.costa@empresa.com</div>
+ </div>
+ </div>
+ </td>
+ <td><span class="badge badge-staff">Staff / Credenciamento</span></td>
+ <td>Simpósio Dados 2026</td>
+ <td>Hoje às 10:50</td>
+ <td><span class="badge badge-active"> Ativo</span></td>
+ <td style="text-align:right">
+ <div class="actions">
+ <button class="action-btn" title="Editar Permissões" data-od-id="edit-perms-5"><svg class="icon" aria-hidden="true"><use href="#i-edit"/></svg></button>
+ <button class="action-btn" title="Opções" data-od-id="menu-user-5"><svg class="icon" aria-hidden="true"><use href="#i-more"/></svg></button>
+ </div>
+ </td>
+ </tr>
+ <tr data-od-id="user-row-6">
+ <td>
+ <div class="user-info">
+ <div class="user-avatar">FG</div>
+ <div class="user-details">
+ <div class="user-name">Fernanda Garcia</div>
+ <div class="user-email">fernanda.garcia@startup.io</div>
+ </div>
+ </div>
+ </td>
+ <td><span class="badge badge-organizer">Organizador</span></td>
+ <td>Summit Inovação 2026</td>
+ <td>14/08/2026 às 16:32</td>
+ <td><span class="badge badge-active"> Ativo</span></td>
+ <td style="text-align:right">
+ <div class="actions">
+ <button class="action-btn" title="Editar Permissões" data-od-id="edit-perms-6"><svg class="icon" aria-hidden="true"><use href="#i-edit"/></svg></button>
+ <button class="action-btn" title="Opções" data-od-id="menu-user-6"><svg class="icon" aria-hidden="true"><use href="#i-more"/></svg></button>
+ </div>
+ </td>
+ </tr>
+ <tr data-od-id="user-row-7">
+ <td>
+ <div class="user-info">
+ <div class="user-avatar" style="background:#F1F5F9;color:#475569">LS</div>
+ <div class="user-details">
+ <div class="user-name">Lucas Santos</div>
+ <div class="user-email">lucas.santos@empresa.com</div>
+ </div>
+ </div>
+ </td>
+ <td><span class="badge badge-staff">Staff / Credenciamento</span></td>
+ <td>Todos os eventos</td>
+ <td>16/08/2026 às 09:15</td>
+ <td><span class="badge badge-pending">🟡 Convite Pendente</span></td>
+ <td style="text-align:right">
+ <div class="actions">
+ <button class="action-btn" title="Reenviar Convite" data-od-id="resend-7"><svg class="icon" aria-hidden="true"><use href="#i-mail"/></svg></button>
+ <button class="action-btn" title="Opções" data-od-id="menu-user-7"><svg class="icon" aria-hidden="true"><use href="#i-more"/></svg></button>
+ </div>
+ </td>
+ </tr>
+ <tr data-od-id="user-row-8">
+ <td>
+ <div class="user-info">
+ <div class="user-avatar" style="background:var(--cyan-soft);color:#075985">BP</div>
+ <div class="user-details">
+ <div class="user-name">Bruno Pereira</div>
+ <div class="user-email">bruno.pereira@empresa.com</div>
+ </div>
+ </div>
+ </td>
+ <td><span class="badge badge-organizer">Organizador</span></td>
+ <td>Jornada Arquitetura 2026</td>
+ <td>13/08/2026 às 11:40</td>
+ <td><span class="badge badge-inactive">🔴 Inativo</span></td>
+ <td style="text-align:right">
+ <div class="actions">
+ <button class="action-btn" title="Editar Permissões" data-od-id="edit-perms-8"><svg class="icon" aria-hidden="true"><use href="#i-edit"/></svg></button>
+ <button class="action-btn" title="Opções" data-od-id="menu-user-8"><svg class="icon" aria-hidden="true"><use href="#i-more"/></svg></button>
+ </div>
+ </td>
+ </tr>
+ <tr data-od-id="user-row-9">
+ <td>
+ <div class="user-info">
+ <div class="user-avatar" style="background:#FEF3C7;color:#92400E">JP</div>
+ <div class="user-details">
+ <div class="user-name">Juliana Prado</div>
+ <div class="user-email">juliana.prado@org.br</div>
+ </div>
+ </div>
+ </td>
+ <td><span class="badge badge-speaker">Palestrante</span></td>
+ <td>Summit Inovação 2026</td>
+ <td>Hoje às 12:05</td>
+ <td><span class="badge badge-active"> Ativo</span></td>
+ <td style="text-align:right">
+ <div class="actions">
+ <button class="action-btn" title="Editar Permissões" data-od-id="edit-perms-9"><svg class="icon" aria-hidden="true"><use href="#i-edit"/></svg></button>
+ <button class="action-btn" title="Opções" data-od-id="menu-user-9"><svg class="icon" aria-hidden="true"><use href="#i-more"/></svg></button>
+ </div>
+ </td>
+ </tr>
+ <tr data-od-id="user-row-10">
+ <td>
+ <div class="user-info">
+ <div class="user-avatar">MC</div>
+ <div class="user-details">
+ <div class="user-name">Marcelo Costa</div>
+ <div class="user-email">marcelo.costa@univ.edu</div>
+ </div>
+ </div>
+ </td>
+ <td><span class="badge badge-speaker">Palestrante</span></td>
+ <td>Simpósio Dados 2026</td>
+ <td>16/08/2026 às 14:30</td>
+ <td><span class="badge badge-pending">🟡 Convite Pendente</span></td>
+ <td style="text-align:right">
+ <div class="actions">
+ <button class="action-btn" title="Reenviar Convite" data-od-id="resend-10"><svg class="icon" aria-hidden="true"><use href="#i-mail"/></svg></button>
+ <button class="action-btn" title="Opções" data-od-id="menu-user-10"><svg class="icon" aria-hidden="true"><use href="#i-more"/></svg></button>
+ </div>
+ </td>
+ </tr>
+ </tbody>
+ </table>
+
+ <div class="pagination" data-od-id="pagination-controls">
+ <button class="pagination-btn" data-od-id="prev-page">← Anterior</button>
+ <div class="pagination-info">Exibindo <b>1-10</b> de <b>24</b> usuários</div>
+ <button class="pagination-btn" data-od-id="next-page">Próxima →</button>
+ </div>
+ </section>
+ </section>
+ </main>
+ <nav class="mobile-nav" aria-label="Navegação móvel"><button class="active">Início</button><button>Eventos</button><button>Agenda</button><button>Mais</button></nav>
+ <script>
+ document.querySelectorAll('.nav-btn').forEach(function(button){button.addEventListener('click',function(){document.querySelectorAll('.nav-btn').forEach(function(item){item.classList.remove('active')});button.classList.add('active')})});
+ </script>
+</body>
+</html>

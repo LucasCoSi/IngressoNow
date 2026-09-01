@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1">
+ <title>IngressoNow - Programação & Cronograma</title>
+ <style>
+ :root{
+ --bg:#F8FAFC;--surface:#FFFFFF;--ink:#0F172A;--muted:#64748B;--line:#E2E8F0;
+ --navy:#1E3A8A;--navy-dark:#0F172A;--nav-active:#1E293B;--cyan:#0284C7;--cyan-soft:#E0F2FE;
+ --mist:#BAE6FD;--font-ui:"Segoe UI",Aptos,system-ui,sans-serif;--font-mono:"SFMono-Regular",Consolas,monospace
+ }
+ *{box-sizing:border-box} html{background:var(--bg)} body{margin:0;color:var(--ink);font:400 15px/1.55 var(--font-ui);background:var(--bg)}
+ button,input,select{font:inherit} button{cursor:pointer} button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--mist);outline-offset:2px}.icon{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto}
+ .app{min-height:100vh;display:grid;grid-template-columns:240px minmax(0,1fr)}
+ .sidebar{background:var(--navy-dark);color:#fff;padding:26px 14px;display:flex;flex-direction:column;position:sticky;inset:0 auto 0 0;height:100vh}
+ .brand{display:flex;align-items:center;gap:10px;margin:0 10px 40px;font-size:20px;font-weight:650;letter-spacing:-.03em}.mark{width:30px;height:30px;border-radius:6px;background:var(--navy);border:1px solid #2749A1;display:grid;place-items:center;color:#fff;font:700 10px var(--font-mono);letter-spacing:.08em}.brand-now{color:#38BDF8}
+ .nav{display:grid;gap:2px}.nav-group{margin:19px 10px 7px;color:#93A7C6;font:600 10px var(--font-mono);letter-spacing:.08em;text-transform:uppercase}.nav-btn{border:0;border-radius:6px;background:transparent;color:#D9E4F4;padding:10px 11px;display:flex;align-items:center;gap:10px;text-align:left;font-size:13px;font-weight:550;transition:background .15s ease,color .15s ease}.nav-btn:hover{background:#16223A;color:#fff}.nav-btn.active{background:var(--nav-active);color:var(--mist);box-shadow:inset 2px 0 0 var(--cyan)}.org{margin-top:auto;border-top:1px solid #283854;padding:16px 10px 0;color:#B7C8E0;font-size:12px}.org strong{display:block;color:#fff;font-weight:600;margin-top:2px}
+ .workspace{min-width:0}.topbar{height:68px;background:var(--surface);border-bottom:1px solid var(--line);padding:0 34px;display:flex;align-items:center;justify-content:space-between;gap:18px;position:sticky;top:0;z-index:2}.search-box{position:relative}.search-box .icon{position:absolute;left:11px;top:10px;color:var(--muted);pointer-events:none;width:16px;height:16px}.search{width:min(392px,45vw);height:38px;border:1px solid var(--line);border-radius:6px;background:#fff;padding:0 12px 0 34px;color:var(--ink)}.search::placeholder{color:#64748B}.profile{display:flex;align-items:center;gap:10px;font-size:12px;font-weight:600}.avatar{width:31px;height:31px;border-radius:50%;background:var(--cyan-soft);color:var(--navy);display:grid;place-items:center;font-size:11px;font-weight:750}
+ .main{max-width:1600px;padding:35px 42px 64px}.context{display:flex;align-items:end;justify-content:space-between;gap:24px;padding-bottom:25px;border-bottom:1px solid var(--line)}.context-label{margin:0 0 7px;color:var(--muted);font:600 11px var(--font-mono);letter-spacing:.06em;text-transform:uppercase}.context h1{margin:0;color:var(--navy);font-size:32px;line-height:1.12;letter-spacing:-.025em;font-weight:650}.context p{margin:8px 0 0;color:var(--muted);max-width:61ch}.context-actions{display:flex;gap:10px;flex-wrap:wrap}
+ .primary{border:0;border-radius:6px;background:#2563EB;color:#fff;padding:11px 15px;font-size:13px;font-weight:700;letter-spacing:.02em;white-space:nowrap;transition:background .15s ease,box-shadow .15s ease;box-shadow:0 6px 16px rgba(2, 132, 199, 0.35)}.primary:active{transform:translateY(1px)}
+ .secondary{border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--navy);padding:9px 12px;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s ease}.secondary:hover{border-color:var(--cyan);color:var(--cyan);background:var(--cyan-soft)}.secondary:active{transform:translateY(1px)}
+
+ .schedule-controls{display:flex;align-items:center;gap:20px;margin-bottom:24px;padding:18px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+ .event-selector{display:flex;align-items:center;gap:8px}.event-label{font-size:12px;font-weight:600;color:var(--muted);white-space:nowrap}.event-dropdown{border:1px solid var(--line);border-radius:6px;background:#fff;padding:9px 12px;color:var(--ink);font-size:12px;font-weight:550;min-width:300px;transition:border-color .15s ease}.event-dropdown:hover{border-color:var(--cyan)}.event-dropdown:focus-visible{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(2, 132, 199, 0.1)}
+
+ .day-tabs{display:flex;gap:8px;flex-wrap:wrap}.day-tab{border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--navy);padding:8px 14px;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s ease;white-space:nowrap}.day-tab:hover{border-color:var(--cyan);background:var(--cyan-soft)}.day-tab.active{background:var(--navy);color:#fff;border-color:var(--navy)}.day-tab-date{display:block;font-size:10px;color:var(--muted);margin-top:2px}.day-tab.active .day-tab-date{color:var(--mist)}
+
+ .filters-group{display:flex;gap:12px;flex-wrap:wrap;margin-left:auto}.filter-select{border:1px solid var(--line);border-radius:6px;background:#fff;padding:8px 12px;color:var(--ink);font-size:12px;font-weight:550;transition:border-color .15s ease}.filter-select:hover{border-color:var(--cyan)}.filter-select:focus-visible{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(2, 132, 199, 0.1)}
+
+ .status-banner{margin-bottom:24px;padding:14px 16px;border-radius:8px;display:flex;align-items:center;justify-content:space-between;gap:16px;background:#D4EDDA;border:1px solid #C3E6CB}.status-banner-content{display:flex;align-items:center;gap:10px;flex:1}.status-icon{font-size:18px}.status-text{font-size:12px;color:#1B5E20;font-weight:550}.status-metrics{display:flex;gap:20px;font-size:12px;color:#1B5E20;margin-left:auto}.status-metric{display:flex;align-items:center;gap:6px}
+
+ .schedule-grid{background:#fff;border:1px solid var(--line);border-radius:8px;overflow-x:auto;margin-bottom:24px}
+ .grid-container{display:grid;grid-template-columns:100px repeat(3, minmax(280px, 1fr));min-width:100%;background:#fff}
+ .grid-header{display:contents}.grid-header-time{background:#F1F5F9;border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:16px 12px;font-size:11px;font-weight:700;text-transform:uppercase;color:var(--muted);text-align:center}.grid-header-room{background:#F1F5F9;border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:16px 12px;font-size:12px;font-weight:700;color:var(--navy);text-align:center;line-height:1.3}
+
+ .grid-row{display:contents}.grid-time-slot{background:#fff;border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:12px;font-size:11px;font-weight:600;color:var(--muted);text-align:center;position:sticky;left:0;z-index:1;background:#2563EB}
+ .grid-cell{border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:12px;min-height:100px;display:flex;align-items:flex-start;background:#fff;position:relative}
+ .grid-cell:last-child{border-right:0}
+
+ .session-card{width:100%;background:#2563EB 0%, rgba(56, 189, 248, 0.08) 100%);border:1px solid var(--cyan-soft);border-radius:6px;padding:12px;display:flex;flex-direction:column;gap:6px;cursor:pointer;transition:all .2s ease;min-height:80px;justify-content:space-between}.session-card:hover{border-color:var(--cyan);transform:translateY(-2px)}.session-title{font-size:12px;font-weight:700;color:var(--navy);line-height:1.3}.session-speaker{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:4px}.session-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:2px}.session-category{font-size:9px;font-weight:700;letter-spacing:.02em;text-transform:uppercase;background:var(--cyan);color:#fff;padding:2px 6px;border-radius:2px}.session-capacity{font-size:10px;font-weight:600;color:var(--cyan);background:rgba(2, 132, 199, 0.1);padding:2px 6px;border-radius:3px}
+
+ .session-card.full{background:#2563EB 0%, rgba(248, 113, 113, 0.08) 100%);border-color:#FECACA}.session-card.full .session-title{color:#991B1B}.session-card.full .session-capacity{color:#DC2626;background:rgba(220, 38, 38, 0.1)}
+
+ .session-card.break{background:#2563EB 0%, rgba(156, 163, 175, 0.08) 100%);border-color:#E5E7EB}.session-card.break .session-title{color:#374151}.session-card.break .session-category{background:#6B7280;color:#fff}
+
+ .break-span{grid-column:2 / -1}.break-span .session-card{min-height:60px}
+
+ .metrics-footer{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 0;border-top:1px solid var(--line);flex-wrap:wrap}.metric-item{font-size:12px;color:var(--muted)}.metric-item strong{color:var(--ink);font-weight:700}
+
+ .mobile-nav{display:none}
+ @media(max-width:1200px){.grid-container{grid-template-columns:100px repeat(2, minmax(280px, 1fr))}.schedule-controls{gap:12px}.event-dropdown{min-width:200px}.filters-group{width:100%;margin-left:0;order:3}}
+ @media(max-width:980px){.app{grid-template-columns:76px minmax(0,1fr)}.sidebar{padding:22px 9px}.brand{margin:0 auto 30px}.brand span:not(.mark),.nav-group,.nav-btn{font-size:0}.nav-btn{height:42px;text-align:center}.nav-btn::first-letter{font-size:13px}.org{display:none}.main{padding:30px}.context{display:block}.context h1{font-size:28px}.context p{font-size:13px}.context-actions{width:100%;margin-top:18px}.primary,.secondary{min-height:44px}.schedule-controls{display:grid;grid-template-columns:1fr;gap:12px}.event-dropdown{width:100%}.day-tabs{width:100%}.filters-group{width:100%;margin-left:0}.grid-container{grid-template-columns:100px repeat(1, 1fr)}}
+ @media(max-width:700px){.app{display:block}.sidebar{display:none}.topbar{height:61px;padding:0 16px}.search{width:54vw}.profile span:last-child{display:none}.main{padding:25px 16px 86px}.context{display:block}.context h1{font-size:28px}.context p{font-size:13px}.context-actions{width:100%;margin-top:18px}.primary,.secondary{width:100%;min-height:44px;margin-bottom:10px}.schedule-controls{display:grid;grid-template-columns:1fr;gap:12px}.event-dropdown{width:100%}.day-tabs{width:100%;overflow-x:auto;padding-bottom:8px}.filters-group{width:100%;margin-left:0}.status-banner{flex-direction:column;align-items:flex-start}.status-metrics{width:100%;margin-left:0;gap:12px;flex-wrap:wrap}.grid-container{grid-template-columns:80px 1fr}.session-card{min-height:70px;padding:10px}.session-title{font-size:11px}.session-speaker{font-size:10px}.metrics-footer{flex-direction:column;align-items:flex-start;gap:10px}.mobile-nav{position:fixed;display:flex;z-index:4;bottom:0;left:0;right:0;height:66px;background:var(--navy-dark);justify-content:space-around;padding:7px 8px}.mobile-nav button{border:0;background:transparent;color:#BAE6FD;font-size:11px;font-weight:650}.mobile-nav button.active{color:#fff;border-top:2px solid var(--cyan)}}
+ </style>
+</head>
+<body>
+ <svg aria-hidden="true" width="0" height="0" style="position:absolute;overflow:hidden">
+ <defs>
+ <symbol id="i-home" viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1Z"/><path d="M9 21v-7h6v7"/></symbol>
+ <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/></symbol>
+ <symbol id="i-grid" viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></symbol>
+ <symbol id="i-schedule" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v5l3 2"/></symbol>
+ <symbol id="i-ticket" viewBox="0 0 24 24"><path d="M4 7a2 2 0 0 0 0 4v2a2 2 0 0 0 0 4v1h16v-1a2 2 0 0 0 0-4v-2a2 2 0 0 0 0-4V6H4Z"/><path d="M13 7v10"/></symbol>
+ <symbol id="i-scan" viewBox="0 0 24 24"><path d="M5 9V5h4M15 5h4v4M19 15v4h-4M9 19H5v-4"/><path d="M8 11h3v3H8zM14 10h2v2h-2zM14 14h2v2h-2z"/></symbol>
+ <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.8-5.4 2.8 1-6.1-4.4-4.3 6.1-.9Z"/></symbol>
+ <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 19V5M4 19h16"/><path d="M8 16v-4M12 16V8M16 16v-7"/></symbol>
+ <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M16 5.3a3 3 0 0 1 0 5.4M18 14c1.8.8 3 2.6 3 4.7"/></symbol>
+ <symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.1 2.1-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5v.2h-3v-.2a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1-2.1-2.1.1-.1A1.7 1.7 0 0 0 7 15a1.7 1.7 0 0 0-1.5-1H5.3v-3h.2A1.7 1.7 0 0 0 7 10a1.7 1.7 0 0 0-.3-1.9l-.1-.1 2.1-2.1.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.5v-.2h3v.2a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1 2.1 2.1-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.5 1h.2v3h-.2a1.7 1.7 0 0 0-1.4 1Z"/></symbol>
+ <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="m16 16 4 4"/></symbol>
+ <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="19" cy="12" r="1" fill="currentColor"/></symbol>
+ <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></symbol>
+ </defs>
+ </svg>
+ <main class="app" data-od-id="schedule-management">
+ <aside class="sidebar" data-od-id="admin-sidebar">
+ <div class="brand" data-od-id="brand-logo"><span class="mark">IN</span><span>Ingresso<span class="brand-now">Now</span></span></div>
+ <nav class="nav" aria-label="Navegação administrativa">
+ <button class="nav-btn" data-od-id="nav-dashboard"><svg class="icon" aria-hidden="true"><use href="#i-home"/></svg>Dashboard</button>
+ <button class="nav-btn" data-od-id="nav-events"><svg class="icon" aria-hidden="true"><use href="#i-calendar"/></svg>Eventos</button>
+ <button class="nav-btn" data-od-id="nav-activities"><svg class="icon" aria-hidden="true"><use href="#i-grid"/></svg>Atividades</button>
+ <button class="nav-btn active" data-od-id="nav-schedule"><svg class="icon" aria-hidden="true"><use href="#i-schedule"/></svg>Programação</button>
+ <button class="nav-btn" data-od-id="nav-enrollments"><svg class="icon" aria-hidden="true"><use href="#i-ticket"/></svg>Inscrições</button>
+ <button class="nav-btn" data-od-id="nav-attendance"><svg class="icon" aria-hidden="true"><use href="#i-scan"/></svg>Frequência</button>
+ <button class="nav-btn" data-od-id="nav-evaluations"><svg class="icon" aria-hidden="true"><use href="#i-star"/></svg>Avaliações</button>
+ <button class="nav-btn" data-od-id="nav-reports"><svg class="icon" aria-hidden="true"><use href="#i-chart"/></svg>Relatórios</button>
+ <p class="nav-group">Administração</p>
+ <button class="nav-btn" data-od-id="nav-users"><svg class="icon" aria-hidden="true"><use href="#i-users"/></svg>Usuários</button>
+ <button class="nav-btn" data-od-id="nav-settings"><svg class="icon" aria-hidden="true"><use href="#i-settings"/></svg>Configurações</button>
+ </nav>
+ <div class="org">Organização acadêmica<strong>Centro de Eventos Sul</strong></div>
+ </aside>
+ <section class="workspace">
+ <header class="topbar" data-od-id="admin-header">
+ <div class="search-box"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg><input class="search" data-od-id="global-search" aria-label="Buscar" placeholder="Buscar atividade, palestrante ou sala..."></div>
+ <div class="profile"><span class="avatar">MA</span><span>Mariana Azevedo<br><small>Organizadora</small></span></div>
+ </header>
+ <section class="main" data-od-id="schedule-content">
+ <header class="context" data-od-id="schedule-heading">
+ <div><p class="context-label">Gestão de programação</p><h1>Programação & Cronograma</h1><p>Gerencie a grade horária, salas, palestrantes e choque de horários do evento.</p></div>
+ <div class="context-actions">
+ <button class="primary" data-od-id="add-to-schedule-cta">+ Adicionar à Grade</button>
+ <button class="secondary" data-od-id="export-agenda-btn"><svg class="icon" aria-hidden="true" style="width:14px;height:14px"><use href="#i-download"/></svg> Exportar Agenda</button>
+ <select class="secondary" style="padding:9px 10px;cursor:pointer" data-od-id="view-toggle">
+ <option>Visão de Grade</option>
+ <option>Visão de Lista</option>
+ </select>
+ </div>
+ </header>
+
+ <div class="schedule-controls" data-od-id="schedule-filters">
+ <div class="event-selector">
+ <label class="event-label" for="event-select">Evento:</label>
+ <select class="event-dropdown" id="event-select" data-od-id="event-dropdown">
+ <option value="">Congresso Brasileiro de Tecnologia e Inovação 2026</option>
+ <option value="symposium">Simpósio de Ciência de Dados Aplicada</option>
+ <option value="architecture">Jornada de Arquitetura de Software</option>
+ </select>
+ </div>
+
+ <div class="day-tabs" data-od-id="day-tabs">
+ <button class="day-tab active" data-od-id="day-1">
+ <span>Dia 1</span>
+ <span class="day-tab-date">10 de outubro</span>
+ </button>
+ <button class="day-tab" data-od-id="day-2">
+ <span>Dia 2</span>
+ <span class="day-tab-date">11 de outubro</span>
+ </button>
+ <button class="day-tab" data-od-id="day-3">
+ <span>Dia 3</span>
+ <span class="day-tab-date">12 de outubro</span>
+ </button>
+ </div>
+
+ <div class="filters-group">
+ <select class="filter-select" data-od-id="room-filter">
+ <option value="">Todas as salas</option>
+ <option value="auditorio-a">Auditório A (Principal)</option>
+ <option value="lab-2">Laboratório de Informática 2</option>
+ <option value="sala-b">Sala de Palestras B</option>
+ </select>
+ <select class="filter-select" data-od-id="track-filter">
+ <option value="">Todas as trilhas</option>
+ <option value="backend">Backend</option>
+ <option value="frontend">Frontend</option>
+ <option value="architecture">Arquitetura</option>
+ </select>
+ </div>
+ </div>
+
+ <div class="status-banner" data-od-id="schedule-status">
+ <div class="status-banner-content">
+ <div class="status-icon"></div>
+ <div class="status-text">Nenhuma sobreposição de horário ou sala detectada nesta programação.</div>
+ </div>
+ <div class="status-metrics">
+ <div class="status-metric"><strong>18</strong> sessões</div>
+ <div class="status-metric"><strong>3</strong> auditórios</div>
+ <div class="status-metric"><strong>100%</strong> palestrantes</div>
+ </div>
+ </div>
+
+ <div class="schedule-grid" data-od-id="schedule-grid">
+ <div class="grid-container">
+ <div class="grid-header">
+ <div class="grid-header-time">Horário</div>
+ <div class="grid-header-room">Auditório A<br>(Principal)</div>
+ <div class="grid-header-room">Lab de Informática 2</div>
+ <div class="grid-header-room">Sala de Palestras B</div>
+ </div>
+
+ <div class="grid-row">
+ <div class="grid-time-slot">08:00</div>
+ <div class="grid-cell"></div>
+ <div class="grid-cell"></div>
+ <div class="grid-cell"></div>
+ </div>
+
+ <div class="grid-row">
+ <div class="grid-time-slot">09:00</div>
+ <div class="grid-cell">
+ <div class="session-card">
+ <div class="session-title">Abertura e Palestra Inaugural</div>
+ <div class="session-meta">
+ <span class="session-category">Palestra</span>
+ <span class="session-capacity">184/200</span>
+ </div>
+ <div class="session-speaker">👤 Dra. Helena Souza</div>
+ </div>
+ </div>
+ <div class="grid-cell"></div>
+ <div class="grid-cell"></div>
+ </div>
+
+ <div class="grid-row">
+ <div class="grid-time-slot">10:00</div>
+ <div class="grid-cell"></div>
+ <div class="grid-cell">
+ <div class="session-card">
+ <div class="session-title">Fundamentos de React Moderno</div>
+ <div class="session-meta">
+ <span class="session-category">Workshop</span>
+ <span class="session-capacity">26/30</span>
+ </div>
+ <div class="session-speaker">👤 Prof. Ana Costa</div>
+ </div>
+ </div>
+ <div class="grid-cell">
+ <div class="session-card">
+ <div class="session-title">Segurança em APIs Web</div>
+ <div class="session-meta">
+ <span class="session-category">Palestra</span>
+ <span class="session-capacity">78/100</span>
+ </div>
+ <div class="session-speaker">👤 Bruno Silva</div>
+ </div>
+ </div>
+ </div>
+
+ <div class="grid-row">
+ <div class="grid-time-slot">11:00</div>
+ <div class="grid-cell">
+ <div class="session-card">
+ <div class="session-title">Workshop de APIs REST em Java</div>
+ <div class="session-meta">
+ <span class="session-category">Workshop</span>
+ <span class="session-capacity">30/30</span>
+ </div>
+ <div class="session-speaker">👤 Prof. Carlos Lima</div>
+ </div>
+ </div>
+ <div class="grid-cell"></div>
+ <div class="grid-cell">
+ <div class="session-card">
+ <div class="session-title">Design Patterns em Microserviços</div>
+ <div class="session-meta">
+ <span class="session-category">Palestra</span>
+ <span class="session-capacity">95/120</span>
+ </div>
+ <div class="session-speaker">👤 Dr. Marcelo Costa</div>
+ </div>
+ </div>
+ </div>
+
+ <div class="grid-row">
+ <div class="grid-time-slot">12:00</div>
+ <div class="grid-cell break-span">
+ <div class="session-card break">
+ <div class="session-title">🍽️ Almoço & Feira de Projetos</div>
+ <div class="session-meta" style="margin-top:4px">
+ <span class="session-category">Intervalo</span>
+ </div>
+ </div>
+ </div>
+ </div>
+
+ <div class="grid-row">
+ <div class="grid-time-slot">14:00</div>
+ <div class="grid-cell"></div>
+ <div class="grid-cell">
+ <div class="session-card">
+ <div class="session-title">Backend em NodeJS + Express</div>
+ <div class="session-meta">
+ <span class="session-category">Workshop</span>
+ <span class="session-capacity">22/25</span>
+ </div>
+ <div class="session-speaker">👤 Lucas Ferreira</div>
+ </div>
+ </div>
+ <div class="grid-cell"></div>
+ </div>
+
+ <div class="grid-row">
+ <div class="grid-time-slot">15:00</div>
+ <div class="grid-cell">
+ <div class="session-card">
+ <div class="session-title">Painel: IA na Prática</div>
+ <div class="session-meta">
+ <span class="session-category">Painel</span>
+ <span class="session-capacity">250/250</span>
+ </div>
+ <div class="session-speaker">👤 Carlos Brandão</div>
+ </div>
+ </div>
+ <div class="grid-cell">
+ <div class="session-card">
+ <div class="session-title">Vue 3 - Reatividade Avançada</div>
+ <div class="session-meta">
+ <span class="session-category">Workshop</span>
+ <span class="session-capacity">18/20</span>
+ </div>
+ <div class="session-speaker">👤 Sofia Mendez</div>
+ </div>
+ </div>
+ <div class="grid-cell">
+ <div class="session-card full">
+ <div class="session-title">Cloud Architecture na AWS</div>
+ <div class="session-meta">
+ <span class="session-category">Palestra</span>
+ <span class="session-capacity">100/100</span>
+ </div>
+ <div class="session-speaker">👤 Rafael Santos</div>
+ </div>
+ </div>
+ </div>
+
+ <div class="grid-row">
+ <div class="grid-time-slot">16:00</div>
+ <div class="grid-cell">
+ <div class="session-card">
+ <div class="session-title">Masterclass: Escalabilidade</div>
+ <div class="session-meta">
+ <span class="session-category">Masterclass</span>
+ <span class="session-capacity">45/60</span>
+ </div>
+ <div class="session-speaker">👤 Dra. Juliana Rocha</div>
+ </div>
+ </div>
+ <div class="grid-cell"></div>
+ <div class="grid-cell"></div>
+ </div>
+
+ <div class="grid-row">
+ <div class="grid-time-slot">17:00</div>
+ <div class="grid-cell"></div>
+ <div class="grid-cell"></div>
+ <div class="grid-cell">
+ <div class="session-card">
+ <div class="session-title">Encerramento do Dia</div>
+ <div class="session-meta">
+ <span class="session-category">Palestra</span>
+ <span class="session-capacity">184/200</span>
+ </div>
+ <div class="session-speaker">👤 Organizadores</div>
+ </div>
+ </div>
+ </div>
+ </div>
+ </div>
+
+ <div class="metrics-footer" data-od-id="schedule-metrics">
+ <div class="metric-item"> <strong>18 sessões cadastradas</strong> nesta grade</div>
+ <div class="metric-item">🏢 <strong>3 auditórios</strong> em uso simultâneo</div>
+ <div class="metric-item"> <strong>100% de palestrantes confirmados</strong> para esta programação</div>
+ <div class="metric-item">⏰ Duração: <strong>8h</strong> de programação</div>
+ </div>
+ </section>
+ </section>
+ </main>
+ <nav class="mobile-nav" aria-label="Navegação móvel"><button class="active">Início</button><button>Eventos</button><button>Agenda</button><button>Mais</button></nav>
+ <script>
+ document.querySelectorAll('.nav-btn').forEach(function(button){button.addEventListener('click',function(){document.querySelectorAll('.nav-btn').forEach(function(item){item.classList.remove('active')});button.classList.add('active')})});
+ document.querySelectorAll('.day-tab').forEach(function(tab){tab.addEventListener('click',function(){document.querySelectorAll('.day-tab').forEach(function(item){item.classList.remove('active')});tab.classList.add('active')})});
+ </script>
+</body>
+</html>
