@@ -121,8 +121,13 @@ public class GlobalExceptionHandler {
                 request.getRequestURI()));
     }
 
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<StandardError> handleGenericException(Exception ex, HttpServletRequest request) {
+    @ExceptionHandler(value = Exception.class)
+    public ResponseEntity<StandardError> handleGenericException(Exception ex, HttpServletRequest request) throws Exception {
+        // Deixa o Spring tratar erros de infra (favicon ausente, /error interno)
+        // em vez de mascarar como 500 da API
+        if (request.getRequestURI().equals("/favicon.ico") || request.getRequestURI().equals("/error")) {
+            throw ex;
+        }
         return ResponseEntity
             .status(HttpStatus.INTERNAL_SERVER_ERROR)
             .body(new StandardError(

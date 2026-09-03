@@ -141,7 +141,18 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 
+    function exigirLogin() {
+        const token = window.Auth ? window.Auth.getToken() : null;
+        if (!token) {
+            window.API.exibirErro(new window.API.APIError('Faca login como organizador para gerenciar eventos.', 403));
+            setTimeout(() => { window.location.href = '/login'; }, 1500);
+            return false;
+        }
+        return true;
+    }
+
     async function editarEvento(eventoId) {
+        if (!exigirLogin()) return;
         const evento = eventosCache.find(ev => ev.id === eventoId);
         const tituloAtual = evento ? evento.titulo : '';
         const novoTitulo = prompt('Novo titulo do evento:', tituloAtual);
@@ -157,6 +168,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     async function excluirEvento(eventoId) {
+        if (!exigirLogin()) return;
         if (!confirm('Tem certeza que deseja excluir este evento?')) return;
         try {
             await window.API.Eventos.deletar(eventoId);

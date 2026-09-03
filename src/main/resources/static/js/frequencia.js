@@ -1,4 +1,4 @@
-﻿/**
+/**
  * frequencia.js - Controle de Frequencia e Check-in
  * Integracao da pagina ingressonow-frequencia.html com /api/controle
  */

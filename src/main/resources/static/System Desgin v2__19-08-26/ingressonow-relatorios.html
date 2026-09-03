@@ -233,8 +233,16 @@
  </section>
  </main>
  <nav class="mobile-nav" aria-label="Navegação móvel"><button class="active">Início</button><button>Eventos</button><button>Agenda</button><button>Mais</button></nav>
+ <!-- Container para alertas de erro/sucesso -->
+ <div id="error-container"></div>
+
  <script>
  document.querySelectorAll('.nav-btn').forEach(function(button){button.addEventListener('click',function(){document.querySelectorAll('.nav-btn').forEach(function(item){item.classList.remove('active')});button.classList.add('active')})});
  </script>
+
+ <!-- Integração com Backend REST -->
+ <link rel="stylesheet" href="/css/alerts.css">
+ <script src="/js/api-client.js"></script>
+ <script src="/js/relatorios.js"></script>
 </body>
 </html>

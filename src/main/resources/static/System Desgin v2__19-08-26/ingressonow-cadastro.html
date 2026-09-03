@@ -123,6 +123,14 @@
  data-od-id="confirm-password-input">
  </div>
 
+ <div class="form-group">
+ <label class="form-label" for="user-type">Tipo de usuário</label>
+ <select id="user-type" class="form-input" required data-od-id="user-type-select">
+ <option value="PARTICIPANTE">Participante</option>
+ <option value="ORGANIZADOR">Organizador</option>
+ </select>
+ </div>
+
  <label class="form-checkbox-wrapper">
  <input type="checkbox" class="form-checkbox" id="terms" required data-od-id="terms-checkbox">
  <span class="form-checkbox-label">
@@ -135,20 +143,28 @@
 
  <div class="auth-footer">
  <p class="auth-footer-text">
- Já tem uma conta? <a href="ingressonow-login.html" class="auth-footer-link" data-od-id="login-link">Faça login</a>
+ Já tem uma conta? <a href="/login" class="auth-footer-link" data-od-id="login-link">Faça login</a>
  </p>
  </div>
  </div>
  </div>
 
+ <!-- Container para alertas de erro/sucesso -->
+ <div id="error-container"></div>
+
+ <!-- Integração com Backend REST -->
+ <link rel="stylesheet" href="/css/alerts.css">
+ <script src="/js/api-client.js"></script>
+
  <script>
- document.querySelector('[data-od-id="signup-form"]').addEventListener('submit', function(e) {
+ document.querySelector('[data-od-id="signup-form"]').addEventListener('submit', async function(e) {
  e.preventDefault();
 
  const fullname = document.getElementById('fullname').value;
  const email = document.getElementById('email').value;
  const password = document.getElementById('password').value;
  const confirmPassword = document.getElementById('confirm-password').value;
+ const tipo = document.getElementById('user-type').value;
  const terms = document.getElementById('terms').checked;
 
  if (!fullname || !email || !password || !confirmPassword) {
@@ -171,8 +187,12 @@
  return;
  }
 
- alert('Cadastro simulado! Em produção, aqui seria criada a conta real.');
- window.location.href = 'ingressonow-login.html';
+ try {
+     await window.API.Auth.cadastro(fullname, email, password, tipo);
+     window.location.href = '/eventos';
+ } catch (error) {
+     window.API.exibirErro(error);
+ }
  });
  </script>
 </body>

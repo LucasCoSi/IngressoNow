@@ -80,12 +80,18 @@ async function handleAPIError(response) {
     // Se status 401, redireciona para login
     if (response.status === 401) {
         Auth.logout();
-        return;
+        throw new APIError('Sessao expirada. Faca login novamente.', 401);
+    }
+
+    // 403 quase sempre = sem token ou token invalido no MVP
+    if (response.status === 403) {
+        throw new APIError('Acesso negado. Faca login para continuar.', 403);
     }
 
     let errorData;
     try {
-        errorData = await response.json();
+        const text = await response.text();
+        errorData = text ? JSON.parse(text) : {};
     } catch (e) {
         throw new APIError(
             'Erro ao processar resposta do servidor',

@@ -10,6 +10,7 @@ import br.com.evento.domain.exception.DomainException;
 import br.com.evento.domain.model.entity.Atividade;
 import br.com.evento.domain.model.entity.Evento;
 import br.com.evento.domain.port.out.EventoRepository;
+import br.com.evento.domain.port.out.InscricaoRepository;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,15 +27,18 @@ public class EventoRestController {
     private final CadastrarEventoUseCase cadastrarEventoUseCase;
     private final AdicionarAtividadeUseCase adicionarAtividadeUseCase;
     private final EventoRepository eventoRepository;
+    private final InscricaoRepository inscricaoRepository;
 
     public EventoRestController(ListarEventosPublicadosUseCase listarEventosPublicadosUseCase,
                                 CadastrarEventoUseCase cadastrarEventoUseCase,
                                 AdicionarAtividadeUseCase adicionarAtividadeUseCase,
-                                EventoRepository eventoRepository) {
+                                EventoRepository eventoRepository,
+                                InscricaoRepository inscricaoRepository) {
         this.listarEventosPublicadosUseCase = listarEventosPublicadosUseCase;
         this.cadastrarEventoUseCase = cadastrarEventoUseCase;
         this.adicionarAtividadeUseCase = adicionarAtividadeUseCase;
         this.eventoRepository = eventoRepository;
+        this.inscricaoRepository = inscricaoRepository;
     }
 
     @GetMapping
@@ -80,6 +84,9 @@ public class EventoRestController {
     public ResponseEntity<Void> remover(@PathVariable String id) {
         eventoRepository.buscarPorId(id)
                 .orElseThrow(() -> new DomainException("Evento nao encontrado com id: " + id));
+        if (inscricaoRepository.contarPorEvento(id) > 0) {
+            throw new DomainException("Evento possui inscricoes e nao pode ser excluido. Encerre o evento em vez disso.");
+        }
         eventoRepository.remover(id);
         return ResponseEntity.noContent().build();
     }

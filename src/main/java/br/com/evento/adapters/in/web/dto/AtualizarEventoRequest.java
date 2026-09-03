@@ -1,4 +1,4 @@
-﻿package br.com.evento.adapters.in.web.dto;
+package br.com.evento.adapters.in.web.dto;
 
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;

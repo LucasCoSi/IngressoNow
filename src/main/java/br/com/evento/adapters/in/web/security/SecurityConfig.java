@@ -42,7 +42,8 @@ public class SecurityConfig {
                         "/atividades", "/inscricoes", "/area-participante", "/frequencia",
                         "/programacao", "/avaliacoes", "/relatorios", "/usuarios",
                         "/configuracoes", "/interface").permitAll()
-                .requestMatchers("/*.html", "/*.js", "/*.css", "/css/**", "/js/**",
+                .requestMatchers("/*.html", "/*.js", "/*.css", "/*.ico", "/css/**", "/js/**",
+                        "/favicon.ico", "/error",
                         "/System Desgin v2__19-08-26/**", "/static/**").permitAll()
 
                 // GET públicos para eventos

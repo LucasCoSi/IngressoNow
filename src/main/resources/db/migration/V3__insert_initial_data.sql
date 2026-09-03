@@ -7,11 +7,11 @@
 -- USUÁRIOS (Participante e Organizador)
 -- =====================================================
 -- Senha para testes: "senha123" (em produção usar BCrypt)
--- Hash BCrypt de "senha123": $2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy
+-- Hash BCrypt de "senha123": $2a$10$TW7F2EXj42YabuptHEuSi.hj1KR.J/TrRz0WtjO6yE0UUhlgPKUMO
 
 INSERT INTO usuarios (id, tipo_usuario, nome, email, senha_hash) VALUES
-    ('550e8400-e29b-41d4-a716-446655440001', 'PARTICIPANTE', 'Lucas Silva', 'lucas.silva@email.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy'),
-    ('550e8400-e29b-41d4-a716-446655440002', 'ORGANIZADOR', 'Maria Santos', 'maria.santos@email.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy');
+    ('550e8400-e29b-41d4-a716-446655440001', 'PARTICIPANTE', 'Lucas Silva', 'lucas.silva@email.com', '$2a$10$TW7F2EXj42YabuptHEuSi.hj1KR.J/TrRz0WtjO6yE0UUhlgPKUMO'),
+    ('550e8400-e29b-41d4-a716-446655440002', 'ORGANIZADOR', 'Maria Santos', 'maria.santos@email.com', '$2a$10$TW7F2EXj42YabuptHEuSi.hj1KR.J/TrRz0WtjO6yE0UUhlgPKUMO');
 
 -- =====================================================
 -- EVENTOS

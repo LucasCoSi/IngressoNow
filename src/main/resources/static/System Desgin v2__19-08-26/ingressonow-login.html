@@ -110,20 +110,34 @@
 
  <div class="auth-footer">
  <p class="auth-footer-text">
- Ainda não tem conta? <a href="ingressonow-cadastro.html" class="auth-footer-link" data-od-id="signup-link">Cadastre-se</a>
+ Ainda não tem conta? <a href="/cadastro" class="auth-footer-link" data-od-id="signup-link">Cadastre-se</a>
  </p>
  </div>
  </div>
  </div>
 
+ <!-- Container para alertas de erro/sucesso -->
+ <div id="error-container"></div>
+
+ <!-- Integração com Backend REST -->
+ <link rel="stylesheet" href="/css/alerts.css">
+ <script src="/js/api-client.js"></script>
+
  <script>
- document.querySelector('[data-od-id="login-form"]').addEventListener('submit', function(e) {
+ // Redireciona se ja autenticado
+ if (window.Auth && window.Auth.isAuthenticated()) {
+     window.location.href = '/eventos';
+ }
+ document.querySelector('[data-od-id="login-form"]').addEventListener('submit', async function(e) {
  e.preventDefault();
  const email = document.getElementById('email').value;
  const password = document.getElementById('password').value;
- if (email && password) {
- alert('Login simulado! Em produção, aqui seria feita a autenticação real.');
- window.location.href = 'ingressonow-interface.html';
+ if (!email || !password) return;
+ try {
+     await window.API.Auth.login(email, password);
+     window.location.href = '/eventos';
+ } catch (error) {
+     window.API.exibirErro(error);
  }
  });
  </script>

@@ -241,9 +241,17 @@
  </div>
  </main>
 
+ <!-- Container para alertas de erro/sucesso -->
+ <div id="error-container"></div>
+
  <script>
  // Tab navigation
  document.querySelectorAll('.content-tab').forEach(function(tab){tab.addEventListener('click',function(){const tabName=this.getAttribute('data-od-id').replace('tab-','');document.querySelectorAll('.content-tab').forEach(function(t){t.classList.remove('active')});document.querySelectorAll('[data-od-id^="tab-content-"]').forEach(function(c){c.style.display='none'});this.classList.add('active');document.querySelector('[data-od-id="tab-content-'+tabName+'"]').style.display='block'})});
  </script>
+
+ <!-- Integração com Backend REST -->
+ <link rel="stylesheet" href="/css/alerts.css">
+ <script src="/js/api-client.js"></script>
+ <script src="/js/area-participante.js"></script>
 </body>
 </html>
