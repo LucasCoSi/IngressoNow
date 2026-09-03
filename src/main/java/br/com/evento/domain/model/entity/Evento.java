@@ -92,6 +92,18 @@ public class Evento {
         return Collections.unmodifiableList(atividades);
     }
 
+    public void atualizar(String titulo, String descricao) {
+        if (this.status != StatusEvento.RASCUNHO) {
+            throw new DomainException("Apenas eventos em rascunho podem ser editados.");
+        }
+        if (titulo != null && !titulo.trim().isEmpty()) {
+            this.titulo = titulo;
+        }
+        if (descricao != null) {
+            this.descricao = descricao;
+        }
+    }
+
     public void publicar() {
         if (this.status != StatusEvento.RASCUNHO) {
             throw new DomainException("Apenas eventos em rascunho podem ser publicados.");

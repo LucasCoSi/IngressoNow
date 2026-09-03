@@ -19,39 +19,36 @@ document.addEventListener('DOMContentLoaded', async function() {
     let inscricoesCache = [];
 
     /**
-     * Carrega inscrições (SIMULADO - endpoint não existe ainda)
+     * Carrega inscrições via GET /api/inscricoes.
+     * Usa o evento do seletor como filtro quando presente.
      */
     async function carregarInscricoes() {
         try {
             tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;">Carregando inscrições...</td></tr>';
 
-            // SIMULAÇÃO: Dados mockados até implementar endpoint
-            const inscricoes = [
-                {
-                    id: '880e8400-e29b-41d4-a716-446655440001',
-                    participante: {
-                        nome: 'Lucas Silva',
-                        email: 'lucas.silva@email.com',
-                        cpf: '123.456.789-00'
-                    },
-                    evento: 'Conferência de Tecnologia 2026',
-                    dataInscricao: '2026-09-01T10:30:00',
-                    status: 'CONFIRMADA',
-                    categoria: 'Estudante'
-                },
-                {
-                    id: '880e8400-e29b-41d4-a716-446655440002',
-                    participante: {
-                        nome: 'Lucas Silva',
-                        email: 'lucas.silva@email.com',
-                        cpf: '123.456.789-00'
-                    },
-                    evento: 'Workshop de Java e Spring Boot',
-                    dataInscricao: '2026-09-01T11:00:00',
-                    status: 'CONFIRMADA',
-                    categoria: 'Estudante'
-                }
-            ];
+            const eventoId = eventDropdown ? eventDropdown.value : '';
+            const query = eventoId ? `?eventoId=${encodeURIComponent(eventoId)}` : '';
+            const resposta = await fetch(`/api/inscricoes${query}`, {
+                method: 'GET',
+                headers: (() => {
+                    const headers = { 'Accept': 'application/json' };
+                    const token = window.Auth ? window.Auth.getToken() : null;
+                    if (token) headers['Authorization'] = `Bearer ${token}`;
+                    return headers;
+                })()
+            });
+            if (!resposta.ok) {
+                throw new Error(`Falha ao carregar inscricoes (HTTP ${resposta.status})`);
+            }
+            const dados = await resposta.json();
+            const inscricoes = dados.map(i => ({
+                id: i.id,
+                participante: { nome: i.participanteId, email: '', cpf: '-' },
+                evento: i.eventoId,
+                dataInscricao: i.dataInscricao,
+                status: 'CONFIRMADA',
+                categoria: ''
+            }));
 
             inscricoesCache = inscricoes;
 
@@ -218,9 +215,9 @@ document.addEventListener('DOMContentLoaded', async function() {
             const termo = this.value.toLowerCase();
 
             const inscricoesFiltradas = inscricoesCache.filter(inscricao =>
-                inscricao.participante.nome.toLowerCase().includes(termo) ||
-                inscricao.participante.email.toLowerCase().includes(termo) ||
-                inscricao.evento.toLowerCase().includes(termo) ||
+                (inscricao.participante.nome || '').toLowerCase().includes(termo) ||
+                (inscricao.participante.email || '').toLowerCase().includes(termo) ||
+                (inscricao.evento || '').toLowerCase().includes(termo) ||
                 inscricao.id.toLowerCase().includes(termo)
             );
 

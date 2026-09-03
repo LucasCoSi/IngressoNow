@@ -133,13 +133,38 @@ document.addEventListener('DOMContentLoaded', async function() {
                 window.location.href = `/evento-publico?id=${eventoId}`;
                 break;
             case 'edit':
-                alert(`Editar evento ${eventoId} (funcionalidade a ser implementada)`);
+                editarEvento(eventoId);
                 break;
             case 'delete':
-                if (confirm('Tem certeza que deseja excluir este evento?')) {
-                    alert(`Excluir evento ${eventoId} (funcionalidade a ser implementada)`);
-                }
+                excluirEvento(eventoId);
                 break;
+        }
+    }
+
+    async function editarEvento(eventoId) {
+        const evento = eventosCache.find(ev => ev.id === eventoId);
+        const tituloAtual = evento ? evento.titulo : '';
+        const novoTitulo = prompt('Novo titulo do evento:', tituloAtual);
+        if (novoTitulo === null || novoTitulo.trim() === '') return;
+        try {
+            await window.API.Eventos.atualizar(eventoId, { titulo: novoTitulo.trim() });
+            window.API.exibirSucesso('Evento atualizado com sucesso!');
+            await carregarEventos();
+        } catch (error) {
+            console.error('[Eventos] Erro ao atualizar:', error);
+            window.API.exibirErro(error);
+        }
+    }
+
+    async function excluirEvento(eventoId) {
+        if (!confirm('Tem certeza que deseja excluir este evento?')) return;
+        try {
+            await window.API.Eventos.deletar(eventoId);
+            window.API.exibirSucesso('Evento excluido com sucesso!');
+            await carregarEventos();
+        } catch (error) {
+            console.error('[Eventos] Erro ao excluir:', error);
+            window.API.exibirErro(error);
         }
     }
 
