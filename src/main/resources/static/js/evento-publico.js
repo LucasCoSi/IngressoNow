@@ -104,8 +104,14 @@ document.addEventListener('DOMContentLoaded', async function() {
      * Realiza inscrição no evento
      */
     async function realizarInscricao(eventoId) {
-        // SIMULAÇÃO: ID do participante (em produção viria da sessão)
-        const participanteId = '550e8400-e29b-41d4-a716-446655440001';
+        const user = window.Auth ? window.Auth.getUser() : null;
+        const participanteId = user && user.usuarioId ? user.usuarioId : null;
+
+        if (!participanteId) {
+            window.API.exibirErro(new window.API.APIError('Voce precisa estar logado para se inscrever.', 401));
+            setTimeout(() => { window.location.href = '/login'; }, 1500);
+            return;
+        }
 
         try {
             console.log(`[Evento Público] Inscrevendo participante ${participanteId} no evento ${eventoId}`);

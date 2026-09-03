@@ -27,16 +27,16 @@
             </form>
 
             <p class="auth-link">
-                Não tem uma conta? <a href="/cadastro.html">Cadastre-se</a>
+                Não tem uma conta? <a href="/cadastro">Cadastre-se</a>
             </p>
         </div>
     </div>
 
     <script src="/js/api-client.js"></script>
     <script>
-        // Se já estiver autenticado, redireciona para home
+        // Se já estiver autenticado, redireciona para eventos
         if (Auth.isAuthenticated()) {
-            window.location.href = '/index.html';
+            window.location.href = '/eventos';
         }
 
         document.getElementById('login-form').addEventListener('submit', async (e) => {
@@ -47,7 +47,7 @@
 
             try {
                 await API.Auth.login(email, senha);
-                window.location.href = '/index.html';
+                window.location.href = '/eventos';
             } catch (error) {
                 API.exibirErro(error);
             }

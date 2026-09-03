@@ -37,8 +37,13 @@ public class SecurityConfig {
                 // Rotas públicas de autenticação
                 .requestMatchers("/api/auth/**").permitAll()
 
-                // Arquivos estáticos
-                .requestMatchers("/*.html", "/*.js", "/*.css", "/static/**").permitAll()
+                // Páginas (HomeController) e arquivos estáticos
+                .requestMatchers("/", "/login", "/cadastro", "/eventos", "/evento-publico",
+                        "/atividades", "/inscricoes", "/area-participante", "/frequencia",
+                        "/programacao", "/avaliacoes", "/relatorios", "/usuarios",
+                        "/configuracoes", "/interface").permitAll()
+                .requestMatchers("/*.html", "/*.js", "/*.css", "/css/**", "/js/**",
+                        "/System Desgin v2__19-08-26/**", "/static/**").permitAll()
 
                 // GET públicos para eventos
                 .requestMatchers(HttpMethod.GET, "/api/eventos/**").permitAll()
@@ -48,7 +53,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.PUT, "/api/eventos/**").authenticated()
                 .requestMatchers(HttpMethod.DELETE, "/api/eventos/**").authenticated()
                 .requestMatchers("/api/inscricoes/**").authenticated()
-                .requestMatchers("/api/presenca/**").authenticated()
+                .requestMatchers("/api/controle/**").authenticated()
 
                 // Demais rotas autenticadas
                 .anyRequest().authenticated()

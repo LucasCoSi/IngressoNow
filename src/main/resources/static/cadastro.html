@@ -41,16 +41,16 @@
             </form>
 
             <p class="auth-link">
-                Já tem uma conta? <a href="/login.html">Faça login</a>
+                Já tem uma conta? <a href="/login">Faça login</a>
             </p>
         </div>
     </div>
 
     <script src="/js/api-client.js"></script>
     <script>
-        // Se já estiver autenticado, redireciona para home
+        // Se já estiver autenticado, redireciona para eventos
         if (Auth.isAuthenticated()) {
-            window.location.href = '/index.html';
+            window.location.href = '/eventos';
         }
 
         document.getElementById('cadastro-form').addEventListener('submit', async (e) => {
@@ -65,7 +65,7 @@
                 await API.Auth.cadastro(nome, email, senha, tipo);
                 API.exibirSucesso('Cadastro realizado com sucesso! Redirecionando...');
                 setTimeout(() => {
-                    window.location.href = '/index.html';
+                    window.location.href = '/eventos';
                 }, 2000);
             } catch (error) {
                 API.exibirErro(error);

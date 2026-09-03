@@ -40,7 +40,7 @@ const Auth = {
 
     logout() {
         this.removeToken();
-        window.location.href = '/login.html';
+        window.location.href = '/login';
     }
 };
 
