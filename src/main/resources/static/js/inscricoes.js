@@ -43,8 +43,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             const dados = await resposta.json();
             const inscricoes = dados.map(i => ({
                 id: i.id,
-                participante: { nome: i.participanteId, email: '', cpf: '-' },
-                evento: i.eventoId,
+                participante: { nome: i.participanteNome || i.participanteId, email: '', cpf: '-' },
+                evento: i.eventoTitulo || i.eventoId,
                 dataInscricao: i.dataInscricao,
                 status: 'CONFIRMADA',
                 categoria: ''

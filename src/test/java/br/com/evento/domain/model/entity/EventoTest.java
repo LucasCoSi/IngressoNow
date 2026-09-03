@@ -89,8 +89,41 @@ class EventoTest {
     @Test
     void naoDeveAbrirInscricoesSeEmRascunho() {
         Evento evento = new Evento("Evento Java", "Descrição legal", organizador);
-        
+
         DomainException ex = assertThrows(DomainException.class, evento::abrirInscricoes);
         assertEquals("Inscrições só podem ser abertas para eventos publicados.", ex.getMessage());
+    }
+
+    @Test
+    void deveAtualizarTituloEDescricaoSeEmRascunho() {
+        Evento evento = new Evento("Titulo Antigo", "Descricao antiga", organizador);
+
+        evento.atualizar("Titulo Novo", "Descricao nova");
+
+        assertEquals("Titulo Novo", evento.getTitulo());
+        assertEquals("Descricao nova", evento.getDescricao());
+    }
+
+    @Test
+    void deveIgnorarCamposNulosOuVaziosNaAtualizacao() {
+        Evento evento = new Evento("Titulo Antigo", "Descricao antiga", organizador);
+
+        evento.atualizar(null, null);
+        evento.atualizar("   ", "Descricao nova");
+
+        assertEquals("Titulo Antigo", evento.getTitulo());
+        assertEquals("Descricao nova", evento.getDescricao());
+    }
+
+    @Test
+    void naoDeveAtualizarEventoPublicado() {
+        Evento evento = new Evento("Evento Java", "Descrição legal", organizador);
+        Periodo p = new Periodo(LocalDateTime.of(2026, 1, 1, 10, 0), LocalDateTime.of(2026, 1, 1, 12, 0));
+        evento.adicionarAtividade(new Atividade("Abertura", p, "Auditório Principal"));
+        evento.publicar();
+
+        DomainException ex = assertThrows(DomainException.class,
+                () -> evento.atualizar("Novo Titulo", "Nova descricao"));
+        assertEquals("Apenas eventos em rascunho podem ser editados.", ex.getMessage());
     }
 }

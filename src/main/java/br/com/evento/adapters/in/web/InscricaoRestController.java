@@ -6,7 +6,9 @@ import br.com.evento.application.usecase.InscreverParticipanteUseCase;
 import br.com.evento.application.usecase.SelecionarAtividadeUseCase;
 import br.com.evento.domain.model.entity.AgendaDoParticipante;
 import br.com.evento.domain.model.entity.Inscricao;
+import br.com.evento.domain.port.out.EventoRepository;
 import br.com.evento.domain.port.out.InscricaoRepository;
+import br.com.evento.domain.port.out.UsuarioRepository;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -22,15 +24,21 @@ public class InscricaoRestController {
     private final ConsultarAgendaUseCase consultarAgendaUseCase;
     private final SelecionarAtividadeUseCase selecionarAtividadeUseCase;
     private final InscricaoRepository inscricaoRepository;
+    private final UsuarioRepository usuarioRepository;
+    private final EventoRepository eventoRepository;
 
     public InscricaoRestController(InscreverParticipanteUseCase inscreverParticipanteUseCase,
                                    ConsultarAgendaUseCase consultarAgendaUseCase,
                                    SelecionarAtividadeUseCase selecionarAtividadeUseCase,
-                                   InscricaoRepository inscricaoRepository) {
+                                   InscricaoRepository inscricaoRepository,
+                                   UsuarioRepository usuarioRepository,
+                                   EventoRepository eventoRepository) {
         this.inscreverParticipanteUseCase = inscreverParticipanteUseCase;
         this.consultarAgendaUseCase = consultarAgendaUseCase;
         this.selecionarAtividadeUseCase = selecionarAtividadeUseCase;
         this.inscricaoRepository = inscricaoRepository;
+        this.usuarioRepository = usuarioRepository;
+        this.eventoRepository = eventoRepository;
     }
 
     @GetMapping
@@ -45,8 +53,7 @@ public class InscricaoRestController {
             inscricoes = inscricaoRepository.buscarPorEvento(eventoId != null ? eventoId : "");
         }
         List<InscricaoDTO> dtos = inscricoes.stream()
-                .map(i -> new InscricaoDTO(i.getId(), i.getParticipanteId(), i.getEventoId(),
-                        i.getDataInscricao().toString()))
+                .map(this::toDTO)
                 .collect(Collectors.toList());
         return ResponseEntity.ok(dtos);
     }
@@ -54,8 +61,16 @@ public class InscricaoRestController {
     @PostMapping
     public ResponseEntity<InscricaoDTO> inscrever(@Valid @RequestBody InscreverRequest request) {
         Inscricao inscricao = inscreverParticipanteUseCase.executar(request.participanteId(), request.eventoId());
-        return ResponseEntity.ok(new InscricaoDTO(inscricao.getId(), inscricao.getParticipanteId(),
-                inscricao.getEventoId(), inscricao.getDataInscricao().toString()));
+        return ResponseEntity.ok(toDTO(inscricao));
+    }
+
+    private InscricaoDTO toDTO(Inscricao i) {
+        String participanteNome = usuarioRepository.buscarPorId(i.getParticipanteId())
+                .map(u -> u.getNome()).orElse(i.getParticipanteId());
+        String eventoTitulo = eventoRepository.buscarPorId(i.getEventoId())
+                .map(e -> e.getTitulo()).orElse(i.getEventoId());
+        return new InscricaoDTO(i.getId(), i.getParticipanteId(), participanteNome,
+                i.getEventoId(), eventoTitulo, i.getDataInscricao().toString());
     }
 
     @PostMapping("/{inscricaoId}/atividades/{atividadeId}")
@@ -73,9 +88,10 @@ public class InscricaoRestController {
         return ResponseEntity.ok(new AgendaDTO(agenda.getParticipanteId(), atividades));
     }
 
-    public record InscricaoDTO(String id, String participanteId, String eventoId, String dataInscricao) {
+    public record InscricaoDTO(String id, String participanteId, String participanteNome,
+                               String eventoId, String eventoTitulo, String dataInscricao) {
         public InscricaoDTO(String id, String participanteId, String eventoId) {
-            this(id, participanteId, eventoId, null);
+            this(id, participanteId, null, eventoId, null, null);
         }
     }
     public record AtividadeDTO(String id, String titulo, String inicio, String fim, String local) {}
