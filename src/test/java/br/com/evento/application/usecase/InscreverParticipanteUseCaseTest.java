@@ -46,6 +46,12 @@ class InscreverParticipanteUseCaseTest {
         participante = new Participante("part-1", "João", new Email("joao@teste.com"), new SenhaHash("123"));
         Organizador org = new Organizador("org-1", "Maria", new Email("maria@teste.com"), new SenhaHash("hash"));
         evento = new Evento("evt-1", "Evento Java", "Desc", org);
+        evento.adicionarAtividade(new br.com.evento.domain.model.entity.Atividade("a1", "Abertura",
+                new br.com.evento.domain.model.vo.Periodo(
+                        java.time.LocalDateTime.now().plusDays(1),
+                        java.time.LocalDateTime.now().plusDays(1).plusHours(2)),
+                "Sala 1"));
+        evento.publicar();
     }
 
     @Test

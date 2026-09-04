@@ -12,10 +12,11 @@ public class Email {
         if (endereco == null || endereco.trim().isEmpty()) {
             throw new DomainException("O e-mail não pode ser vazio.");
         }
-        if (!PATTERN.matcher(endereco).matches()) {
+        String normalizado = endereco.trim().toLowerCase();
+        if (!PATTERN.matcher(normalizado).matches()) {
             throw new DomainException("Formato de e-mail inválido.");
         }
-        this.endereco = endereco.toLowerCase().trim();
+        this.endereco = normalizado;
     }
 
     public String getEndereco() {

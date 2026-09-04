@@ -44,7 +44,10 @@ class RealizarCheckInQrCodeUseCaseTest {
     @BeforeEach
     void setUp() {
         inscricao = new Inscricao("part-1", "evt-1");
-        evento = new Evento("evt-1", "Evento Teste", "Desc", mock(Organizador.class));
+        Organizador organizador = new Organizador("org-1", "Org",
+                new br.com.evento.domain.model.vo.Email("org@teste.com"),
+                new br.com.evento.domain.model.vo.SenhaHash("hash-valido-para-teste-1234567890"));
+        evento = new Evento("evt-1", "Evento Teste", "Desc", organizador);
         
         atividade = new Atividade("a1", "Palestra 1", 
                 new Periodo(LocalDateTime.now().plusDays(1), LocalDateTime.now().plusDays(1).plusHours(2)), 

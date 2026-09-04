@@ -21,10 +21,9 @@ public class ListarEventosPublicadosUseCase {
     }
 
     public List<Evento> executar() {
-        List<Evento> publicados = eventoRepository.buscarPorStatus(StatusEvento.PUBLICADO);
-        List<Evento> comInscricoes = eventoRepository.buscarPorStatus(StatusEvento.INSCRICOES_ABERTAS);
-
-        publicados.addAll(comInscricoes);
-        return publicados;
+        List<Evento> resultado = new java.util.ArrayList<>(
+                eventoRepository.buscarPorStatus(StatusEvento.PUBLICADO));
+        resultado.addAll(eventoRepository.buscarPorStatus(StatusEvento.INSCRICOES_ABERTAS));
+        return resultado;
     }
 }

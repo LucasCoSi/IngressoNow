@@ -38,9 +38,10 @@ class AvaliacaoTest {
         inscricao.registrarCheckIn(atividade, LocalDateTime.now());
 
         Questionario questionario = new Questionario("evt-1");
-        questionario.adicionarPergunta(new Pergunta("Gostou?", TipoPergunta.ESCOLHA_SIMPLES));
+        questionario.adicionarPergunta(new Pergunta("p-1", "Gostou?",
+                TipoPergunta.ESCOLHA_SIMPLES, true, java.util.List.of("Sim", "Não"), null));
 
-        Avaliacao avaliacao = new Avaliacao(questionario, inscricao, List.of(new Resposta(questionario.getPerguntas().get(0).getId(), "5")));
+        Avaliacao avaliacao = new Avaliacao(questionario, inscricao, List.of(new Resposta(questionario.getPerguntas().get(0).getId(), "Sim")));
 
         assertNotNull(avaliacao.getId());
         assertEquals(inscricao.getId(), avaliacao.getInscricaoId());

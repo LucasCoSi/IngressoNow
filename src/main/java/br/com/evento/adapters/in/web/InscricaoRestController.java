@@ -1,6 +1,7 @@
 package br.com.evento.adapters.in.web;
 
 import br.com.evento.adapters.in.web.dto.InscreverRequest;
+import br.com.evento.application.usecase.CancelarInscricaoUseCase;
 import br.com.evento.application.usecase.ConsultarAgendaUseCase;
 import br.com.evento.application.usecase.InscreverParticipanteUseCase;
 import br.com.evento.application.usecase.SelecionarAtividadeUseCase;
@@ -23,6 +24,7 @@ public class InscricaoRestController {
     private final InscreverParticipanteUseCase inscreverParticipanteUseCase;
     private final ConsultarAgendaUseCase consultarAgendaUseCase;
     private final SelecionarAtividadeUseCase selecionarAtividadeUseCase;
+    private final CancelarInscricaoUseCase cancelarInscricaoUseCase;
     private final InscricaoRepository inscricaoRepository;
     private final UsuarioRepository usuarioRepository;
     private final EventoRepository eventoRepository;
@@ -30,12 +32,14 @@ public class InscricaoRestController {
     public InscricaoRestController(InscreverParticipanteUseCase inscreverParticipanteUseCase,
                                    ConsultarAgendaUseCase consultarAgendaUseCase,
                                    SelecionarAtividadeUseCase selecionarAtividadeUseCase,
+                                   CancelarInscricaoUseCase cancelarInscricaoUseCase,
                                    InscricaoRepository inscricaoRepository,
                                    UsuarioRepository usuarioRepository,
                                    EventoRepository eventoRepository) {
         this.inscreverParticipanteUseCase = inscreverParticipanteUseCase;
         this.consultarAgendaUseCase = consultarAgendaUseCase;
         this.selecionarAtividadeUseCase = selecionarAtividadeUseCase;
+        this.cancelarInscricaoUseCase = cancelarInscricaoUseCase;
         this.inscricaoRepository = inscricaoRepository;
         this.usuarioRepository = usuarioRepository;
         this.eventoRepository = eventoRepository;
@@ -71,6 +75,12 @@ public class InscricaoRestController {
                 .map(e -> e.getTitulo()).orElse(i.getEventoId());
         return new InscricaoDTO(i.getId(), i.getParticipanteId(), participanteNome,
                 i.getEventoId(), eventoTitulo, i.getDataInscricao().toString());
+    }
+
+    @DeleteMapping("/{inscricaoId}")
+    public ResponseEntity<Void> cancelar(@PathVariable String inscricaoId) {
+        cancelarInscricaoUseCase.executar(inscricaoId);
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{inscricaoId}/atividades/{atividadeId}")

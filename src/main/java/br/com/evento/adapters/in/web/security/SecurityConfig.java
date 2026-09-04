@@ -55,6 +55,9 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.DELETE, "/api/eventos/**").authenticated()
                 .requestMatchers("/api/inscricoes/**").authenticated()
                 .requestMatchers("/api/controle/**").authenticated()
+                .requestMatchers("/api/avaliacoes/**").authenticated()
+                .requestMatchers("/api/eventos/*/questionarios").authenticated()
+                .requestMatchers("/api/questionarios/**").authenticated()
 
                 // Demais rotas autenticadas
                 .anyRequest().authenticated()

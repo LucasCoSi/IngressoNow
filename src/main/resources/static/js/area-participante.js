@@ -74,6 +74,21 @@ document.addEventListener('DOMContentLoaded', async function() {
             if (nomeEl) nomeEl.textContent = nomeEvento;
             const codeEl = card.querySelector('.ticket-code');
             if (codeEl) codeEl.textContent = '#' + inscricao.id.substring(0, 8).toUpperCase();
+            // Botao RF-15: cancelar inscricao (libera vaga)
+            const btnCancelar = document.createElement('button');
+            btnCancelar.textContent = 'Cancelar inscrição';
+            btnCancelar.style.cssText = 'margin-top:8px';
+            btnCancelar.addEventListener('click', async () => {
+                if (!confirm('Cancelar sua inscrição neste evento? A vaga será liberada.')) return;
+                try {
+                    await window.API.Inscricoes.cancelar(inscricao.id);
+                    window.API.exibirSucesso('Inscrição cancelada. Vaga liberada.');
+                    await carregarMinhasInscricoes();
+                } catch (e) {
+                    window.API.exibirErro(e);
+                }
+            });
+            card.appendChild(btnCancelar);
             // Lista de atividades da agenda abaixo do card
             const lista = document.createElement('ul');
             lista.style.cssText = 'margin:12px 0 24px 0;padding-left:20px';

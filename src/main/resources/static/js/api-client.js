@@ -263,6 +263,7 @@ const InscricoesAPI = {
         participanteId,
         eventoId
     }),
+    cancelar: (inscricaoId) => del(`/inscricoes/${inscricaoId}`),
     selecionarAtividade: (inscricaoId, atividadeId) =>
         post(`/inscricoes/${inscricaoId}/atividades/${atividadeId}`),
     consultarAgenda: (inscricaoId) => get(`/inscricoes/${inscricaoId}/agenda`)
