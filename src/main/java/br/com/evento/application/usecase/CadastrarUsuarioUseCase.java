@@ -6,23 +6,18 @@ import br.com.evento.domain.model.entity.Participante;
 import br.com.evento.domain.model.entity.Usuario;
 import br.com.evento.domain.model.vo.Email;
 import br.com.evento.domain.model.vo.SenhaHash;
+import br.com.evento.domain.port.out.PasswordHasher;
 import br.com.evento.domain.port.out.UsuarioRepository;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-@Service
 public class CadastrarUsuarioUseCase {
 
     private final UsuarioRepository usuarioRepository;
-    private final PasswordEncoder passwordEncoder;
+    private final PasswordHasher passwordHasher;
 
-    public CadastrarUsuarioUseCase(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder) {
+    public CadastrarUsuarioUseCase(UsuarioRepository usuarioRepository, PasswordHasher passwordHasher) {
         this.usuarioRepository = usuarioRepository;
-        this.passwordEncoder = passwordEncoder;
+        this.passwordHasher = passwordHasher;
     }
-
-    @Transactional
     public Usuario executar(String nome, String emailStr, String senhaTexto, String tipo) {
         Email email = new Email(emailStr);
 
@@ -30,7 +25,7 @@ public class CadastrarUsuarioUseCase {
             throw new DomainException("Já existe um usuário cadastrado com este e-mail.");
         }
 
-        String senhaHashStr = passwordEncoder.encode(senhaTexto);
+        String senhaHashStr = passwordHasher.hash(senhaTexto);
         SenhaHash senhaHash = new SenhaHash(senhaHashStr);
 
         Usuario usuario;

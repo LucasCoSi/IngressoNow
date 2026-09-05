@@ -128,6 +128,17 @@ public class Evento {
         this.status = StatusEvento.ENCERRADO;
     }
 
+    /**
+     * Reconstituição a partir da persistência — uso exclusivo dos adapters.
+     * Não valida transições (o banco guarda um estado já válido).
+     */
+    public void restaurarEstado(StatusEvento status) {
+        if (status == null) {
+            throw new DomainException("O estado do evento é obrigatório.");
+        }
+        this.status = status;
+    }
+
     public void adicionarAtividade(Atividade novaAtividade) {
         if (novaAtividade == null) {
             throw new DomainException("Atividade não pode ser nula.");

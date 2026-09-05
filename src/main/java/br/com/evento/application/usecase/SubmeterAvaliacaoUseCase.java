@@ -8,11 +8,9 @@ import br.com.evento.domain.model.entity.Resposta;
 import br.com.evento.domain.port.out.AvaliacaoRepository;
 import br.com.evento.domain.port.out.InscricaoRepository;
 import br.com.evento.domain.port.out.QuestionarioRepository;
-import org.springframework.stereotype.Service;
 
 import java.util.List;
 
-@Service
 public class SubmeterAvaliacaoUseCase {
 
     private final InscricaoRepository inscricaoRepository;

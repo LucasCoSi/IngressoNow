@@ -4,11 +4,9 @@ import br.com.evento.domain.exception.DomainException;
 import br.com.evento.domain.model.entity.Inscricao;
 import br.com.evento.domain.port.in.DadosQrCode;
 import br.com.evento.domain.port.in.QrCodeService;
-import org.springframework.stereotype.Service;
 
 import java.util.Base64;
 
-@Service
 public class SimpleQrCodeService implements QrCodeService {
 
     private static final String SECRET_SALT = "IngressoNow_Salt_v1";

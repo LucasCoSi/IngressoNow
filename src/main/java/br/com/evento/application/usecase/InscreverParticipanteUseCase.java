@@ -9,9 +9,7 @@ import br.com.evento.domain.model.entity.StatusEvento;
 import br.com.evento.domain.port.out.EventoRepository;
 import br.com.evento.domain.port.out.InscricaoRepository;
 import br.com.evento.domain.port.out.UsuarioRepository;
-import org.springframework.stereotype.Service;
 
-@Service
 public class InscreverParticipanteUseCase {
 
     private final EventoRepository eventoRepository;

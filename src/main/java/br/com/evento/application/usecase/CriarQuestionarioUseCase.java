@@ -5,11 +5,9 @@ import br.com.evento.domain.model.entity.Pergunta;
 import br.com.evento.domain.model.entity.Questionario;
 import br.com.evento.domain.port.out.EventoRepository;
 import br.com.evento.domain.port.out.QuestionarioRepository;
-import org.springframework.stereotype.Service;
 
 import java.util.List;
 
-@Service
 public class CriarQuestionarioUseCase {
 
     private final EventoRepository eventoRepository;

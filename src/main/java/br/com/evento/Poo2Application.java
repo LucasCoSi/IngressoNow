@@ -1,13 +1,33 @@
 package br.com.evento;
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
+import br.com.evento.adapters.in.http.ServidorApi;
+import br.com.evento.infra.AppConfig;
+import br.com.evento.infra.ConnectionFactory;
+import br.com.evento.infra.FabricaAplicacao;
+import br.com.evento.infra.MigradorSql;
 
-@SpringBootApplication
+/**
+ * Ponto de entrada Java SE (sem Spring Boot).
+ * Uso: java -jar plataforma-eventos.jar [--headless]
+ * Sem flag: sobe a API e abre o desktop JavaFX (Fase 4).
+ * Com --headless: sobe só a API (útil p/ Docker e p/ o protótipo web).
+ */
 public class Poo2Application {
 
-	public static void main(String[] args) {
-		SpringApplication.run(Poo2Application.class, args);
-	}
-
+    public static void main(String[] args) throws Exception {
+        boolean headless = args != null && java.util.Arrays.asList(args).contains("--headless");
+        AppConfig config = new AppConfig();
+        ConnectionFactory connections = new ConnectionFactory(config.dbUrl(), config.dbUser(), config.dbPass());
+        new MigradorSql(connections).migrar();
+        FabricaAplicacao app = new FabricaAplicacao(config);
+        ServidorApi api = new ServidorApi(app);
+        api.iniciar(config.serverPort());
+        if (headless) {
+            System.out.println("[App] modo headless — API ativa, sem interface desktop.");
+            Thread.currentThread().join();
+        } else {
+            System.out.println("[App] desktop JavaFX ainda não ligado nesta fase — API ativa.");
+            Thread.currentThread().join();
+        }
+    }
 }

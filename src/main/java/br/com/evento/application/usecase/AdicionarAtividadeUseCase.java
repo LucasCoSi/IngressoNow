@@ -5,7 +5,6 @@ import br.com.evento.domain.model.entity.Atividade;
 import br.com.evento.domain.model.entity.Evento;
 import br.com.evento.domain.model.vo.Periodo;
 import br.com.evento.domain.port.out.EventoRepository;
-import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 
@@ -13,7 +12,6 @@ import java.time.LocalDateTime;
  * Caso de uso: Adicionar uma Atividade a um Evento existente.
  * Busca o evento, delega a validação (conflito de horário/local) ao domínio, e salva.
  */
-@Service
 public class AdicionarAtividadeUseCase {
 
     private final EventoRepository eventoRepository;

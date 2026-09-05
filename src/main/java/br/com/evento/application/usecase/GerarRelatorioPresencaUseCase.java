@@ -5,11 +5,9 @@ import br.com.evento.domain.model.entity.Evento;
 import br.com.evento.domain.model.entity.Inscricao;
 import br.com.evento.domain.port.out.EventoRepository;
 import br.com.evento.domain.port.out.InscricaoRepository;
-import org.springframework.stereotype.Service;
 
 import java.util.List;
 
-@Service
 public class GerarRelatorioPresencaUseCase {
 
     private final EventoRepository eventoRepository;

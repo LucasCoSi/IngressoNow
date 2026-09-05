@@ -8,11 +8,9 @@ import br.com.evento.domain.port.in.DadosQrCode;
 import br.com.evento.domain.port.in.QrCodeService;
 import br.com.evento.domain.port.out.EventoRepository;
 import br.com.evento.domain.port.out.InscricaoRepository;
-import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 
-@Service
 public class RealizarCheckInQrCodeUseCase {
 
     private final QrCodeService qrCodeService;

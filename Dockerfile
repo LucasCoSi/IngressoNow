@@ -19,5 +19,5 @@ COPY --from=build /app/target/*.jar app.jar
 # Expõe a porta
 EXPOSE 8080
 
-# Inicia a aplicação
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Inicia a aplicação (headless: só a API, sem desktop JavaFX)
+ENTRYPOINT ["java", "-jar", "app.jar", "--headless"]

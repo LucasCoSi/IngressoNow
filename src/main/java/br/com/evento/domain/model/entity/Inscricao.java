@@ -113,7 +113,12 @@ public class Inscricao {
     }
 
     public void registrarCheckIn(Atividade atividade, LocalDateTime momento) {
-        if (!atividadesSelecionadas.contains(atividade)) {
+        if (atividade == null) {
+            throw new DomainException("Atividade não pode ser nula.");
+        }
+        boolean selecionada = atividadesSelecionadas.stream()
+                .anyMatch(a -> a.getId().equals(atividade.getId()));
+        if (!selecionada) {
             throw new DomainException("Participante não selecionou esta atividade em sua inscrição.");
         }
         this.checkIns.add(new CheckIn(atividade.getId(), momento));

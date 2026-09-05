@@ -8,14 +8,12 @@ import br.com.evento.domain.model.entity.Resposta;
 import br.com.evento.domain.model.entity.TipoPergunta;
 import br.com.evento.domain.port.out.AvaliacaoRepository;
 import br.com.evento.domain.port.out.QuestionarioRepository;
-import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-@Service
 public class ConsolidarAvaliacoesUseCase {
 
     private final QuestionarioRepository questionarioRepository;

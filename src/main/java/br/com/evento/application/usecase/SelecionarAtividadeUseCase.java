@@ -6,9 +6,7 @@ import br.com.evento.domain.model.entity.Evento;
 import br.com.evento.domain.model.entity.Inscricao;
 import br.com.evento.domain.port.out.EventoRepository;
 import br.com.evento.domain.port.out.InscricaoRepository;
-import org.springframework.stereotype.Service;
 
-@Service
 public class SelecionarAtividadeUseCase {
 
     private final InscricaoRepository inscricaoRepository;

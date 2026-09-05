@@ -6,13 +6,11 @@ import br.com.evento.domain.model.entity.Organizador;
 import br.com.evento.domain.model.entity.Usuario;
 import br.com.evento.domain.port.out.EventoRepository;
 import br.com.evento.domain.port.out.UsuarioRepository;
-import org.springframework.stereotype.Service;
 
 /**
  * Caso de uso: Cadastrar um novo Evento em estado RASCUNHO.
  * Orquestra a busca do organizador e delega a criação ao domínio.
  */
-@Service
 public class CadastrarEventoUseCase {
 
     private final EventoRepository eventoRepository;

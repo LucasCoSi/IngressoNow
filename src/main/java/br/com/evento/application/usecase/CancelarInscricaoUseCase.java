@@ -5,9 +5,7 @@ import br.com.evento.domain.model.entity.Inscricao;
 import br.com.evento.domain.model.entity.StatusEvento;
 import br.com.evento.domain.port.out.EventoRepository;
 import br.com.evento.domain.port.out.InscricaoRepository;
-import org.springframework.stereotype.Service;
 
-@Service
 public class CancelarInscricaoUseCase {
 
     private final InscricaoRepository inscricaoRepository;
