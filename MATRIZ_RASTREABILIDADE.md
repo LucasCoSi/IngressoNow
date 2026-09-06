@@ -39,7 +39,10 @@
 | RF-29 | Relatório de inscritos | ✅ | `GerarRelatorioInscritosUseCase` + `GET /api/controle/relatorio/inscritos/{eventoId}` (CSV); botão na página de relatórios | Validado em Docker 2026-09-06 |
 | RF-30 | Relatório de frequência/participação | ✅ | `GerarRelatorioPresencaUseCase` + `GET /api/controle/relatorio/presenca/{eventoId}` (CSV) | Demo CA-07; CSV conta como RF-31 também |
 | RF-31 | Exportação portátil (CSV/PDF) | ✅ | CSV de presença (RNF-10 OK p/ demo) | Baixável via frontend `relatorios.js` |
-| RF-32–35 | Certificados (D) | ❌ | Fora do núcleo; não iniciar antes do núcleo estável | Backlog pós-núcleo |
+| RF-32 | Critério de elegibilidade p/ certificado | ✅ (D) | `CriterioCertificado` (% mínimo + obrigatórias); `POST .../certificados/criterio`; RN-16 calculável | `CriterioCertificadoTest` (4 casos) |
+| RF-33 | Certificado em PDF p/ elegível | ⚠️ (D) | Emissão + código verificável + listagem; PDF binário **não** gerado (baixa DTO/CSV; declarado como pendência) | CA-08 parcial: elegível emite, inelegível vê motivo |
+| RF-34 | Envio de certificado por e-mail | ❌ (D) | Sem SMTP no MVP — registrado como pendência declarada no use case; download permanece possível | Não fazer nesta versão |
+| RF-35 | Certificado/declaração p/ palestrante | ✅ (D) | `POST .../certificados/palestrante` reflete papel exercido (`Pessoa.papel`) | `GerenciarCertificadosUseCaseTest` |
 | RF-36 | Social (P) | ❌ | Fora do escopo obrigatório | Não fazer |
 
 ## 2. Regras de negócio — pontos de atenção

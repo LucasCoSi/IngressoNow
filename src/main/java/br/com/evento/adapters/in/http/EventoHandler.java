@@ -65,10 +65,11 @@ public class EventoHandler implements HttpHandler {
                     var req = Json.ler(HttpErrors.corpo(ex), CriarEventoRequest.class);
                     validarCriar(req);
                     Evento evento = cadastrar.executar(req.titulo(), req.descricao(), req.organizadorId());
+                    aplicarDetalhes(evento, req);
                     if (req.maxVagas() != null) {
                         evento.configurarLimiteDeVagas(req.maxVagas());
-                        evento = eventos.salvar(evento);
                     }
+                    evento = eventos.salvar(evento);
                     HttpErrors.json(ex, 201, EventoDTO.from(evento));
                 } else {
                     HttpErrors.json(ex, 405, StandardError.de(405, "Method Not Allowed",
@@ -87,6 +88,7 @@ public class EventoHandler implements HttpHandler {
                     Evento evento = buscar(id);
                     evento.atualizar(req.titulo(), req.descricao());
                     if (req.maxVagas() != null) evento.configurarLimiteDeVagas(req.maxVagas());
+                    aplicarDetalhes(evento, req);
                     HttpErrors.json(ex, 200, EventoDTO.from(eventos.salvar(evento)));
                 } else if ("DELETE".equals(metodo)) {
                     if (!jwt.exigir(ex)) return;
@@ -129,6 +131,14 @@ public class EventoHandler implements HttpHandler {
                                 LocalDateTime.parse(req.inicio()), LocalDateTime.parse(req.fim()), req.local(),
                                 req.tipo(), req.trilha());
                         Atividade criada = evento.getAtividades().get(evento.getAtividades().size() - 1);
+                        // RF-19: critério de presença opcional (UNICA default)
+                        if (req.politicaFrequencia() != null && !req.politicaFrequencia().isBlank()) {
+                            criada.definirPoliticaFrequencia(req.politicaFrequencia());
+                            Evento salvo = eventos.salvar(evento);
+                            String criadaId = criada.getId();
+                            criada = salvo.getAtividades().stream()
+                                    .filter(a -> a.getId().equals(criadaId)).findFirst().orElse(criada);
+                        }
                         HttpErrors.json(ex, 201, AtividadeDTO.from(criada));
                     }
                     case "publicar" -> {
@@ -230,32 +240,78 @@ public class EventoHandler implements HttpHandler {
         }
     }
 
-    public record CriarEventoRequest(String titulo, String descricao, String organizadorId, Integer maxVagas) {
+    public record DetalhesEvento(String periodoInicio, String periodoFim, String local, String fuso,
+                                     Boolean exigeEscolhaAtividades, Boolean vagasPorAtividade) {
     }
 
-    public record AtualizarEventoRequest(String titulo, String descricao, Integer maxVagas) {
+    public record CriarEventoRequest(String titulo, String descricao, String organizadorId, Integer maxVagas,
+                                     String periodoInicio, String periodoFim, String local, String fuso,
+                                     Boolean exigeEscolhaAtividades, Boolean vagasPorAtividade) {
+    }
+
+    public record AtualizarEventoRequest(String titulo, String descricao, Integer maxVagas,
+                                         String periodoInicio, String periodoFim, String local, String fuso,
+                                         Boolean exigeEscolhaAtividades, Boolean vagasPorAtividade) {
+    }
+
+    /** RF-04/RF-13/RN-20: aplica detalhes opcionais (período, local, fuso, regras). */
+    private static void aplicarDetalhes(Evento evento,
+                                        String periodoInicio, String periodoFim, String local, String fuso,
+                                        Boolean exigeEscolha, Boolean vagasPorAtividade) {
+        br.com.evento.domain.model.vo.Periodo periodo = null;
+        if (periodoInicio != null && !periodoInicio.isBlank()
+                && periodoFim != null && !periodoFim.isBlank()) {
+            periodo = new br.com.evento.domain.model.vo.Periodo(
+                    LocalDateTime.parse(periodoInicio.trim()),
+                    LocalDateTime.parse(periodoFim.trim()));
+        }
+        if (periodo != null || (local != null && !local.isBlank())) {
+            evento.definirDetalhes(periodo, local);
+        }
+        if (fuso != null && !fuso.isBlank()) evento.definirFuso(fuso);
+        if (exigeEscolha != null || vagasPorAtividade != null) {
+            evento.configurarInscricao(
+                    exigeEscolha != null && exigeEscolha,
+                    vagasPorAtividade != null && vagasPorAtividade);
+        }
+    }
+
+    private static void aplicarDetalhes(Evento evento, CriarEventoRequest req) {
+        aplicarDetalhes(evento, req.periodoInicio(), req.periodoFim(), req.local(), req.fuso(),
+                req.exigeEscolhaAtividades(), req.vagasPorAtividade());
+    }
+
+    private static void aplicarDetalhes(Evento evento, AtualizarEventoRequest req) {
+        aplicarDetalhes(evento, req.periodoInicio(), req.periodoFim(), req.local(), req.fuso(),
+                req.exigeEscolhaAtividades(), req.vagasPorAtividade());
     }
 
     public record CriarAtividadeRequest(String titulo, String descricao, String inicio, String fim,
                                         String local, String eventoId, Integer maxVagas,
-                                        String tipo, String trilha) {
+                                        String tipo, String trilha, String politicaFrequencia) {
     }
 
     public record EventoDTO(String id, String titulo, String descricao, String status,
-                            Integer maxVagas, List<AtividadeDTO> atividades) {
+                            Integer maxVagas, List<AtividadeDTO> atividades,
+                            String periodoInicio, String periodoFim, String local, String fuso,
+                            boolean exigeEscolhaAtividades, boolean vagasPorAtividade) {
         static EventoDTO from(Evento e) {
             return new EventoDTO(e.getId(), e.getTitulo(), e.getDescricao(),
                     e.getStatus().name(), e.getMaxVagas(),
-                    e.getAtividades().stream().map(AtividadeDTO::from).toList());
+                    e.getAtividades().stream().map(AtividadeDTO::from).toList(),
+                    e.getPeriodo() != null ? e.getPeriodo().getInicio().toString() : null,
+                    e.getPeriodo() != null ? e.getPeriodo().getFim().toString() : null,
+                    e.getLocal(), e.getFuso(),
+                    e.isExigeEscolhaAtividades(), e.isVagasPorAtividade());
         }
     }
 
     public record AtividadeDTO(String id, String titulo, String inicio, String fim, String local,
-                               String tipo, String trilha) {
+                               String tipo, String trilha, String politicaFrequencia) {
         static AtividadeDTO from(Atividade a) {
             return new AtividadeDTO(a.getId(), a.getTitulo(),
                     a.getPeriodo().getInicio().toString(), a.getPeriodo().getFim().toString(), a.getLocal(),
-                    a.getTipo(), a.getTrilha());
+                    a.getTipo(), a.getTrilha(), a.getNomePoliticaFrequencia());
         }
 
         static AtividadeDTO from(Atividade a, List<PessoaDTO> pessoas) {

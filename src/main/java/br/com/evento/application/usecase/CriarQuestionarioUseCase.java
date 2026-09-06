@@ -20,9 +20,16 @@ public class CriarQuestionarioUseCase {
     }
 
     public Questionario executar(String eventoId, String titulo, List<Pergunta> perguntas) {
+        return executar(eventoId, titulo, perguntas, null);
+    }
+
+    /** RN-15: política de identificação informada antes do envio. */
+    public Questionario executar(String eventoId, String titulo, List<Pergunta> perguntas,
+                                 String politicaIdentificacao) {
         eventoRepository.buscarPorId(eventoId)
                 .orElseThrow(() -> new DomainException("Evento não encontrado."));
         Questionario questionario = new Questionario(null, eventoId, titulo);
+        questionario.definirPoliticaIdentificacao(politicaIdentificacao);
         if (perguntas != null) {
             for (Pergunta pergunta : perguntas) {
                 questionario.adicionarPergunta(pergunta);

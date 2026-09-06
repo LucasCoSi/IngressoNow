@@ -27,13 +27,17 @@ public class ServidorApi {
                 app.eventos, app.inscricoes, app.pessoas, jwt);
         AvaliacaoHandler avaliacaoHandler = new AvaliacaoHandler(app.criarQuestionario,
                 app.submeterAvaliacao, app.consolidarAvaliacoes, app.questionarios, jwt);
+        CertificadoHandler certificadoHandler =
+                new CertificadoHandler(app.gerenciarCertificados, jwt);
         server = HttpServer.create(new InetSocketAddress(porta), 0);
         server.createContext("/api/auth", envolver(new AuthHandler(app.autenticarUsuario, app.cadastrarUsuario, jwt)));
         server.createContext("/api/eventos", envolver(exchange -> {
-            // Questionários têm prefixo maior: delega quando for o caso
+            // Prefixos maiores delegam: questionários e certificados
             String path = exchange.getRequestURI().getPath();
             if (path.matches("(?i).*/questionarios/?$")) {
                 avaliacaoHandler.handle(exchange);
+            } else if (path.matches("(?i).*/certificados(/.*)?$")) {
+                certificadoHandler.handle(exchange);
             } else {
                 eventoHandler.handle(exchange);
             }
@@ -46,8 +50,9 @@ public class ServidorApi {
                 app.qrCodeService, app.inscricoes, jwt)));
         server.createContext("/api/avaliacoes", envolver(avaliacaoHandler));
         server.createContext("/api/questionarios", envolver(avaliacaoHandler));
+        server.createContext("/api/certificados", envolver(certificadoHandler));
         server.createContext("/api/usuarios", envolver(
-                new UsuarioHandler(app.atualizarUsuario, app.usuarios, jwt)));
+                new UsuarioHandler(app.atualizarUsuario, app.gerenciarUsuarios, app.usuarios, jwt)));
         server.setExecutor(Executors.newCachedThreadPool());
         server.start();
         System.out.println("[API] ouvindo em http://localhost:" + porta + "/api");

@@ -55,6 +55,9 @@ public class InscreverParticipanteUseCase {
         }
 
         Inscricao inscricao = new Inscricao(participanteId, eventoId);
-        return inscricaoRepository.salvar(inscricao);
+        Inscricao salva = inscricaoRepository.salvar(inscricao);
+        // RF-13: evento pode exigir escolha de atividades — informa na resposta
+        // (a seleção em si é via POST .../atividades/{atId}; sem escolha, a agenda fica vazia)
+        return salva;
     }
 }

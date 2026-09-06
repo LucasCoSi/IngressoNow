@@ -9,3 +9,5 @@ V5__create_checkins_table.sql
 V6__add_tipo_trilha_atividades.sql
 V7__add_origem_responsavel_checkins.sql
 V8__create_pessoas_table.sql
+V9__evento_detalhes_questionario_politica.sql
+V10__create_certificados_schema.sql

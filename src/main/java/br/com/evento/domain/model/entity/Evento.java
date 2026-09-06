@@ -16,6 +16,16 @@ public class Evento {
     private final List<Atividade> atividades;
     private final Organizador organizador;
     private Integer maxVagas;
+    /** RF-04: período do evento (início/fim geral, opcional no rascunho). */
+    private br.com.evento.domain.model.vo.Periodo periodo;
+    /** RF-04: local/modalidade (ex: "Centro de Convenções Sul", "Híbrido"). */
+    private String local;
+    /** RN-20: fuso do evento (ex: "America/Sao_Paulo"); default UTC. */
+    private String fuso;
+    /** RF-13: exige escolha de atividades na inscrição. */
+    private boolean exigeEscolhaAtividades;
+    /** RF-13: vagas controladas por atividade (além do limite do evento). */
+    private boolean vagasPorAtividade;
 
     public Evento(String id, String titulo, String descricao, Organizador organizador) {
         if (id == null || id.trim().isEmpty()) {
@@ -37,6 +47,11 @@ public class Evento {
         this.status = StatusEvento.RASCUNHO;
         this.atividades = new ArrayList<>();
         this.maxVagas = null;
+        this.periodo = null;
+        this.local = null;
+        this.fuso = "UTC";
+        this.exigeEscolhaAtividades = false;
+        this.vagasPorAtividade = false;
     }
 
     public Evento(String titulo, String descricao, Organizador organizador) {
@@ -102,6 +117,51 @@ public class Evento {
         if (descricao != null) {
             this.descricao = descricao;
         }
+    }
+
+    /** RF-04: define período/local/modalidade (só em rascunho). */
+    public void definirDetalhes(br.com.evento.domain.model.vo.Periodo periodo, String local) {
+        if (this.status != StatusEvento.RASCUNHO) {
+            throw new DomainException("Apenas eventos em rascunho podem ser editados.");
+        }
+        this.periodo = periodo;
+        if (local != null && !local.isBlank()) this.local = local.trim();
+    }
+
+    /** RN-20: fuso IANA (ex: "America/Sao_Paulo"); inválido rejeita. */
+    public void definirFuso(String fuso) {
+        if (fuso == null || fuso.isBlank()) return;
+        try {
+            java.time.ZoneId.of(fuso.trim());
+        } catch (Exception e) {
+            throw new DomainException("Fuso horário inválido (use IANA, ex: America/Sao_Paulo).");
+        }
+        this.fuso = fuso.trim();
+    }
+
+    /** RF-13: regra de inscrição configurável. */
+    public void configurarInscricao(boolean exigeEscolhaAtividades, boolean vagasPorAtividade) {
+        if (this.status != StatusEvento.RASCUNHO) {
+            throw new DomainException("Apenas eventos em rascunho podem ser editados.");
+        }
+        this.exigeEscolhaAtividades = exigeEscolhaAtividades;
+        this.vagasPorAtividade = vagasPorAtividade;
+    }
+
+    public br.com.evento.domain.model.vo.Periodo getPeriodo() { return periodo; }
+    public String getLocal() { return local; }
+    public String getFuso() { return fuso; }
+    public boolean isExigeEscolhaAtividades() { return exigeEscolhaAtividades; }
+    public boolean isVagasPorAtividade() { return vagasPorAtividade; }
+
+    /** Restaura flags de persistência (uso exclusivo dos adapters). */
+    public void restaurarDetalhes(br.com.evento.domain.model.vo.Periodo periodo, String local,
+                                  String fuso, boolean exigeEscolha, boolean vagasPorAtividade) {
+        this.periodo = periodo;
+        this.local = local;
+        if (fuso != null && !fuso.isBlank()) this.fuso = fuso;
+        this.exigeEscolhaAtividades = exigeEscolha;
+        this.vagasPorAtividade = vagasPorAtividade;
     }
 
     public void publicar() {

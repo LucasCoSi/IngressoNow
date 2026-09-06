@@ -60,7 +60,8 @@ public class AvaliacaoHandler implements HttpHandler {
                                     p.opcoes(), p.escalaMax()))
                             .toList();
                     HttpErrors.json(ex, 201,
-                            QuestionarioDTO.from(criar.executar(eventoId, req.titulo(), perguntas)));
+                            QuestionarioDTO.from(criar.executar(eventoId, req.titulo(), perguntas,
+                                    req.politicaIdentificacao())));
                 } else if ("GET".equals(metodo)) {
                     HttpErrors.json(ex, 200, questionarios.buscarPorEvento(eventoId).stream()
                             .map(QuestionarioDTO::from).toList());
@@ -100,7 +101,8 @@ public class AvaliacaoHandler implements HttpHandler {
         }
     }
 
-    public record CriarQuestionarioRequest(String titulo, List<PerguntaRequest> perguntas) {
+    public record CriarQuestionarioRequest(String titulo, List<PerguntaRequest> perguntas,
+                                           String politicaIdentificacao) {
     }
 
     public record PerguntaRequest(String enunciado, TipoPergunta tipo, Boolean obrigatoria,
@@ -122,9 +124,10 @@ public class AvaliacaoHandler implements HttpHandler {
     }
 
     public record QuestionarioDTO(String id, String eventoId, String titulo, boolean congelado,
-                                  List<PerguntaDTO> perguntas) {
+                                  String politicaIdentificacao, List<PerguntaDTO> perguntas) {
         static QuestionarioDTO from(Questionario q) {
             return new QuestionarioDTO(q.getId(), q.getEventoId(), q.getTitulo(), q.isCongelado(),
+                    q.getPoliticaIdentificacao(),
                     q.getPerguntas().stream().map(PerguntaDTO::from).toList());
         }
     }

@@ -315,5 +315,13 @@
  document.querySelectorAll('.nav-btn').forEach(function(button){button.addEventListener('click',function(){document.querySelectorAll('.nav-btn').forEach(function(item){item.classList.remove('active')});button.classList.add('active')})});
  document.querySelectorAll('.pill').forEach(function(pill){pill.addEventListener('click',function(){document.querySelectorAll('.pill').forEach(function(item){item.classList.remove('active')});pill.classList.add('active')})});
  </script>
+
+ <!-- Container para alertas de erro/sucesso -->
+ <div id="error-container"></div>
+
+ <!-- Integração com Backend REST -->
+ <link rel="stylesheet" href="/css/alerts.css">
+ <script src="/js/api-client.js"></script>
+ <script src="/js/atividades.js"></script>
 </body>
 </html>

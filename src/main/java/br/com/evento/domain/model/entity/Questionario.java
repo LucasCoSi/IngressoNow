@@ -18,6 +18,11 @@ public class Questionario {
     private String titulo;
     private final List<Pergunta> perguntas;
     private boolean congelado;
+    /**
+     * RN-15: política de identificação das respostas, informada ao
+     * participante antes do envio ("IDENTIFICADO" ou "ANONIMO").
+     */
+    private String politicaIdentificacao = "IDENTIFICADO";
 
     public Questionario(String id, String eventoId, String titulo) {
         if (id == null || id.trim().isEmpty()) {
@@ -46,6 +51,24 @@ public class Questionario {
     public String getEventoId() { return eventoId; }
     public String getTitulo() { return titulo; }
     public boolean isCongelado() { return congelado; }
+    public String getPoliticaIdentificacao() { return politicaIdentificacao; }
+
+    /** RN-15: define antes de receber respostas (congela junto). */
+    public void definirPoliticaIdentificacao(String politica) {
+        exigirEditavel();
+        if (politica == null || politica.isBlank()) return;
+        String p = politica.trim().toUpperCase();
+        if (!p.equals("IDENTIFICADO") && !p.equals("ANONIMO")) {
+            throw new DomainException(
+                    "Política de identificação inválida (use IDENTIFICADO ou ANONIMO).");
+        }
+        this.politicaIdentificacao = p;
+    }
+
+    /** Restaura política da persistência (uso exclusivo dos adapters). */
+    public void restaurarPolitica(String politica) {
+        if (politica != null && !politica.isBlank()) this.politicaIdentificacao = politica;
+    }
 
     public void definirTitulo(String titulo) {
         exigirEditavel();

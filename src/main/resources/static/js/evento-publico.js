@@ -67,20 +67,23 @@ document.addEventListener('DOMContentLoaded', async function() {
             `;
         }
 
-        // Atualizar meta info
+        // Atualizar meta info (RF-04/RN-20: período, local e fuso reais do evento)
         if (heroMeta) {
+            const periodo = evento.periodoInicio
+                ? `${window.API.formatarData(evento.periodoInicio)} — ${window.API.formatarData(evento.periodoFim || evento.periodoInicio)}`
+                : 'Datas a definir';
             heroMeta.innerHTML = `
                 <span class="hero-meta-item">
                     <svg class="icon"><use href="#i-calendar"/></svg>
-                    15-16 de Setembro, 2026
+                    ${periodo}${evento.fuso && evento.fuso !== 'UTC' ? ` (${evento.fuso})` : ''}
                 </span>
                 <span class="hero-meta-item">
                     <svg class="icon"><use href="#i-map-pin"/></svg>
-                    Centro de Eventos Sul
+                    ${evento.local || 'Local a definir'}
                 </span>
                 <span class="hero-meta-item">
                     <svg class="icon"><use href="#i-users"/></svg>
-                    ${evento.maxVagas || 200} vagas
+                    ${evento.maxVagas || 'Vagas livres'}
                 </span>
             `;
         }

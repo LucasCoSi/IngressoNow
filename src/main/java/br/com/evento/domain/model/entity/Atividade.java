@@ -85,6 +85,28 @@ public class Atividade {
         this.politicaFrequencia = politicaFrequencia;
     }
 
+    /**
+     * RF-19: critério de presença configurável por nome
+     * ("UNICA" = check-in único; "ENTRADA_SAIDA" = pares entrada/saída).
+     */
+    public void definirPoliticaFrequencia(String nome) {
+        if (nome == null || nome.isBlank()) {
+            throw new DomainException("O critério de presença é obrigatório.");
+        }
+        switch (nome.trim().toUpperCase()) {
+            case "UNICA" -> this.politicaFrequencia = new FrequenciaUnicaStrategy();
+            case "ENTRADA_SAIDA" -> this.politicaFrequencia = new FrequenciaEntradaSaidaStrategy();
+            default -> throw new DomainException(
+                    "Critério de presença inválido (use UNICA ou ENTRADA_SAIDA).");
+        }
+    }
+
+    /** Nome do critério vigente (p/ persistência e DTOs). */
+    public String getNomePoliticaFrequencia() {
+        return (politicaFrequencia instanceof FrequenciaEntradaSaidaStrategy)
+                ? "ENTRADA_SAIDA" : "UNICA";
+    }
+
     public void remarcar(Periodo novoPeriodo, String novoLocal) {
         if (novoPeriodo == null) {
             throw new DomainException("O novo período é obrigatório.");

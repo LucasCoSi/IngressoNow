@@ -1,6 +1,11 @@
 # Seeds de Dados Iniciais - Migration V3
 
-## 📅 Data: 01 de Setembro de 2026
+## 📅 Data: 01 de Setembro de 2026 — revisado em 06/09/2026 (base zerada V1–V8 OK)
+
+> Validação 2026-09-06 (`docker-compose down -v && up --build`): V1–V8
+> aplicadas em ordem, login Maria/Lucas OK, `GET /api/eventos` retorna
+> 2 PUBLICADO com 5 atividades. Hash válido atual abaixo (o antigo
+> `$2a$10$N9qo8...` era inválido e foi corrigido na V3).
 
 ---
 
@@ -20,7 +25,7 @@
 | `550e8400-e29b-41d4-a716-446655440001` | PARTICIPANTE | Lucas Silva | lucas.silva@email.com | senha123 |
 | `550e8400-e29b-41d4-a716-446655440002` | ORGANIZADOR | Maria Santos | maria.santos@email.com | senha123 |
 
-**Hash BCrypt**: `$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy`
+**Hash BCrypt** (`senha123`): `$2a$10$TW7F2EXj42YabuptHEuSi.hj1KR.J/TrRz0WtjO6yE0UUhlgPKUMO`
 
 ---
 
@@ -111,17 +116,13 @@ docker-compose up -d
 docker logs poo2-app -f
 ```
 
-### Opção 2: Flyway via Maven
+### Opção 2: JAR local (modo headless)
 ```bash
-mvn flyway:migrate
+# Requer Postgres local (db.url em config.properties ou DB_URL)
+java -jar target/plataforma-eventos-*.jar --headless
 ```
 
-### Opção 3: Flyway via Spring Boot
-```bash
-mvn spring-boot:run
-```
-
-O Flyway detecta automaticamente a nova migration V3 e aplica os inserts.
+O `MigradorSql` aplica V1–V8 em ordem (manifesto `migrations.txt`).
 
 ---
 
