@@ -66,7 +66,7 @@
 | ROO-09 hexagonal | `domain/` sem imports de framework; `application/` sem anotações (fiação manual em `FabricaAplicacao`); JDBC isolado em `adapters/out`; HTTP e desktop em `adapters/in` | `Poo2Application.java`, `infra/FabricaAplicacao.java`, adapters |
 | ROO-10 padrões | ① Strategy (inscrição + frequência) com efeito real; ② Ports & Adapters; candidato a 3º: Builder/Factory p/ `Questionario` ou Specification p/ elegibilidade — Task #2/#4 | — |
 | ROO-11 erros de domínio | `DomainException` + `GlobalExceptionHandler` (400/404/422/500) + `StandardError` | `exception/*` |
-| ROO-12 testes/refatoração | 15 testes de comportamento; **zero refatorações registradas** — escrever 2 (ex: extração de `PoliticaInscricao`, extração de `AgendaDoParticipante`) | `src/test/**` |
+| ROO-12 testes/refatoração | 73 testes JUnit 5 + Mockito (0 falhas); 2 refatorações registradas em `REFATORACOES.md` (R-01 `exigirSemConflito`, R-02 upsert + DELETE de órfãs) | `src/test/**`, `REFATORACOES.md` |
 
 **Dívida de modelagem:** pacotes legados duplicados (`domain/model/usuario`, `dominio/model/evento`, `dominio/model/inscricao`, `dominio/model/vo`) coexistem com `domain/model/entity` — decidir: excluir ou marcar `@Deprecated`. Recomendado excluir na Task #4.
 
