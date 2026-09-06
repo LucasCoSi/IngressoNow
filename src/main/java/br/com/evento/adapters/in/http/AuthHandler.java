@@ -71,7 +71,9 @@ public class AuthHandler implements HttpHandler {
                 "token", jwt.emitir(usuario),
                 "usuarioId", usuario.getId(),
                 "nome", usuario.getNome(),
-                "email", usuario.getEmail().getEndereco());
+                "email", usuario.getEmail().getEndereco(),
+                "tipo", usuario instanceof br.com.evento.domain.model.entity.Organizador
+                        ? "ORGANIZADOR" : "PARTICIPANTE");
     }
 
     private static void exigir(String valor, String mensagem) {

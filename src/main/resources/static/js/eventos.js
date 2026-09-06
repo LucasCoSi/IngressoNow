@@ -9,6 +9,32 @@ document.addEventListener('DOMContentLoaded', async function() {
     const tbody = document.querySelector('.events-table tbody');
     const counterElement = document.querySelector('.counter b');
     const filterStatus = document.getElementById('filter-status');
+    const createBtn = document.querySelector('[data-od-id="create-new-event-cta"]');
+
+    // Fecha o ciclo: criar RASCUNHO → editar → atividade → publicar (próxima frente)
+    if (createBtn) {
+        createBtn.addEventListener('click', async () => {
+            if (!exigirLogin()) return;
+            const titulo = prompt('Título do evento (≥3 caracteres):');
+            if (!titulo) return;
+            const descricao = prompt('Descrição (≥10 caracteres):');
+            if (!descricao) return;
+            const user = window.Auth ? window.Auth.getUser() : null;
+            try {
+                await window.API.Eventos.criar({
+                    titulo: titulo.trim(),
+                    descricao: descricao.trim(),
+                    organizadorId: user ? user.usuarioId : null,
+                    maxVagas: 100
+                });
+                window.API.exibirSucesso('Evento criado como RASCUNHO!');
+                await carregarEventos();
+            } catch (error) {
+                console.error('[Eventos] Erro ao criar:', error);
+                window.API.exibirErro(error);
+            }
+        });
+    }
 
     if (!tbody) {
         console.warn('[Eventos] Tabela não encontrada no DOM');
@@ -53,13 +79,15 @@ document.addEventListener('DOMContentLoaded', async function() {
             return;
         }
 
-        tbody.innerHTML = eventos.map(evento => `
+        tbody.innerHTML = eventos.map(evento => {
+            const editavel = evento.status === 'RASCUNHO';
+            return `
             <tr data-evento-id="${evento.id}">
                 <td>
                     <span class="event-name">${escapeHtml(evento.titulo)}</span>
-                    <span class="event-location">Online & Presencial</span>
+                    <span class="event-location">${escapeHtml(evento.local || 'Online & Presencial')}</span>
                 </td>
-                <td class="event-date">-</td>
+                <td class="event-date">${evento.periodoInicio ? escapeHtml(window.API.formatarData(evento.periodoInicio)) : '-'}</td>
                 <td>
                     ${getBadgeStatus(evento.status)}
                 </td>
@@ -77,16 +105,23 @@ document.addEventListener('DOMContentLoaded', async function() {
                         <button class="action-btn" title="Visualizar" data-action="view" data-id="${evento.id}">
                             <svg class="icon"><use href="#i-eye"/></svg>
                         </button>
+                        ${editavel ? `
                         <button class="action-btn" title="Editar" data-action="edit" data-id="${evento.id}">
                             <svg class="icon"><use href="#i-edit"/></svg>
                         </button>
                         <button class="action-btn" title="Excluir" data-action="delete" data-id="${evento.id}">
                             <svg class="icon"><use href="#i-trash"/></svg>
+                        </button>` : `
+                        <button class="action-btn" title="Publicar" data-action="publish" data-id="${evento.id}">
+                            <svg class="icon"><use href="#i-check"/></svg>
                         </button>
+                        <button class="action-btn" title="Encerrar" data-action="close" data-id="${evento.id}">
+                            <svg class="icon"><use href="#i-x"/></svg>
+                        </button>`}
                     </div>
                 </td>
             </tr>
-        `).join('');
+        `; }).join('');
 
         if (counterElement) {
             counterElement.textContent = eventos.length;
@@ -138,7 +173,46 @@ document.addEventListener('DOMContentLoaded', async function() {
             case 'delete':
                 excluirEvento(eventoId);
                 break;
+            case 'publish':
+                publicarEvento(eventoId);
+                break;
+            case 'close':
+                encerrarEvento(eventoId);
+                break;
         }
+    }
+
+    async function postAcao(eventoId, acao, rotulo) {
+        if (!exigirLogin()) return;
+        if (!confirm(`${rotulo} este evento?`)) return;
+        try {
+            const resp = await fetch(`/api/eventos/${encodeURIComponent(eventoId)}/${acao}`, {
+                method: 'POST',
+                headers: (() => {
+                    const h = { 'Accept': 'application/json' };
+                    const t = window.Auth ? window.Auth.getToken() : null;
+                    if (t) h['Authorization'] = 'Bearer ' + t;
+                    return h;
+                })()
+            });
+            if (!resp.ok) {
+                const err = await resp.json().catch(() => ({}));
+                throw new window.API.APIError(err.message || `HTTP ${resp.status}`, resp.status);
+            }
+            window.API.exibirSucesso(`Evento ${rotulo.toLowerCase()} com sucesso!`);
+            await carregarEventos();
+        } catch (error) {
+            console.error(`[Eventos] Erro ao ${acao}:`, error);
+            window.API.exibirErro(error);
+        }
+    }
+
+    async function publicarEvento(eventoId) {
+        await postAcao(eventoId, 'publicar', 'Publicar');
+    }
+
+    async function encerrarEvento(eventoId) {
+        await postAcao(eventoId, 'encerrar', 'Encerrar');
     }
 
     function exigirLogin() {

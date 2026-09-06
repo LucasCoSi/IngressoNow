@@ -220,7 +220,8 @@ const AuthAPI = {
             Auth.setUser({
                 usuarioId: response.usuarioId,
                 nome: response.nome,
-                email: response.email
+                email: response.email,
+                tipo: response.tipo || null
             });
         }
         return response;
@@ -233,7 +234,8 @@ const AuthAPI = {
             Auth.setUser({
                 usuarioId: response.usuarioId,
                 nome: response.nome,
-                email: response.email
+                email: response.email,
+                tipo: response.tipo || tipo || null
             });
         }
         return response;

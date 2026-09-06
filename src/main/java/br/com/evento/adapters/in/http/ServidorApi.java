@@ -53,6 +53,8 @@ public class ServidorApi {
         server.createContext("/api/certificados", envolver(certificadoHandler));
         server.createContext("/api/usuarios", envolver(
                 new UsuarioHandler(app.atualizarUsuario, app.gerenciarUsuarios, app.usuarios, jwt)));
+        // Site estático (System Design + login/cadastro + js/css) — último, pega o resto
+        server.createContext("/", envolver(new StaticHandler()));
         server.setExecutor(Executors.newCachedThreadPool());
         server.start();
         System.out.println("[API] ouvindo em http://localhost:" + porta + "/api");

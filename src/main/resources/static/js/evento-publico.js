@@ -51,7 +51,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     /**
      * Renderiza dados do evento na página
      */
-    function renderizarEvento(evento) {
+    async function renderizarEvento(evento) {
         // Atualizar título
         if (heroTitle) {
             heroTitle.textContent = evento.titulo;
@@ -88,10 +88,28 @@ document.addEventListener('DOMContentLoaded', async function() {
             `;
         }
 
-        // Configurar botão de inscrição
+        // Configurar botão: organizador gerencia, participante inscreve-se.
+        // (Backend bloqueia organizador com 422; evita o clique no erro.)
+        // Tipo vem do login (AuthHandler.resposta); fallback: busca o perfil.
         if (ctaButton) {
-            ctaButton.textContent = 'Realizar Inscrição';
-            ctaButton.onclick = () => realizarInscricao(evento.id);
+            const user = window.Auth ? window.Auth.getUser() : null;
+            let tipo = user ? user.tipo : null;
+            if (!tipo && user && user.usuarioId && window.API.Usuarios) {
+                try {
+                    const perfil = await window.API.Usuarios.buscarPerfil(user.usuarioId);
+                    tipo = perfil.tipo;
+                    window.Auth.setUser({ ...user, tipo });
+                } catch (e) {
+                    console.warn('[Evento Público] Tipo indisponível, assume participante');
+                }
+            }
+            if (tipo === 'ORGANIZADOR') {
+                ctaButton.textContent = 'Gerenciar Evento';
+                ctaButton.onclick = () => { window.location.href = '/eventos'; };
+            } else {
+                ctaButton.textContent = 'Realizar Inscrição';
+                ctaButton.onclick = () => realizarInscricao(evento.id);
+            }
         }
 
         // Atualizar descrição (se existir seção)

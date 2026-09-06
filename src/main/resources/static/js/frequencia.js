@@ -17,6 +17,14 @@ document.addEventListener('DOMContentLoaded', function() {
         return headers;
     }
 
+    function mostrarFeedback(detalhes) {
+        if (!feedbackCard) return;
+        const el = feedbackCard.querySelector('.feedback-details');
+        if (el) el.textContent = detalhes;
+        feedbackCard.style.display = 'flex';
+        setTimeout(() => { feedbackCard.style.display = 'none'; }, 6000);
+    }
+
     async function realizarCheckIn(qrCodeToken) {
         if (!qrCodeToken || !qrCodeToken.trim()) {
             window.API.exibirErro(new window.API.APIError('Informe o codigo do QR Code.', 400));
@@ -24,7 +32,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         try {
             await window.API.Controle.realizarCheckIn(qrCodeToken.trim());
-            window.API.exibirSucesso('Check-in realizado com sucesso!');
+            mostrarFeedback(`Check-in registrado às ${new Date().toLocaleTimeString('pt-BR')}.`);
             if (validatorInput) validatorInput.value = '';
         } catch (error) {
             console.error('[Frequencia] Erro no check-in:', error);
