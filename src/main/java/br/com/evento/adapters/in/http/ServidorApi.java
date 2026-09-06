@@ -23,7 +23,8 @@ public class ServidorApi {
     public void iniciar(int porta) throws IOException {
         JwtAuth jwt = new JwtAuth(app.config.jwtSecret(), app.config.jwtExpirationMs(), app.usuarios);
         EventoHandler eventoHandler = new EventoHandler(app.listarEventosPublicados, app.cadastrarEvento,
-                app.adicionarAtividade, app.eventos, app.inscricoes, jwt);
+                app.adicionarAtividade, app.remarcarAtividade, app.vincularPessoa,
+                app.eventos, app.inscricoes, app.pessoas, jwt);
         AvaliacaoHandler avaliacaoHandler = new AvaliacaoHandler(app.criarQuestionario,
                 app.submeterAvaliacao, app.consolidarAvaliacoes, app.questionarios, jwt);
         server = HttpServer.create(new InetSocketAddress(porta), 0);
@@ -41,9 +42,12 @@ public class ServidorApi {
                 app.consultarAgenda, app.selecionarAtividade, app.cancelarInscricao,
                 app.inscricoes, app.usuarios, app.eventos, jwt)));
         server.createContext("/api/controle", envolver(new ControleHandler(app.realizarCheckIn,
-                app.relatorioPresenca, app.qrCodeService, app.inscricoes, jwt)));
+                app.realizarCheckInManual, app.relatorioPresenca, app.relatorioInscritos,
+                app.qrCodeService, app.inscricoes, jwt)));
         server.createContext("/api/avaliacoes", envolver(avaliacaoHandler));
         server.createContext("/api/questionarios", envolver(avaliacaoHandler));
+        server.createContext("/api/usuarios", envolver(
+                new UsuarioHandler(app.atualizarUsuario, app.usuarios, jwt)));
         server.setExecutor(Executors.newCachedThreadPool());
         server.start();
         System.out.println("[API] ouvindo em http://localhost:" + porta + "/api");

@@ -30,11 +30,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             return;
         }
 
-        // Preenche perfil com dados da sessao
-        if (profileValues && profileValues.length >= 2) {
-            profileValues[0].textContent = user.nome || '-';
-            profileValues[1].textContent = user.email || '-';
-        }
+        // Preenche perfil via GET /api/usuarios/{id} (RF-03) + form de edição
+        await carregarPerfil(user.usuarioId, user);
 
         try {
             const resposta = await fetch(`/api/inscricoes?participanteId=${encodeURIComponent(user.usuarioId)}`, {
@@ -106,6 +103,61 @@ document.addEventListener('DOMContentLoaded', async function() {
             activeTab.appendChild(card);
             activeTab.appendChild(lista);
         }
+    }
+
+    /**
+     * RF-03: carrega o perfil do backend e injeta form de edição
+     * (nome + nova senha) na aba de perfil.
+     */
+    async function carregarPerfil(usuarioId, sessao) {
+        const tabProfile = document.querySelector('[data-od-id="tab-content-profile"]');
+        let perfil = { nome: sessao.nome, email: sessao.email };
+        try {
+            perfil = await window.API.Usuarios.buscarPerfil(usuarioId);
+            window.Auth.setUser({ usuarioId, nome: perfil.nome, email: perfil.email });
+        } catch (e) {
+            console.warn('[Area Participante] Perfil do backend indisponivel, usando sessao');
+        }
+        if (profileValues && profileValues.length >= 2) {
+            profileValues[0].textContent = perfil.nome || '-';
+            profileValues[1].textContent = perfil.email || '-';
+        }
+        if (!tabProfile || document.getElementById('perfil-edit-form')) return;
+        const card = document.createElement('div');
+        card.className = 'profile-section-card';
+        card.innerHTML = `
+            <div class="profile-section-title">Editar Meus Dados</div>
+            <form id="perfil-edit-form" style="display:grid;gap:10px;max-width:420px">
+                <label style="font-size:12px">Nome
+                    <input id="perfil-nome" style="width:100%;padding:8px" value="" maxlength="120">
+                </label>
+                <label style="font-size:12px">Nova senha (min. 6 caracteres, vazio = manter)
+                    <input id="perfil-senha" type="password" style="width:100%;padding:8px" autocomplete="new-password">
+                </label>
+                <button class="secondary" type="submit" style="justify-self:start">Salvar alterações</button>
+            </form>`;
+        tabProfile.querySelector('.profile-tab-content').appendChild(card);
+        card.querySelector('#perfil-nome').value = perfil.nome || '';
+        card.querySelector('#perfil-edit-form').addEventListener('submit', async (ev) => {
+            ev.preventDefault();
+            const nome = card.querySelector('#perfil-nome').value.trim();
+            const senha = card.querySelector('#perfil-senha').value;
+            try {
+                const atualizado = await window.API.Usuarios.atualizarPerfil(usuarioId, {
+                    nome: nome || null,
+                    senha: senha || null
+                });
+                window.Auth.setUser({ usuarioId, nome: atualizado.nome, email: atualizado.email });
+                if (profileValues && profileValues.length >= 2) {
+                    profileValues[0].textContent = atualizado.nome || '-';
+                    profileValues[1].textContent = atualizado.email || '-';
+                }
+                card.querySelector('#perfil-senha').value = '';
+                window.API.exibirSucesso('Perfil atualizado com sucesso!');
+            } catch (e) {
+                window.API.exibirErro(e);
+            }
+        });
     }
 
     await carregarMinhasInscricoes();

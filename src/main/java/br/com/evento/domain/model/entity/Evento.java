@@ -143,12 +143,36 @@ public class Evento {
         if (novaAtividade == null) {
             throw new DomainException("Atividade não pode ser nula.");
         }
-        for (Atividade atividadeExistente : atividades) {
-            if (atividadeExistente.conflitaCom(novaAtividade) && atividadeExistente.getLocal().equals(novaAtividade.getLocal())) {
+        exigirSemConflito(novaAtividade, null);
+        this.atividades.add(novaAtividade);
+    }
+
+    /**
+     * RF-07: remarcação revalidada contra as irmãs (mesmo local + período
+     * sobreposto). Decisão documentada: conflito de horário em locais
+     * diferentes é permitido (grade paralela); só local igual bloqueia.
+     */
+    public void remarcarAtividade(String atividadeId, br.com.evento.domain.model.vo.Periodo novoPeriodo,
+                                  String novoLocal) {
+        Atividade alvo = atividades.stream()
+                .filter(a -> a.getId().equals(atividadeId))
+                .findFirst()
+                .orElseThrow(() -> new DomainException("Atividade não encontrada no evento."));
+        // Valida antes de mutar: simula a atividade remarcada e checa contra as irmãs
+        Atividade simulada = new Atividade(alvo.getId(), alvo.getTitulo(), novoPeriodo, novoLocal,
+                alvo.getTipo(), alvo.getTrilha());
+        exigirSemConflito(simulada, atividadeId);
+        alvo.remarcar(novoPeriodo, novoLocal);
+    }
+
+    private void exigirSemConflito(Atividade candidata, String ignorarId) {
+        for (Atividade existente : atividades) {
+            if (ignorarId != null && existente.getId().equals(ignorarId)) continue;
+            if (existente.conflitaCom(candidata)
+                    && existente.getLocal().equals(candidata.getLocal())) {
                 throw new DomainException("Conflito de horário e local com outra atividade do evento.");
             }
         }
-        this.atividades.add(novaAtividade);
     }
 
     @Override

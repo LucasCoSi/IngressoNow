@@ -3,17 +3,22 @@ package br.com.evento.adapters.in.http;
 import br.com.evento.application.usecase.AdicionarAtividadeUseCase;
 import br.com.evento.application.usecase.CadastrarEventoUseCase;
 import br.com.evento.application.usecase.ListarEventosPublicadosUseCase;
+import br.com.evento.application.usecase.RemarcarAtividadeUseCase;
+import br.com.evento.application.usecase.VincularPessoaUseCase;
 import br.com.evento.domain.exception.DomainException;
 import br.com.evento.domain.model.entity.Atividade;
 import br.com.evento.domain.model.entity.Evento;
+import br.com.evento.domain.model.entity.Pessoa;
 import br.com.evento.domain.port.out.EventoRepository;
 import br.com.evento.domain.port.out.InscricaoRepository;
+import br.com.evento.domain.port.out.PessoaRepository;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 /**
  * /api/eventos — GET público; POST/PUT/DELETE exigem JWT.
@@ -24,18 +29,25 @@ public class EventoHandler implements HttpHandler {
     private final ListarEventosPublicadosUseCase listar;
     private final CadastrarEventoUseCase cadastrar;
     private final AdicionarAtividadeUseCase adicionarAtividade;
+    private final RemarcarAtividadeUseCase remarcarAtividade;
+    private final VincularPessoaUseCase vincularPessoa;
     private final EventoRepository eventos;
     private final InscricaoRepository inscricoes;
+    private final PessoaRepository pessoas;
     private final JwtAuth jwt;
 
     public EventoHandler(ListarEventosPublicadosUseCase listar, CadastrarEventoUseCase cadastrar,
-                         AdicionarAtividadeUseCase adicionarAtividade, EventoRepository eventos,
-                         InscricaoRepository inscricoes, JwtAuth jwt) {
+                         AdicionarAtividadeUseCase adicionarAtividade, RemarcarAtividadeUseCase remarcarAtividade,
+                         VincularPessoaUseCase vincularPessoa, EventoRepository eventos,
+                         InscricaoRepository inscricoes, PessoaRepository pessoas, JwtAuth jwt) {
         this.listar = listar;
         this.cadastrar = cadastrar;
         this.adicionarAtividade = adicionarAtividade;
+        this.remarcarAtividade = remarcarAtividade;
+        this.vincularPessoa = vincularPessoa;
         this.eventos = eventos;
         this.inscricoes = inscricoes;
+        this.pessoas = pessoas;
         this.jwt = jwt;
     }
 
@@ -91,6 +103,22 @@ public class EventoHandler implements HttpHandler {
                 }
                 return;
             }
+            // RF-09: GET /api/eventos/{id}/programacao com filtros server-side
+            // (data, tipo, trilha, local — query params opcionais)
+            if (partes.length == 2 && "programacao".equals(partes[1]) && "GET".equals(metodo)) {
+                Evento evento = buscar(id);
+                Map<String, String> params = InscricaoHandler.query(ex.getRequestURI().getRawQuery());
+                var lista = evento.getAtividades().stream()
+                        .filter(a -> programa(params.get("data"), a))
+                        .filter(a -> matchParam(params.get("tipo"), a.getTipo()))
+                        .filter(a -> matchParam(params.get("trilha"), a.getTrilha()))
+                        .filter(a -> matchParam(params.get("local"), a.getLocal()))
+                        .map(a -> AtividadeDTO.from(a, pessoas.buscarPorAtividade(a.getId()).stream()
+                                .map(PessoaDTO::from).toList()))
+                        .toList();
+                HttpErrors.json(ex, 200, lista);
+                return;
+            }
             if (partes.length == 2 && "POST".equals(metodo)) {
                 if (!jwt.exigir(ex)) return;
                 switch (partes[1]) {
@@ -98,7 +126,8 @@ public class EventoHandler implements HttpHandler {
                         var req = Json.ler(HttpErrors.corpo(ex), CriarAtividadeRequest.class);
                         validarAtividade(req);
                         Evento evento = adicionarAtividade.executar(id, req.titulo(),
-                                LocalDateTime.parse(req.inicio()), LocalDateTime.parse(req.fim()), req.local());
+                                LocalDateTime.parse(req.inicio()), LocalDateTime.parse(req.fim()), req.local(),
+                                req.tipo(), req.trilha());
                         Atividade criada = evento.getAtividades().get(evento.getAtividades().size() - 1);
                         HttpErrors.json(ex, 201, AtividadeDTO.from(criada));
                     }
@@ -115,6 +144,50 @@ public class EventoHandler implements HttpHandler {
                     default -> HttpErrors.json(ex, 404, StandardError.de(404, "Not Found",
                             "Rota não encontrada.", ex.getRequestURI().getPath()));
                 }
+                return;
+            }
+            // RF-07: PUT /api/eventos/{id}/atividades/{atId} (remarcar com revalidação)
+            if (partes.length == 3 && "atividades".equals(partes[1]) && "PUT".equals(metodo)) {
+                if (!jwt.exigir(ex)) return;
+                var req = Json.ler(HttpErrors.corpo(ex), RemarcarRequest.class);
+                if (req.inicio() == null || req.fim() == null) {
+                    throw new IllegalArgumentException("Início e fim são obrigatórios");
+                }
+                if (req.local() == null || req.local().isBlank()) {
+                    throw new IllegalArgumentException("O local é obrigatório");
+                }
+                remarcarAtividade.executar(id, partes[2],
+                        LocalDateTime.parse(req.inicio()), LocalDateTime.parse(req.fim()), req.local());
+                HttpErrors.json(ex, 200, AtividadeDTO.from(buscar(id).getAtividades().stream()
+                        .filter(a -> a.getId().equals(partes[2])).findFirst()
+                        .orElseThrow(() -> new DomainException("Atividade não encontrada."))));
+                return;
+            }
+            // RF-08: POST/GET /api/eventos/{id}/atividades/{atId}/pessoas + DELETE /pessoas/{pId}
+            if (partes.length == 4 && "atividades".equals(partes[1]) && "pessoas".equals(partes[3])) {
+                if ("GET".equals(metodo)) {
+                    HttpErrors.json(ex, 200, pessoas.buscarPorAtividade(partes[2]).stream()
+                            .map(PessoaDTO::from).toList());
+                    return;
+                }
+                if ("POST".equals(metodo)) {
+                    if (!jwt.exigir(ex)) return;
+                    var req = Json.ler(HttpErrors.corpo(ex), VincularPessoaRequest.class);
+                    if (req.nome() == null || req.nome().isBlank()) {
+                        throw new IllegalArgumentException("O nome da pessoa é obrigatório");
+                    }
+                    if (req.papel() == null || req.papel().isBlank()) {
+                        throw new IllegalArgumentException("O papel da pessoa é obrigatório");
+                    }
+                    HttpErrors.json(ex, 201,
+                            PessoaDTO.from(vincularPessoa.executar(id, partes[2], req.nome(), req.papel())));
+                    return;
+                }
+            }
+            if (partes.length == 3 && "pessoas".equals(partes[1]) && "DELETE".equals(metodo)) {
+                if (!jwt.exigir(ex)) return;
+                vincularPessoa.remover(partes[2]);
+                HttpErrors.semConteudo(ex);
                 return;
             }
             // GET /api/eventos/{id}/questionarios é tratado pelo AvaliacaoHandler via prefixo maior
@@ -164,7 +237,8 @@ public class EventoHandler implements HttpHandler {
     }
 
     public record CriarAtividadeRequest(String titulo, String descricao, String inicio, String fim,
-                                        String local, String eventoId, Integer maxVagas) {
+                                        String local, String eventoId, Integer maxVagas,
+                                        String tipo, String trilha) {
     }
 
     public record EventoDTO(String id, String titulo, String descricao, String status,
@@ -176,10 +250,46 @@ public class EventoHandler implements HttpHandler {
         }
     }
 
-    public record AtividadeDTO(String id, String titulo, String inicio, String fim, String local) {
+    public record AtividadeDTO(String id, String titulo, String inicio, String fim, String local,
+                               String tipo, String trilha) {
         static AtividadeDTO from(Atividade a) {
             return new AtividadeDTO(a.getId(), a.getTitulo(),
-                    a.getPeriodo().getInicio().toString(), a.getPeriodo().getFim().toString(), a.getLocal());
+                    a.getPeriodo().getInicio().toString(), a.getPeriodo().getFim().toString(), a.getLocal(),
+                    a.getTipo(), a.getTrilha());
+        }
+
+        static AtividadeDTO from(Atividade a, List<PessoaDTO> pessoas) {
+            return from(a);
+        }
+    }
+
+    public record RemarcarRequest(String inicio, String fim, String local) {
+    }
+
+    public record VincularPessoaRequest(String nome, String papel) {
+    }
+
+    public record PessoaDTO(String id, String atividadeId, String nome, String papel) {
+        static PessoaDTO from(Pessoa p) {
+            return new PessoaDTO(p.getId(), p.getAtividadeId(), p.getNome(), p.getPapel());
+        }
+    }
+
+    /** RF-09: match case-insensitive de filtro opcional (vazio = aceita tudo). */
+    private static boolean matchParam(String filtro, String valor) {
+        if (filtro == null || filtro.isBlank()) return true;
+        if (valor == null) return false;
+        return valor.equalsIgnoreCase(filtro.trim());
+    }
+
+    /** RF-09: filtro por data (yyyy-MM-dd) compara o dia do início da atividade. */
+    private static boolean programa(String data, Atividade a) {
+        if (data == null || data.isBlank()) return true;
+        try {
+            java.time.LocalDate dia = java.time.LocalDate.parse(data.trim());
+            return a.getPeriodo().getInicio().toLocalDate().equals(dia);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Filtro de data inválido (use yyyy-MM-dd).");
         }
     }
 }

@@ -94,7 +94,8 @@ public class InscricaoHandler implements HttpHandler {
                         a.getAtividades().stream()
                                 .map(at -> new AtividadeDTO(at.getId(), at.getTitulo(),
                                         at.getPeriodo().getInicio().toString(),
-                                        at.getPeriodo().getFim().toString(), at.getLocal()))
+                                        at.getPeriodo().getFim().toString(), at.getLocal(),
+                                        at.getTipo(), at.getTrilha()))
                                 .toList()));
                 return;
             }
@@ -145,7 +146,8 @@ public class InscricaoHandler implements HttpHandler {
                                String eventoId, String eventoTitulo, String dataInscricao) {
     }
 
-    public record AtividadeDTO(String id, String titulo, String inicio, String fim, String local) {
+    public record AtividadeDTO(String id, String titulo, String inicio, String fim, String local,
+                               String tipo, String trilha) {
     }
 
     public record AgendaDTO(String participanteId, List<AtividadeDTO> atividades) {

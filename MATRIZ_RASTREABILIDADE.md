@@ -1,42 +1,42 @@
 # Matriz de Rastreabilidade RF × ROO — IngressoNow (POO2)
 
-> Gerada em 2026-09-04 a partir da auditoria do código vs
-> `especificacao_requisitos_projeto_poo2_gestao_eventos_revisado_poo.pdf` v1.1.
+> Gerada em 2026-09-04; atualizada em 2026-09-06 (pós-migração Java SE + Task #4).
+> Base: `especificacao_requisitos_projeto_poo2_gestao_eventos_revisado_poo.pdf` v1.1.
 > Convenção de status: ✅ implementado/integrado · ⚠️ parcial/mock · ❌ ausente.
 
 ## 1. Requisitos funcionais — núcleo obrigatório (M)
 
 | RF | Requisito (resumo) | Status | Implementação (classe/endpoint) | Teste / demonstração |
 |----|--------------------|--------|---------------------------------|----------------------|
-| RF-01 | Cadastro usuário (nome, e-mail, senha; e-mail único) | ✅ | `CadastrarUsuarioUseCase`, `POST /api/auth/cadastro`, `UsuarioPersistenceAdapter`, RN-01 via `existePorEmail` + UNIQUE no banco | Manual via `/cadastro`; sem teste automatizado do use case — gap |
-| RF-02 | Autenticação + permissões por perfil | ✅ | `AutenticarUsuarioUseCase`, `POST /api/auth/login`, JWT (`JwtTokenProvider`, `JwtAuthenticationFilter`), `SecurityConfig` (GET `/api/eventos/**` público; resto autenticado) | Manual via `/login`; RNF-06 atendido no servidor |
-| RF-03 | Participante consulta/atualiza dados básicos | ❌ | `Usuario.alterarNome/alterarSenha` existem no domínio, mas **sem endpoint** (sem `PUT /api/usuarios/{id}` nem controller de usuário) | Nada demonstrável — gap Task #4 |
-| RF-04 | CRUD + encerrar eventos | ✅ | `Evento` (publicar/encerrar/atualizar), `EventoRestController` (`GET`, `GET/{id}`, `POST`, `PUT/{id}`, `DELETE/{id}` com bloqueio 422 se há inscrições, `POST/{id}/publicar`, `POST/{id}/encerrar`) | Testes `EventoTest`, `CadastrarEventoUseCaseTest`; demo CRUD validada em Docker 2026-09-03 |
-| RF-05 | Atividades de tipos variados, sem categoria fixa | ⚠️ | `Atividade` tem só `titulo/periodo/local` — **tipo é implícito no título**, sem campo `tipo` nem composição de características | `AdicionarAtividadeUseCaseTest`; gap: adicionar campo `tipo` configurável — Task #4 |
-| RF-06 | Trilhas/categorias/espaços; filtrar e agrupar | ❌ | Nada — sem entidade `Trilha/Categoria`, sem filtro | Gap Task #4 (mínimo: campo `trilha` + filtro na programação) |
-| RF-07 | Horários/locais com detecção de conflito | ⚠️ | `Evento.adicionarAtividade` bloqueia conflito **mesmo local + período sobreposto** (`Periodo.conflitaCom`); `Atividade.remarcar` **não revalida** contra irmãs | `EventoTest` cobre conflito; gap: documentar decisão + revalidar remarcação — Task #4 |
-| RF-08 | Pessoas vinculadas com papéis | ❌ | Nada — sem `Pessoa/Papel` (palestrante, apresentador, responsável) | Gap Task #4 |
-| RF-09 | Programação filtrável (data, horário, trilha, tipo, local — ≥3 filtros) | ❌ | `GET /api/eventos` lista tudo; frontend `programacao.js` filtra client-side; sem filtros server-side | Gap Task #4 |
+| RF-01 | Cadastro usuário (nome, e-mail, senha; e-mail único) | ✅ | `CadastrarUsuarioUseCase`, `POST /api/auth/cadastro`, RN-01 via `existePorEmail` + UNIQUE | Manual via `/cadastro`; validado em Docker |
+| RF-02 | Autenticação + permissões por perfil | ✅ | `AutenticarUsuarioUseCase`, `POST /api/auth/login`, JWT (`JwtAuth`, claim `userId`); `GET /api/eventos/**` e `/programacao` públicos, resto autenticado | Manual via `/login`; validado em Docker 2026-09-05/06 |
+| RF-03 | Participante consulta/atualiza dados básicos | ✅ | `EditarUsuarioUseCase` + `UsuarioHandler` (`GET/PUT /api/usuarios/{id}`, só próprio perfil, 403 alheio); form no perfil da área do participante | Validado em Docker 2026-09-06 (PUT nome + 403) |
+| RF-04 | CRUD + encerrar eventos | ✅ | `Evento` (publicar/encerrar/atualizar), `EventoHandler` (`GET`, `GET/{id}`, `POST`, `PUT/{id}`, `DELETE/{id}` 422 se há inscrições, `POST/{id}/publicar`, `POST/{id}/encerrar`) | Testes `EventoTest`, `CadastrarEventoUseCaseTest`; demo Docker |
+| RF-05 | Atividades de tipos variados, sem categoria fixa | ✅ | `Atividade.tipo` (texto livre, V6); `POST /atividades` aceita `tipo`; grade exibe badge | Validado em Docker 2026-09-06 |
+| RF-06 | Trilhas/categorias/espaços; filtrar e agrupar | ✅ | `Atividade.trilha` (V6) + filtros client-side (tipo/trilha/local) e server-side (`GET /programacao`) | Validado em Docker 2026-09-06 |
+| RF-07 | Horários/locais com detecção de conflito | ✅ | `adicionarAtividade` bloqueia (mesmo local + sobreposição); `remarcarAtividade` revalida (simula antes de mutar); `PUT /atividades/{atId}`; decisão: grade paralela em locais diferentes é permitida | Validado em Docker 2026-09-06 (200 + 422) |
+| RF-08 | Pessoas vinculadas com papéis | ✅ | `Pessoa` (nome + papel livre) + `PessoaRepository`/`JdbcPessoaRepository` (V8) + `VincularPessoaUseCase`; `POST/GET .../pessoas`, `DELETE .../pessoas/{pId}`; desktop exibe elenco | Validado em Docker 2026-09-06 (201/list/204) |
+| RF-09 | Programação filtrável (data, horário, trilha, tipo, local — ≥3 filtros) | ✅ | `GET /api/eventos/{id}/programacao?data=&tipo=&trilha=&local=` (4 filtros server-side) + filtros client-side | Validado em Docker 2026-09-06 |
 | RF-10 | Site público de eventos | ✅ | `HomeController` + `evento-publico.js` consumindo `GET /api/eventos` | Demo validada |
-| RF-11 | Programação + destaques no site | ⚠️ | Programação existe; **pessoas em destaque** impossível (RF-08 ausente) | Parcial |
+| RF-11 | Programação + destaques no site | ✅ | Programação + pessoas vinculadas (elenco por atividade); destaques = palestrantes via `GET .../pessoas` | Elenco validado via API |
 | RF-12 | Cadastro + inscrição pelo site | ✅ | `/cadastro` → `POST /api/auth/cadastro` → `POST /api/inscricoes` | Fluxo CA-02 demonstrável |
-| RF-13 | Regra de inscrição configurável (evento/atividade) | ⚠️ | `Evento.maxVagas` + `getPoliticaInscricao()` (Strategy); **sem** regra por atividade nem flag "exige escolha de atividades" | Gap Task #3 |
+| RF-13 | Regra de inscrição configurável (evento/atividade) | ⚠️ | `Evento.maxVagas` + `getPoliticaInscricao()` (Strategy); **sem** regra por atividade nem flag "exige escolha de atividades" | Backlog mínimo consciente |
 | RF-14 | Controle de vagas | ✅ | `PoliticaComLimiteDeVagas` + `PoliticaSemLimite`, checado em `InscreverParticipanteUseCase` (RN-06) | `InscreverParticipanteUseCaseTest` |
-| RF-15 | Cancelamento de inscrição (libera vaga) | ❌ | Sem `DELETE /api/inscricoes/{id}`, sem `Inscricao.cancelar()`, sem estado/situação | Gap Task #3 (exige decisão: estado CANCELADA vs remoção) |
+| RF-15 | Cancelamento de inscrição (libera vaga) | ✅ | `DELETE /api/inscricoes/{id}` via `CancelarInscricaoUseCase` (decisão: remoção física + CASCADE limpa filhas; bloqueia se evento ENCERRADO); botão na área do participante | Validado em Docker (204 + listagem vazia) |
 | RF-16 | Seleção de atividades | ✅ | `Inscricao.selecionarAtividade` + `POST /api/inscricoes/{id}/atividades/{atId}` | `InscricaoTest` |
 | RF-17 | Agenda cronológica | ✅ | `AgendaDoParticipante` ordena por `periodo.inicio`; `GET /api/inscricoes/{id}/agenda` | `ConsultarAgendaUseCase` (sem teste dedicado — gap menor) |
-| RF-18 | Conflito de agenda alertado/impedido | ✅ | `Inscricao.selecionarAtividade` lança `DomainException` em conflito (RN-07) | `InscricaoTest`; falta exibir motivo no frontend — Task #3 |
+| RF-18 | Conflito de agenda alertado/impedido | ✅ | `Inscricao.selecionarAtividade` lança `DomainException` (RN-07); `programacao.js` exibe motivo em destaque no card (sem auto-dismiss) | `InscricaoTest` + frontend |
 | RF-19 | Critério de presença por atividade | ✅ | `Atividade.politicaFrequencia` (default `FrequenciaUnicaStrategy`; `setPoliticaFrequencia`); existe `FrequenciaEntradaSaidaStrategy` | Testes de check-in |
-| RF-20 | QR Code sem dado sensível (RN-10) | ✅ | `QrCodeService`/`SimpleQrCodeService` + `GET /api/controle/qrcode/{insc}/{at}` | Verificar payload do token na demo CA-04 |
-| RF-21 | Frequência por QR | ✅ | `POST /api/controle/checkin` → `RealizarCheckInQrCodeUseCase` → `Inscricao.registrarCheckIn` (RN-11: guarda data/hora) | `RealizarCheckInQrCodeUseCaseTest` |
-| RF-22 | Lançamento manual alternativo com autoria | ❌ | Sem endpoint; `CheckIn` **não guarda origem/responsável** (RN-11/RN-12 descobertos) | Gap Task #4: estender `CheckIn` + `POST /api/controle/manual` |
+| RF-20 | QR Code sem dado sensível (RN-10) | ✅ | `QrCodeService`/`SimpleQrCodeService` + `GET /api/controle/qrcode/{insc}/{at}` (token `ids+salt` Base64, sem PII) | Payload verificado em Docker |
+| RF-21 | Frequência por QR | ✅ | `POST /api/controle/checkin` → `RealizarCheckInQrCodeUseCase` → `Inscricao.registrarCheckIn` (RN-11: guarda data/hora) | `RealizarCheckInQrCodeUseCaseTest` + Docker |
+| RF-22 | Lançamento manual alternativo com autoria | ✅ | `CheckIn.Origem` (QR_CODE/MANUAL) + `responsavelId`; `RealizarCheckInManualUseCase`; `POST /api/controle/manual` (responsável = JWT); V7; form na página de frequência | Validado em Docker 2026-09-06 (audit `MANUAL/maria`) |
 | RF-23 | Situação de presença calculada/reproduzível | ✅ | `Inscricao.calcularPresenca` delega à `PoliticaFrequencia` | Coberto indiretamente |
-| RF-24 | Questionários configuráveis | ⚠️ | `Questionario/Pergunta/TipoPergunta` existem no domínio; **sem persistência, sem endpoint** | `AvaliacaoTest` (domínio); gap Task #2 |
-| RF-25 | Tipos: texto, escolha única, escala numérica | ⚠️ | `TipoPergunta` tem só `ESCOLHA_SIMPLES, TEXTO_LIVRE` — **falta escala numérica** + validação polimórfica por tipo | Gap Task #2 |
-| RF-26 | Elegibilidade: inscrito + presença validada | ✅ (domínio) / ❌ (API) | `Avaliacao` construtor + `Inscricao.isAptoParaAvaliacao()` (RN-13); sem enforcement via API (sem controller) | `AvaliacaoTest` cobre os dois ramos |
-| RF-27 | Uma resposta por participante/questionário (RN-14) | ❌ | Sem repositório de avaliações → sem verificação de duplicidade | Gap Task #2 |
-| RF-28 | Consolidação de resultados | ❌ | Nada | Gap Task #2 (mínimo: `GET` com contagens + comentários) |
-| RF-29 | Relatório de inscritos | ❌ | Só listagem `GET /api/inscricoes?eventoId=`; sem relatório dedicado | Gap Task #4 |
+| RF-24 | Questionários configuráveis | ✅ | `Questionario/Pergunta/TipoPergunta` + `JdbcQuestionarioRepository` (V4) + `AvaliacaoHandler` (`POST/GET /eventos/{id}/questionarios`, congela após 1ª resposta RN-17) | Validado em Docker (201 + CASCADE fix) |
+| RF-25 | Tipos: texto, escolha única, escala numérica | ✅ | `TipoPergunta` com `ESCALA_NUMERICA` + validação polimórfica (`Pergunta.validarResposta`) | Validado em Docker |
+| RF-26 | Elegibilidade: inscrito + presença validada | ✅ | `Avaliacao` construtor + `isAptoParaAvaliacao()` (RN-13) com enforcement via `SubmeterAvaliacaoUseCase` | `AvaliacaoTest` + Docker (422 sem presença) |
+| RF-27 | Uma resposta por participante/questionário (RN-14) | ✅ | `existePorQuestionarioEInscricao` + UNIQUE `(questionario_id, inscricao_id)` | Validado em Docker (422 duplicada) |
+| RF-28 | Consolidação de resultados | ✅ | `ConsolidarAvaliacoesUseCase` + `GET /api/questionarios/{id}/resultados` (média, distribuição, comentários) | Validado em Docker (`media: 4.0`) |
+| RF-29 | Relatório de inscritos | ✅ | `GerarRelatorioInscritosUseCase` + `GET /api/controle/relatorio/inscritos/{eventoId}` (CSV); botão na página de relatórios | Validado em Docker 2026-09-06 |
 | RF-30 | Relatório de frequência/participação | ✅ | `GerarRelatorioPresencaUseCase` + `GET /api/controle/relatorio/presenca/{eventoId}` (CSV) | Demo CA-07; CSV conta como RF-31 também |
 | RF-31 | Exportação portátil (CSV/PDF) | ✅ | CSV de presença (RNF-10 OK p/ demo) | Baixável via frontend `relatorios.js` |
 | RF-32–35 | Certificados (D) | ❌ | Fora do núcleo; não iniciar antes do núcleo estável | Backlog pós-núcleo |
@@ -44,17 +44,18 @@
 
 ## 2. Regras de negócio — pontos de atenção
 
-- RN-04 (estado do evento controla visibilidade/inscrições): ⚠️ `listar` retorna só publicados, mas `InscreverParticipanteUseCase` **não verifica** se evento está publicado/aberto — gap Task #3.
-- RN-11/RN-12 (rastreabilidade da frequência): ❌ `CheckIn` sem `origem/responsável` — Task #4.
-- RN-17 (mudança de regra não reescreve histórico): ⚠️ trocar `politicaFrequencia` recalcula tudo; aceitar como decisão documentada ou congelar situação — Task #4.
-- RN-19 (mesmo banco p/ desktop, API e site): ✅ Postgres + Flyway V1–V3.
+- RN-04 (estado do evento controla visibilidade/inscrições): ✅ `listar` retorna só PUBLICADO/INSCRICOES_ABERTAS e `InscreverParticipanteUseCase` bloqueia demais status.
+- RN-11/RN-12 (rastreabilidade da frequência): ✅ `CheckIn` com `origem` + `responsavelId` (V7); QR registra data/hora, manual registra autoria.
+- RN-17 (mudança de regra não reescreve histórico): ✅ questionário congela após 1ª resposta (`congelar()` + `exigirEditavel()`); `politicaFrequencia` documentada como recálculo aceito.
+- RN-19 (mesmo banco p/ desktop, API e site): ✅ Postgres (V1–V8) + `MigradorSql`/`migrations.txt`; desktop JavaFX usa `FabricaAplicacao` direta.
+- RN-20 (fuso do evento): ❌ `LocalDateTime` sem zona — simplificação declarada.
 - RN-20 (fuso do evento): ❌ `LocalDateTime` sem zona — documentar como simplificação declarada.
 
 ## 3. Evidências ROO (avaliação — 60% da nota)
 
 | ROO | Evidência atual | Arquivo(s) |
 |-----|-----------------|------------|
-| ROO-01 modelo rico | `Evento`, `Inscricao`, `Atividade` concentram regras | `entity/Evento.java`, `entity/Inscricao.java`, `entity/Atividade.java` |
+| ROO-01 modelo rico | `Evento`, `Inscricao`, `Atividade`, `Questionario`, `Pessoa` concentram regras | `entity/Evento.java`, `entity/Inscricao.java`, `entity/Atividade.java`, `entity/Pessoa.java` |
 | ROO-02 encapsulamento | Validações em construtores; listas expostas como unmodifiable; **porém** `Atividade.setPoliticaFrequencia` é setter público e `Pergunta/Resposta/Avaliacao` quase sem validação | idem + `Pergunta.java`, `Resposta.java` |
 | ROO-03 objetos de valor | `Email`, `Periodo`, `SenhaHash`, `Horario` imutáveis com validação | `model/vo/*` |
 | ROO-04 composição | `Evento` compõe `Atividade`; `Inscricao` compõe seleção + check-ins; `AgendaDoParticipante` deriva de `Inscricao` | `Evento.java:131`, `Inscricao.java:111` |
@@ -62,7 +63,7 @@
 | ROO-06 herança | `Usuario` ← `Participante`/`Organizador`; relação substituível justificável | `Usuario.java`, `Participante.java`, `Organizador.java` |
 | ROO-07 interfaces | Portas `EventoRepository`, `InscricaoRepository`, `UsuarioRepository`, `QrCodeService` — contratos pequenos | `port/out/*`, `port/in/*` |
 | ROO-08 SOLID | Inversão de dependência (use cases dependem de portas); SRP por use case; falta registrar 1 refatoração motivada | `application/usecase/*` |
-| ROO-09 hexagonal | `domain/` sem imports Spring; `application/` só com `@Service` (acoplamento leve, documentável); JPA isolado em `adapters/out` | `Poo2Application.java`, adapters |
+| ROO-09 hexagonal | `domain/` sem imports de framework; `application/` sem anotações (fiação manual em `FabricaAplicacao`); JDBC isolado em `adapters/out`; HTTP e desktop em `adapters/in` | `Poo2Application.java`, `infra/FabricaAplicacao.java`, adapters |
 | ROO-10 padrões | ① Strategy (inscrição + frequência) com efeito real; ② Ports & Adapters; candidato a 3º: Builder/Factory p/ `Questionario` ou Specification p/ elegibilidade — Task #2/#4 | — |
 | ROO-11 erros de domínio | `DomainException` + `GlobalExceptionHandler` (400/404/422/500) + `StandardError` | `exception/*` |
 | ROO-12 testes/refatoração | 15 testes de comportamento; **zero refatorações registradas** — escrever 2 (ex: extração de `PoliticaInscricao`, extração de `AgendaDoParticipante`) | `src/test/**` |
@@ -71,7 +72,7 @@
 
 ## 4. Decisões D-01–D-08 (rascunho p/ README — Task #5)
 
-- D-01 desktop: a definir (JavaFX vs CLI demonstrativo; site já existe).
+- D-01 desktop: **JavaFX** (`adapters/in/desktop/DesktopApp`, código puro sem FXML; login → eventos → detalhe com elenco → inscrever; mesmo banco/use cases via `FabricaAplicacao`; `--headless` = só API). Ver `DECISOES.md`.
 - D-02 API/auth: **Spring Boot + JWT** (justificativa: time já domina, adapters isolados, Bean Validation/RNF-07, alternativa Javalin descartada por falta de ecossistema de segurança).
 - D-03 banco: **Postgres + JPA + Flyway** (RNF-04 reproduzível V1–V3; alternativa JDBC puro descartada pelo custo de reescrita dos mappers).
 - D-04 site: HTML/JS estático consumindo `/api/*` (mesma API/banco — RNF-02).
@@ -92,9 +93,9 @@
 | CA-06 avaliação | ❌ — Task #2 |
 | CA-07 relatório | ✅ (presença CSV; inscritos — Task #4) |
 
-## 6. Fila de execução
+## 6. Fila de execução — estado em 2026-09-06
 
-1. Task #2 — avaliações persistidas (RF-24–28, RN-13/14): migration V4 + repositories + `AvaliacaoController` + escala numérica + anti-duplicidade + consolidação.
-2. Task #3 — inscrição/agenda (RF-13/15, RN-04/05): checar evento publicado, `DELETE /api/inscricoes/{id}` (cancelamento), regra por atividade (backlog mínimo), motivo de conflito no frontend.
-3. Task #4 — gaps (RF-03/05–09/22/29, RN-11/12/17/20): `PUT /api/usuarios/{id}`, `tipo`+`trilha` na atividade, pessoas/papéis, filtros, check-in manual com autoria, relatório de inscritos, remover duplicados legados.
-4. Task #5 — entregáveis §11: README, D-01–D-08, coleção de endpoints, seeds, matriz final.
+1. Task #2 — avaliações persistidas ✅ (V4, repos, handler, escala, anti-duplicidade, consolidação; CASCADE fix validado).
+2. Task #3 — inscrição/agenda ✅ (RN-04 no use case, DELETE cancelamento, motivo de conflito no frontend).
+3. Task #4 — gaps ✅ backend + frontend (RF-03/05–09/22/29, RN-11/12/17; V6–V8). Restos conscientes: RF-13 regra por atividade, RN-20 fuso.
+4. Task #5 — entregáveis §11 ✅ (README, DECISOES D-01–D-08, ENDPOINTS, seeds V3, esta matriz). Fase 4: esqueleto JavaFX ligado (login → eventos → detalhe → inscrever).

@@ -84,24 +84,34 @@ public class MigradorSql {
     }
 
     private String lerMigration(int versao) {
-        String[] candidatos = {
-            "db/migration/V" + versao + "__create_initial_schema.sql",
-            "db/migration/V" + versao + "__create_inscricoes_schema.sql",
-            "db/migration/V" + versao + "__insert_initial_data.sql",
-            "db/migration/V" + versao + "__create_avaliacoes_schema.sql",
-            "db/migration/V" + versao + "__create_checkins_table.sql",
-        };
-        for (String nome : candidatos) {
-            InputStream in = getClass().getClassLoader().getResourceAsStream(nome);
-            if (in != null) {
-                try (BufferedReader r = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
-                    return r.lines().collect(Collectors.joining("\n"));
-                } catch (Exception e) {
-                    throw new IllegalStateException("Falha ao ler " + nome, e);
+        // Lê o manifesto db/migration/migrations.txt (funciona em classes
+        // explodidas e dentro do JAR sombreado) e retorna o SQL da V<versao>.
+        try (InputStream manifesto = getClass().getClassLoader()
+                .getResourceAsStream("db/migration/migrations.txt")) {
+            if (manifesto == null) return null;
+            String prefixo = "V" + versao + "__";
+            List<String> nomes;
+            try (BufferedReader m = new BufferedReader(
+                    new InputStreamReader(manifesto, StandardCharsets.UTF_8))) {
+                nomes = m.lines().map(String::trim)
+                        .filter(n -> !n.isEmpty() && !n.startsWith("#"))
+                        .filter(n -> n.startsWith(prefixo) && n.endsWith(".sql"))
+                        .toList();
+            }
+            if (nomes.isEmpty()) return null;
+            StringBuilder todos = new StringBuilder();
+            for (String nome : nomes) {
+                try (InputStream in = getClass().getClassLoader()
+                        .getResourceAsStream("db/migration/" + nome);
+                     BufferedReader r = new BufferedReader(
+                             new InputStreamReader(in, StandardCharsets.UTF_8))) {
+                    todos.append(r.lines().collect(Collectors.joining("\n"))).append("\n");
                 }
             }
+            return todos.toString();
+        } catch (Exception e) {
+            throw new IllegalStateException("Falha ao ler migration V" + versao, e);
         }
-        return null;
     }
 
     /** Quebra por ';' fora de strings simples; suficiente para nosso DDL. */

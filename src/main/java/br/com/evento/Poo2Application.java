@@ -26,8 +26,9 @@ public class Poo2Application {
             System.out.println("[App] modo headless — API ativa, sem interface desktop.");
             Thread.currentThread().join();
         } else {
-            System.out.println("[App] desktop JavaFX ainda não ligado nesta fase — API ativa.");
-            Thread.currentThread().join();
+            // D-01: desktop JavaFX no mesmo processo, mesmo banco e use cases (RN-19)
+            br.com.evento.adapters.in.desktop.DesktopApp.conectar(app);
+            br.com.evento.adapters.in.desktop.DesktopApp.abrir(args);
         }
     }
 }

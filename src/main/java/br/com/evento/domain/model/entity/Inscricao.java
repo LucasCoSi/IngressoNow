@@ -113,6 +113,16 @@ public class Inscricao {
     }
 
     public void registrarCheckIn(Atividade atividade, LocalDateTime momento) {
+        registrarCheckIn(atividade, momento, CheckIn.Origem.QR_CODE, null);
+    }
+
+    /** RF-22 — lançamento manual alternativo com autoria (RN-12). */
+    public void registrarCheckInManual(Atividade atividade, LocalDateTime momento, String responsavelId) {
+        registrarCheckIn(atividade, momento, CheckIn.Origem.MANUAL, responsavelId);
+    }
+
+    private void registrarCheckIn(Atividade atividade, LocalDateTime momento,
+                                  CheckIn.Origem origem, String responsavelId) {
         if (atividade == null) {
             throw new DomainException("Atividade não pode ser nula.");
         }
@@ -121,7 +131,7 @@ public class Inscricao {
         if (!selecionada) {
             throw new DomainException("Participante não selecionou esta atividade em sua inscrição.");
         }
-        this.checkIns.add(new CheckIn(atividade.getId(), momento));
+        this.checkIns.add(new CheckIn(atividade.getId(), momento, origem, responsavelId));
     }
 
     public List<CheckIn> getCheckIns(String atividadeId) {

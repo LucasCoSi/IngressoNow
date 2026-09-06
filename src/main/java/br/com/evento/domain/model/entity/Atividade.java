@@ -11,9 +11,17 @@ public class Atividade {
     private String titulo;
     private Periodo periodo;
     private String local;
+    /** RF-05: tipo configurável (palestra, workshop, painel...), sem categoria fixa. */
+    private String tipo;
+    /** RF-06: trilha/categoria/espaço para filtrar e agrupar a programação. */
+    private String trilha;
     private PoliticaFrequencia politicaFrequencia;
 
     public Atividade(String id, String titulo, Periodo periodo, String local) {
+        this(id, titulo, periodo, local, null, null);
+    }
+
+    public Atividade(String id, String titulo, Periodo periodo, String local, String tipo, String trilha) {
         if (id == null || id.trim().isEmpty()) {
             this.id = UUID.randomUUID().toString();
         } else {
@@ -33,6 +41,8 @@ public class Atividade {
         this.titulo = titulo;
         this.periodo = periodo;
         this.local = local;
+        this.tipo = tipo == null || tipo.isBlank() ? null : tipo.trim();
+        this.trilha = trilha == null || trilha.isBlank() ? null : trilha.trim();
         this.politicaFrequencia = new FrequenciaUnicaStrategy();
     }
 
@@ -54,6 +64,14 @@ public class Atividade {
 
     public String getLocal() {
         return local;
+    }
+
+    public String getTipo() {
+        return tipo;
+    }
+
+    public String getTrilha() {
+        return trilha;
     }
 
     public PoliticaFrequencia getPoliticaFrequencia() {

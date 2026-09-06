@@ -21,11 +21,16 @@ public class AdicionarAtividadeUseCase {
     }
 
     public Evento executar(String eventoId, String titulo, LocalDateTime inicio, LocalDateTime fim, String local) {
+        return executar(eventoId, titulo, inicio, fim, local, null, null);
+    }
+
+    public Evento executar(String eventoId, String titulo, LocalDateTime inicio, LocalDateTime fim,
+                           String local, String tipo, String trilha) {
         Evento evento = eventoRepository.buscarPorId(eventoId)
                 .orElseThrow(() -> new DomainException("Evento não encontrado com id: " + eventoId));
 
         Periodo periodo = new Periodo(inicio, fim);
-        Atividade atividade = new Atividade(titulo, periodo, local);
+        Atividade atividade = new Atividade(null, titulo, periodo, local, tipo, trilha);
 
         // A regra de conflito de horário+local é responsabilidade da entidade Evento
         evento.adicionarAtividade(atividade);

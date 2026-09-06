@@ -276,11 +276,26 @@ const ControleAPI = {
     realizarCheckIn: (qrCodeToken) => post('/controle/checkin', {
         qrCodeToken
     }),
+    realizarCheckInManual: (inscricaoId, atividadeId) => post('/controle/manual', {
+        inscricaoId,
+        atividadeId
+    }),
     gerarQrCode: (inscricaoId, atividadeId) =>
         get(`/controle/qrcode/${inscricaoId}/${atividadeId}`),
     relatorioPresenca: (eventoId) =>
         fetch(`${API_BASE_URL}/controle/relatorio/presenca/${eventoId}`)
+            .then(r => r.text()),
+    relatorioInscritos: (eventoId) =>
+        fetch(`${API_BASE_URL}/controle/relatorio/inscritos/${eventoId}`)
             .then(r => r.text())
+};
+
+/**
+ * API de Usuários (RF-03 — próprio perfil)
+ */
+const UsuariosAPI = {
+    buscarPerfil: (id) => get(`/usuarios/${id}`),
+    atualizarPerfil: (id, data) => put(`/usuarios/${id}`, data)
 };
 
 /**
@@ -369,6 +384,7 @@ window.API = {
     Eventos: EventosAPI,
     Inscricoes: InscricoesAPI,
     Controle: ControleAPI,
+    Usuarios: UsuariosAPI,
     exibirErro,
     exibirSucesso,
     formatarData,

@@ -1,6 +1,8 @@
 package br.com.evento.adapters.in.http;
 
+import br.com.evento.application.usecase.GerarRelatorioInscritosUseCase;
 import br.com.evento.application.usecase.GerarRelatorioPresencaUseCase;
+import br.com.evento.application.usecase.RealizarCheckInManualUseCase;
 import br.com.evento.application.usecase.RealizarCheckInQrCodeUseCase;
 import br.com.evento.domain.exception.DomainException;
 import br.com.evento.domain.model.entity.Inscricao;
@@ -18,15 +20,21 @@ import java.util.Map;
 public class ControleHandler implements HttpHandler {
 
     private final RealizarCheckInQrCodeUseCase checkIn;
+    private final RealizarCheckInManualUseCase checkInManual;
     private final GerarRelatorioPresencaUseCase relatorio;
+    private final GerarRelatorioInscritosUseCase relatorioInscritos;
     private final QrCodeService qrCodeService;
     private final InscricaoRepository inscricoes;
     private final JwtAuth jwt;
 
-    public ControleHandler(RealizarCheckInQrCodeUseCase checkIn, GerarRelatorioPresencaUseCase relatorio,
+    public ControleHandler(RealizarCheckInQrCodeUseCase checkIn, RealizarCheckInManualUseCase checkInManual,
+                           GerarRelatorioPresencaUseCase relatorio,
+                           GerarRelatorioInscritosUseCase relatorioInscritos,
                            QrCodeService qrCodeService, InscricaoRepository inscricoes, JwtAuth jwt) {
         this.checkIn = checkIn;
+        this.checkInManual = checkInManual;
         this.relatorio = relatorio;
+        this.relatorioInscritos = relatorioInscritos;
         this.qrCodeService = qrCodeService;
         this.inscricoes = inscricoes;
         this.jwt = jwt;
@@ -48,6 +56,21 @@ public class ControleHandler implements HttpHandler {
                 HttpErrors.json(ex, 200, Map.of("ok", true));
                 return;
             }
+            // RF-22: lançamento manual com autoria (organizador logado como responsável)
+            if (partes.length == 1 && "manual".equals(partes[0]) && "POST".equals(metodo)) {
+                var usuario = jwt.autenticar(ex)
+                        .orElseThrow(() -> new DomainException("Autenticação exigida."));
+                var req = Json.ler(HttpErrors.corpo(ex), CheckInManualRequest.class);
+                if (req.inscricaoId() == null || req.inscricaoId().isBlank()) {
+                    throw new IllegalArgumentException("A inscrição é obrigatória");
+                }
+                if (req.atividadeId() == null || req.atividadeId().isBlank()) {
+                    throw new IllegalArgumentException("A atividade é obrigatória");
+                }
+                checkInManual.executar(req.inscricaoId(), req.atividadeId(), usuario.getId());
+                HttpErrors.json(ex, 200, Map.of("ok", true));
+                return;
+            }
             if (partes.length == 3 && "qrcode".equals(partes[0]) && "GET".equals(metodo)) {
                 Inscricao inscricao = inscricoes.buscarPorId(partes[1])
                         .orElseThrow(() -> new DomainException("Inscrição não encontrada."));
@@ -62,6 +85,15 @@ public class ControleHandler implements HttpHandler {
                 HttpErrors.texto(ex, 200, csv, "text/csv");
                 return;
             }
+            // RF-29: relatório de inscritos por evento (CSV)
+            if (partes.length == 3 && "relatorio".equals(partes[0]) && "inscritos".equals(partes[1])
+                    && "GET".equals(metodo)) {
+                String csv = relatorioInscritos.executarEmCsv(partes[2]);
+                ex.getResponseHeaders().set("Content-Disposition",
+                        "attachment; filename=\"inscritos-" + partes[2] + ".csv\"");
+                HttpErrors.texto(ex, 200, csv, "text/csv");
+                return;
+            }
             HttpErrors.json(ex, 404, StandardError.de(404, "Not Found",
                     "Rota não encontrada.", ex.getRequestURI().getPath()));
         } catch (Exception e) {
@@ -70,5 +102,8 @@ public class ControleHandler implements HttpHandler {
     }
 
     public record CheckInRequest(String qrCodeToken) {
+    }
+
+    public record CheckInManualRequest(String inscricaoId, String atividadeId) {
     }
 }

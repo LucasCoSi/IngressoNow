@@ -1,0 +1,11 @@
+# Manifesto de migrations em ordem de aplicação.
+# Ao criar V(n+1), acrescentar uma linha aqui (o MigradorSql lê este arquivo,
+# que funciona tanto em classes explodidas quanto dentro do JAR sombreado).
+V1__create_initial_schema.sql
+V2__create_inscricoes_schema.sql
+V3__insert_initial_data.sql
+V4__create_avaliacoes_schema.sql
+V5__create_checkins_table.sql
+V6__add_tipo_trilha_atividades.sql
+V7__add_origem_responsavel_checkins.sql
+V8__create_pessoas_table.sql
