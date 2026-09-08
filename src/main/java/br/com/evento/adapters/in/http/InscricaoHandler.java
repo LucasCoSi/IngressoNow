@@ -13,6 +13,7 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -55,13 +56,21 @@ public class InscricaoHandler implements HttpHandler {
             if (resto.isEmpty() || resto.equals("/")) {
                 if ("GET".equals(metodo)) {
                     Map<String, String> params = query(query);
-                    List<Inscricao> lista;
+                    // RNF-10: projeção leve (1 query com JOINs) em vez do
+                    // agregado completo por linha.
                     if (params.containsKey("participanteId") && !params.get("participanteId").isBlank()) {
-                        lista = inscricoes.buscarPorParticipante(params.get("participanteId"));
+                        HttpErrors.json(ex, 200, inscricoes
+                                .listarResumidoPorParticipante(params.get("participanteId")).stream()
+                                .map(r -> new InscricaoDTO(r.id(), r.participanteId(), r.participanteNome(),
+                                        r.eventoId(), r.eventoTitulo(), r.dataInscricao().toString()))
+                                .toList());
                     } else {
-                        lista = inscricoes.buscarPorEvento(params.getOrDefault("eventoId", ""));
+                        HttpErrors.json(ex, 200, inscricoes
+                                .listarResumidoPorEvento(params.getOrDefault("eventoId", "")).stream()
+                                .map(r -> new InscricaoDTO(r.id(), r.participanteId(), r.participanteNome(),
+                                        r.eventoId(), r.eventoTitulo(), r.dataInscricao().toString()))
+                                .toList());
                     }
-                    HttpErrors.json(ex, 200, lista.stream().map(this::dto).toList());
                 } else if ("POST".equals(metodo)) {
                     var req = Json.ler(HttpErrors.corpo(ex), InscreverRequest.class);
                     if (req.participanteId() == null || req.participanteId().isBlank()) {
@@ -107,20 +116,24 @@ public class InscricaoHandler implements HttpHandler {
     }
 
     private InscricaoDTO dto(Inscricao i) {
-        String participanteNome;
-        try {
-            participanteNome = usuarios.buscarPorId(i.getParticipanteId())
-                    .map(u -> u.getNome()).orElse(i.getParticipanteId());
-        } catch (Exception e) {
-            participanteNome = i.getParticipanteId();
-        }
-        String eventoTitulo;
-        try {
-            eventoTitulo = eventos.buscarPorId(i.getEventoId())
-                    .map(e -> e.getTitulo()).orElse(i.getEventoId());
-        } catch (Exception e) {
-            eventoTitulo = i.getEventoId();
-        }
+        return dto(i, new HashMap<>(), new HashMap<>());
+    }
+
+    private InscricaoDTO dto(Inscricao i, Map<String, String> nomes, Map<String, String> titulos) {
+        String participanteNome = nomes.computeIfAbsent(i.getParticipanteId(), pid -> {
+            try {
+                return usuarios.buscarPorId(pid).map(u -> u.getNome()).orElse(pid);
+            } catch (Exception e) {
+                return pid;
+            }
+        });
+        String eventoTitulo = titulos.computeIfAbsent(i.getEventoId(), eid -> {
+            try {
+                return eventos.buscarPorId(eid).map(e -> e.getTitulo()).orElse(eid);
+            } catch (Exception e) {
+                return eid;
+            }
+        });
         return new InscricaoDTO(i.getId(), i.getParticipanteId(), participanteNome,
                 i.getEventoId(), eventoTitulo, i.getDataInscricao().toString());
     }

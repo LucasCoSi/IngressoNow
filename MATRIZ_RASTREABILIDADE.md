@@ -70,7 +70,9 @@
 | ROO-11 erros de domínio | `DomainException` + `GlobalExceptionHandler` (400/404/422/500) + `StandardError` | `exception/*` |
 | ROO-12 testes/refatoração | 26 arquivos / 86 métodos JUnit 5 + Mockito (`mvn test`: 0 falhas); 2 refatorações registradas em `REFATORACOES.md` (R-01 `exigirSemConflito`, R-02 upsert + DELETE de órfãs) | `src/test/**`, `REFATORACOES.md` |
 
-**Dívida de modelagem:** pacotes legados duplicados (`domain/model/usuario`, `dominio/model/evento`, `dominio/model/inscricao`, `dominio/model/vo`) coexistem com `domain/model/entity` — decidir: excluir ou marcar `@Deprecated`. Recomendado excluir na Task #4.
+**Dívida de modelagem (resolvida na migração Java SE):** pacotes legados
+duplicados foram excluídos — `domain/` contém só `entity/`, `vo/`,
+`port/` e `exception/`.
 
 ## 4. Decisões D-01–D-08 (rascunho p/ README — Task #5)
 

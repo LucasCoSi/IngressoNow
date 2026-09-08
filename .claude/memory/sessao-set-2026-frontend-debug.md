@@ -60,6 +60,15 @@ metadata:
   V1–V11 em base zerada, `mvn test` 86/86 OK (via imagem Maven),
   fluxo manual: atividade `maxVagas=1` → seleção 200 `{ok:true}` →
   2ª seleção 422 "não possui mais vagas disponíveis".
+- ✅ RNF-10 validado em Docker 2026-09-08 (working tree, sem commit):
+  massa temporária 500 usuários + 100 atividades + 500 inscrições +
+  1500 seleções (scripts em `$TEMP/opencode/rnf10_*.sql`, removida após).
+  Achados e correções: (1) V12 `idx_ia_atividade` (EXPLAIN confirma
+  Bitmap Index Scan); (2) `GET /api/inscricoes` com N+1 (28s p/ 500) →
+  memoização (5,8s) → projeção `InscricaoResumo` em 1 query com JOINs
+  (**364ms**). Tempos finais: eventos 203ms, programação/100 1,18s,
+  inscrições/500 364ms, relatório presenca 811ms. Base de demo limpa
+  (só seeds).
 - Commitar working tree + push.
 
 **Why:** retomar o debug do frontend sem redescobrir causas; contém fixes aplicados, pendências e armadilhas.
