@@ -15,7 +15,10 @@
         'nav-evaluations': '/avaliacoes',
         'nav-reports': '/relatorios',
         'nav-users': '/usuarios',
-        'nav-settings': '/configuracoes'
+        'nav-settings': '/configuracoes',
+        'nav-eventos-disponiveis': '/',
+        'nav-programacao-part': '/programacao',
+        'nav-area-participante': '/area-participante'
     };
 
     // Ícones que faltam em algumas páginas (botões invisíveis sem o symbol).
@@ -50,7 +53,7 @@
     // "Validar Certificado" leva à área do participante (aba de
     // certificados) — sem página dedicada no MVP.
     const NAV_LINK_POR_TEXTO = {
-        'explorar eventos': '/eventos',
+        'explorar eventos': '/',
         'programação': '/programacao',
         'programacao': '/programacao',
         'minhas inscrições': '/area-participante',
@@ -247,21 +250,89 @@
         });
     }
 
+    // Controle de acesso por papel (§3): gestão é do organizador.
+    // Sem login em página de gestão → /login; participante → /area-participante.
+    // Públicas: /, /evento-publico, /programacao, /login, /cadastro, /area-participante.
+    const PAGINAS_GESTAO = ['/dashboard', '/eventos', '/atividades', '/inscricoes',
+        '/frequencia', '/avaliacoes', '/relatorios', '/usuarios', '/configuracoes'];
+
+    function papelUsuario() {
+        const auth = window.Auth || null;
+        if (!auth || !auth.isAuthenticated || !auth.isAuthenticated()) return null;
+        const u = auth.getUser ? auth.getUser() : null;
+        if (!u) return null;
+        const t = String(u.tipo || '').toUpperCase();
+        if (t === 'ORGANIZADOR' || t === 'ADMIN' || t === 'ADMINISTRADOR') return 'ORGANIZADOR';
+        return 'PARTICIPANTE';
+    }
+
+    function aplicarControleAcesso() {
+        const path = window.location.pathname;
+        const papel = papelUsuario();
+        if (PAGINAS_GESTAO.includes(path)) {
+            if (!papel) {
+                window.location.href = '/login';
+                return;
+            }
+            if (papel !== 'ORGANIZADOR') {
+                window.location.href = '/area-participante';
+                return;
+            }
+        }
+        // Sidebar padrão do participante (idêntica em todas as telas):
+        // Eventos disponíveis, Programação, Área do Participante.
+        // Reconstrói qualquer sidebar (ex.: a admin da programação) quando
+        // quem vê não é organizador. O organizador mantém a dele.
+        if (papel !== 'ORGANIZADOR') padronizarSidebarParticipante();
+    }
+
+    function padronizarSidebarParticipante() {
+        const nav = document.querySelector('.sidebar .nav');
+        if (!nav || nav.dataset.padronizada === 'ok') return;
+        nav.dataset.padronizada = 'ok';
+        nav.innerHTML = '';
+        [
+            ['nav-eventos-disponiveis', 'Eventos disponíveis'],
+            ['nav-programacao-part', 'Programação'],
+            ['nav-area-participante', 'Área do Participante']
+        ].forEach(([odId, rotulo]) => {
+            const btn = document.createElement('button');
+            btn.className = 'nav-btn';
+            btn.setAttribute('data-od-id', odId);
+            btn.textContent = rotulo;
+            nav.appendChild(btn);
+        });
+        const rodape = document.querySelector('.sidebar .org, .sidebar .part-org');
+        if (rodape) {
+            rodape.className = 'part-org';
+            rodape.innerHTML = '';
+            const nome = document.createElement('span');
+            nome.textContent = 'IngressoNow';
+            const forte = document.createElement('strong');
+            forte.textContent = 'Portal do participante';
+            rodape.append(nome, forte);
+        }
+    }
+
     function ligarNav() {
-        // Logo → atalho para o dashboard (sidebar das páginas admin e
-        // logo do header da área do participante / evento público).
+        // Logo → página principal de cada papel: organizador volta ao
+        // dashboard; participante/visitante volta aos Eventos disponíveis (/).
+        // (Antes ia sempre p/ /dashboard, e o guarda rebatia o participante
+        // para a área do participante.)
+        const destinoLogo = papelUsuario() === 'ORGANIZADOR' ? '/dashboard' : '/';
+        const tituloLogo = destinoLogo === '/dashboard' ? 'Ir para o Dashboard' : 'Ir para Eventos disponíveis';
         document.querySelectorAll('.sidebar .brand, .logo[data-od-id="logo-brand"]').forEach(logo => {
             logo.style.cursor = 'pointer';
-            logo.setAttribute('title', 'Ir para o Dashboard');
+            logo.setAttribute('title', tituloLogo);
             logo.setAttribute('role', 'link');
             logo.setAttribute('tabindex', '0');
             logo.addEventListener('click', () => {
-                window.location.href = '/dashboard';
+                window.location.href = destinoLogo;
             });
             logo.addEventListener('keydown', (ev) => {
                 if (ev.key === 'Enter' || ev.key === ' ') {
                     ev.preventDefault();
-                    window.location.href = '/dashboard';
+                    window.location.href = destinoLogo;
                 }
             });
         });
@@ -288,12 +359,14 @@
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => {
+            aplicarControleAcesso();
             garantirIcones();
             garantirFavicon();
             ligarNav();
             configurarPerfil();
         });
     } else {
+        aplicarControleAcesso();
         garantirIcones();
         garantirFavicon();
         ligarNav();

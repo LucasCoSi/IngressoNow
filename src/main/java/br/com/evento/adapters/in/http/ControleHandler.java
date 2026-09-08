@@ -48,6 +48,9 @@ public class ControleHandler implements HttpHandler {
             String resto = ex.getRequestURI().getPath().substring("/api/controle".length());
             String[] partes = resto.substring(1).split("/");
             if (partes.length == 1 && "checkin".equals(partes[0]) && "POST".equals(metodo)) {
+                var logadoCheckin = jwt.autenticar(ex)
+                        .orElseThrow(() -> new DomainException("Autenticação exigida."));
+                if (!Papeis.exigirOrganizador(logadoCheckin, ex)) return;
                 var req = Json.ler(HttpErrors.corpo(ex), CheckInRequest.class);
                 if (req.qrCodeToken() == null || req.qrCodeToken().isBlank()) {
                     throw new IllegalArgumentException("O token do QR Code é obrigatório");
@@ -60,6 +63,7 @@ public class ControleHandler implements HttpHandler {
             if (partes.length == 1 && "manual".equals(partes[0]) && "POST".equals(metodo)) {
                 var usuario = jwt.autenticar(ex)
                         .orElseThrow(() -> new DomainException("Autenticação exigida."));
+                if (!Papeis.exigirOrganizador(usuario, ex)) return;
                 var req = Json.ler(HttpErrors.corpo(ex), CheckInManualRequest.class);
                 if (req.inscricaoId() == null || req.inscricaoId().isBlank()) {
                     throw new IllegalArgumentException("A inscrição é obrigatória");
@@ -74,11 +78,17 @@ public class ControleHandler implements HttpHandler {
             if (partes.length == 3 && "qrcode".equals(partes[0]) && "GET".equals(metodo)) {
                 Inscricao inscricao = inscricoes.buscarPorId(partes[1])
                         .orElseThrow(() -> new DomainException("Inscrição não encontrada."));
+                var logadoQr = jwt.autenticar(ex)
+                        .orElseThrow(() -> new DomainException("Autenticação exigida."));
+                if (!Papeis.exigirDonoOuOrganizador(logadoQr, inscricao.getParticipanteId(), ex)) return;
                 HttpErrors.texto(ex, 200, qrCodeService.gerarTokenParaCheckIn(inscricao, partes[2]), "text/plain");
                 return;
             }
             if (partes.length == 3 && "relatorio".equals(partes[0]) && "presenca".equals(partes[1])
                     && "GET".equals(metodo)) {
+                var logadoRel = jwt.autenticar(ex)
+                        .orElseThrow(() -> new DomainException("Autenticação exigida."));
+                if (!Papeis.exigirOrganizador(logadoRel, ex)) return;
                 String csv = relatorio.executarEmCsv(partes[2]);
                 ex.getResponseHeaders().set("Content-Disposition",
                         "attachment; filename=\"presenca-" + partes[2] + ".csv\"");
@@ -88,6 +98,9 @@ public class ControleHandler implements HttpHandler {
             // RF-29: relatório de inscritos por evento (CSV)
             if (partes.length == 3 && "relatorio".equals(partes[0]) && "inscritos".equals(partes[1])
                     && "GET".equals(metodo)) {
+                var logadoRel2 = jwt.autenticar(ex)
+                        .orElseThrow(() -> new DomainException("Autenticação exigida."));
+                if (!Papeis.exigirOrganizador(logadoRel2, ex)) return;
                 String csv = relatorioInscritos.executarEmCsv(partes[2]);
                 ex.getResponseHeaders().set("Content-Disposition",
                         "attachment; filename=\"inscritos-" + partes[2] + ".csv\"");

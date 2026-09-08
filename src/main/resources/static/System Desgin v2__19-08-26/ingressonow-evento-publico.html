@@ -7,15 +7,28 @@
  <style>
  :root{
  --bg:#F8FAFC;--surface:#FFFFFF;--ink:#0F172A;--muted:#64748B;--line:#E2E8F0;
- --navy:#1E3A8A;--navy-dark:#0F172A;--cyan:#0284C7;--cyan-soft:#E0F2FE;
+ --navy:#1E3A8A;--navy-dark:#0F172A;--nav-active:#1E293B;--cyan:#0284C7;--cyan-soft:#E0F2FE;
  --mist:#BAE6FD;--font-ui:"Segoe UI",Aptos,system-ui,sans-serif;--font-mono:"SFMono-Regular",Consolas,monospace
  }
  *{box-sizing:border-box} html{background:var(--bg)} body{margin:0;color:var(--ink);font:400 15px/1.55 var(--font-ui);background:var(--bg)}
  button,input,select{font:inherit} button{cursor:pointer} button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--mist);outline-offset:2px}.icon{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;display:inline}
 
- header.public-header{background:var(--navy-dark);color:#fff;padding:18px 42px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;border-bottom:1px solid rgba(255,255,255,.1)}
+ header.public-header{background:var(--navy-dark);color:#fff;padding:18px 42px;display:flex;align-items:center;justify-content:flex-end;position:sticky;top:0;z-index:100;border-bottom:1px solid rgba(255,255,255,.1)}
  .logo{display:flex;align-items:center;gap:10px;font-size:22px;font-weight:700;letter-spacing:-.02em;cursor:pointer}.logo-now{color:#38BDF8}.logo-mark{width:34px;height:34px;border-radius:6px;background:var(--navy);border:1px solid #2749A1;display:grid;place-items:center;color:#fff;font-size:11px;font-weight:800;letter-spacing:.05em}
+ .app{min-height:100vh;display:grid;grid-template-columns:240px minmax(0,1fr)}
+ .sidebar{background:var(--navy-dark);color:#fff;padding:26px 14px;display:flex;flex-direction:column;position:sticky;inset:0 auto 0 0;height:100vh;overflow-y:auto}
+ .brand{display:flex;align-items:center;gap:10px;margin:0 10px 40px;font-size:20px;font-weight:650;letter-spacing:-.03em}.mark{width:30px;height:30px;border-radius:6px;background:var(--navy);border:1px solid #2749A1;display:grid;place-items:center;color:#fff;font:700 10px var(--font-mono);letter-spacing:.08em}.brand-now{color:#38BDF8}
+ .nav{display:grid;gap:2px}.nav-btn{border:0;border-radius:6px;background:transparent;color:#D9E4F4;padding:10px 11px;display:flex;align-items:center;gap:10px;text-align:left;font-size:13px;font-weight:550;transition:background .15s ease,color .15s ease}.nav-btn:hover{background:#16223A;color:#fff}.nav-btn.active{background:var(--nav-active);color:var(--mist);box-shadow:inset 2px 0 0 var(--cyan)}
+ .part-org{margin-top:auto;border-top:1px solid #283854;padding:16px 10px 0;color:#B7C8E0;font-size:12px}.part-org strong{display:block;color:#fff;font-weight:600;margin-top:2px}
+ .workspace{min-width:0}
+ @media(max-width:980px){.app{grid-template-columns:92px minmax(0,1fr)}.sidebar{padding:22px 8px}.brand{margin:0 auto 30px}.brand span:not(.mark){font-size:0}.nav-btn{font-size:10px;font-weight:700;justify-content:center;text-align:center;padding:10px 4px}.part-org{display:none}}
+ @media(max-width:700px){.app{display:block}.sidebar{display:none}}
 
+ .profile-section{display:flex;align-items:center;gap:12px;cursor:pointer}
+ .avatar-sm{width:32px;height:32px;border-radius:50%;background:var(--cyan-soft);color:var(--navy);display:grid;place-items:center;font-size:11px;font-weight:750}
+ .profile-text{font-size:12px;font-weight:550;color:#fff}
+ .profile-name{display:block}
+ .profile-role{display:block;font-size:10px;color:#BAE6FD}
  .nav-public{display:flex;align-items:center;gap:28px}.nav-link{color:#D9E4F4;font-size:13px;font-weight:550;text-decoration:none;transition:color .15s ease;white-space:nowrap}.nav-link:hover{color:#fff}.nav-link.cta{background:#2563EB;color:#fff;padding:10px 18px;border-radius:6px;transition:all .15s ease}.nav-link.cta:hover{background:#1D4ED8;transform:translateY(-1px)}
 
  .hero-banner{height:480px;background:linear-gradient(135deg, #1E3A8A 0%, #0F172A 100%);position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
@@ -54,7 +67,7 @@
  .speaker-title{font-size:12px;color:var(--muted);margin:0 0 2px;font-weight:550}
  .speaker-org{font-size:11px;color:var(--muted);margin:0}
 
- .sidebar{position:sticky;top:140px;height:fit-content}
+ .sidebar[data-od-id="sidebar-inscription"]{position:sticky;top:140px;height:fit-content}
  .inscription-card{background:#fff;border:1px solid var(--line);border-radius:8px;padding:28px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
  .inscription-title{font-size:18px;font-weight:700;color:var(--navy);margin:0 0 22px;letter-spacing:-.015em}
  .category-badge{background:var(--cyan-soft);border:1px solid var(--cyan);border-radius:6px;padding:16px;margin-bottom:22px;text-align:center}
@@ -76,17 +89,27 @@
  </style>
 </head>
 <body>
+ <div class="app" data-od-id="site-layout">
+ <aside class="sidebar" data-od-id="participant-sidebar">
+ <div class="brand" data-od-id="brand-logo"><span class="mark">IN</span><span>Ingresso<span class="brand-now">Now</span></span></div>
+ <nav class="nav" aria-label="Navegação do participante">
+ <button class="nav-btn" data-od-id="nav-eventos-disponiveis">Eventos disponíveis</button>
+ <button class="nav-btn" data-od-id="nav-programacao-part">Programação</button>
+ <button class="nav-btn" data-od-id="nav-area-participante">Área do Participante</button>
+ </nav>
+ <div class="part-org">IngressoNow<strong>Portal do participante</strong></div>
+ </aside>
+ <div class="workspace">
  <header class="public-header" data-od-id="public-header">
- <div class="logo" data-od-id="logo-brand">
- <div class="logo-mark">IN</div>
- <span>Ingresso<span class="logo-now">Now</span></span>
- </div>
  <nav class="nav-public" data-od-id="main-nav">
- <a href="#" class="nav-link">Explorar Eventos</a>
- <a href="#" class="nav-link">Programação</a>
- <a href="#" class="nav-link">Validar Certificado</a>
- <a href="#" class="nav-link">Minhas Inscrições</a>
- <a href="#" class="nav-link cta">Área do Participante</a>
+ <div class="profile-section" data-od-id="profile-menu">
+ <div class="avatar-sm">V</div>
+ <div class="profile-text">
+ <span class="profile-name">Visitante</span>
+ <span class="profile-role">Entrar</span>
+ </div>
+ <span>▾</span>
+ </div>
  </nav>
  </header>
 
@@ -288,6 +311,8 @@
  <button class="cta-button" data-od-id="inscription-cta">Realizar Inscrição Gratuita</button>
  </div>
  </aside>
+ </div>
+ </div>
  </div>
 
  <script>

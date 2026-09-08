@@ -4,6 +4,17 @@ Base: `http://localhost:8080`. Auth: `Authorization: Bearer <JWT>`
 (login em `/api/auth/login`). `GET /api/eventos` e
 `GET /api/eventos/{id}/programacao` são públicos; resto exige JWT.
 
+## Papéis (§3) — PARTICIPANTE vs ORGANIZADOR
+
+- **Público (sem login):** `/`, `/evento-publico`, `/programacao`,
+  `GET /api/eventos`, `GET /api/eventos/{id}`, `GET .../programacao`.
+- **Participante:** área do participante + próprios recursos
+  (`?participanteId=` próprio, agenda própria, inscrever-se,
+  certificados próprios, submeter avaliação). Gestão → 403.
+- **Organizador:** gestão (eventos/atividades/check-in/relatórios/
+  questionários+resultados/critérios/emissão/usuários). Frontend redireciona
+  participante em página admin → `/area-participante` (sem login → `/login`).
+
 ## Auth (público)
 
 ```bash

@@ -3,6 +3,7 @@ package br.com.evento.adapters.in.http;
 import br.com.evento.application.usecase.ConsolidarAvaliacoesUseCase;
 import br.com.evento.application.usecase.CriarQuestionarioUseCase;
 import br.com.evento.application.usecase.SubmeterAvaliacaoUseCase;
+import br.com.evento.domain.exception.DomainException;
 import br.com.evento.domain.model.entity.Avaliacao;
 import br.com.evento.domain.model.entity.Pergunta;
 import br.com.evento.domain.model.entity.Questionario;
@@ -43,6 +44,8 @@ public class AvaliacaoHandler implements HttpHandler {
     public void handle(HttpExchange ex) throws IOException {
         try {
             if (!jwt.exigir(ex)) return;
+            var logado = jwt.autenticar(ex)
+                    .orElseThrow(() -> new DomainException("Autenticação exigida."));
             String metodo = ex.getRequestMethod().toUpperCase();
             String path = ex.getRequestURI().getPath();
             if (path.startsWith("/api/eventos/") && path.endsWith("/questionarios")) {
@@ -50,6 +53,7 @@ public class AvaliacaoHandler implements HttpHandler {
                         path.length() - "/questionarios".length());
                 eventoId = eventoId.replace("/", "");
                 if ("POST".equals(metodo)) {
+                    if (!Papeis.exigirOrganizador(logado, ex)) return;
                     var req = Json.ler(HttpErrors.corpo(ex), CriarQuestionarioRequest.class);
                     if (req.perguntas() == null || req.perguntas().isEmpty()) {
                         throw new IllegalArgumentException("O questionário exige ao menos uma pergunta");
@@ -89,6 +93,7 @@ public class AvaliacaoHandler implements HttpHandler {
                 return;
             }
             if (path.startsWith("/api/questionarios/") && path.endsWith("/resultados") && "GET".equals(metodo)) {
+                if (!Papeis.exigirOrganizador(logado, ex)) return;
                 String id = path.substring("/api/questionarios/".length(),
                         path.length() - "/resultados".length()).replace("/", "");
                 HttpErrors.json(ex, 200, consolidar.executar(id));

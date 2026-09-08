@@ -4,6 +4,7 @@ import br.com.evento.application.usecase.CancelarInscricaoUseCase;
 import br.com.evento.application.usecase.ConsultarAgendaUseCase;
 import br.com.evento.application.usecase.InscreverParticipanteUseCase;
 import br.com.evento.application.usecase.SelecionarAtividadeUseCase;
+import br.com.evento.domain.exception.DomainException;
 import br.com.evento.domain.model.entity.AgendaDoParticipante;
 import br.com.evento.domain.model.entity.Inscricao;
 import br.com.evento.domain.port.out.EventoRepository;
@@ -50,6 +51,8 @@ public class InscricaoHandler implements HttpHandler {
     public void handle(HttpExchange ex) throws IOException {
         try {
             if (!jwt.exigir(ex)) return;
+            var logado = jwt.autenticar(ex)
+                    .orElseThrow(() -> new DomainException("Autenticação exigida."));
             String metodo = ex.getRequestMethod().toUpperCase();
             String resto = ex.getRequestURI().getPath().substring("/api/inscricoes".length());
             String query = ex.getRequestURI().getRawQuery();
@@ -59,12 +62,16 @@ public class InscricaoHandler implements HttpHandler {
                     // RNF-10: projeção leve (1 query com JOINs) em vez do
                     // agregado completo por linha.
                     if (params.containsKey("participanteId") && !params.get("participanteId").isBlank()) {
+                        // Próprias inscrições ou gestão.
+                        if (!Papeis.exigirDonoOuOrganizador(logado, params.get("participanteId"), ex)) return;
                         HttpErrors.json(ex, 200, inscricoes
                                 .listarResumidoPorParticipante(params.get("participanteId")).stream()
                                 .map(r -> new InscricaoDTO(r.id(), r.participanteId(), r.participanteNome(),
                                         r.eventoId(), r.eventoTitulo(), r.dataInscricao().toString()))
                                 .toList());
                     } else {
+                        // Inscrições do evento: gestão.
+                        if (!Papeis.exigirOrganizador(logado, ex)) return;
                         HttpErrors.json(ex, 200, inscricoes
                                 .listarResumidoPorEvento(params.getOrDefault("eventoId", "")).stream()
                                 .map(r -> new InscricaoDTO(r.id(), r.participanteId(), r.participanteNome(),
@@ -79,6 +86,7 @@ public class InscricaoHandler implements HttpHandler {
                     if (req.eventoId() == null || req.eventoId().isBlank()) {
                         throw new IllegalArgumentException("O ID do evento é obrigatório");
                     }
+                    if (!Papeis.exigirDonoOuOrganizador(logado, req.participanteId(), ex)) return;
                     HttpErrors.json(ex, 200, dto(inscrever.executar(req.participanteId(), req.eventoId())));
                 } else {
                     HttpErrors.json(ex, 405, StandardError.de(405, "Method Not Allowed",
@@ -88,16 +96,23 @@ public class InscricaoHandler implements HttpHandler {
             }
             String[] partes = resto.substring(1).split("/");
             if (partes.length == 1 && "DELETE".equals(metodo)) {
+                Inscricao alvo = inscricoes.buscarPorId(partes[0])
+                        .orElseThrow(() -> new DomainException("Inscrição não encontrada."));
+                if (!Papeis.exigirDonoOuOrganizador(logado, alvo.getParticipanteId(), ex)) return;
                 cancelar.executar(partes[0]);
                 HttpErrors.semConteudo(ex);
                 return;
             }
             if (partes.length == 3 && "atividades".equals(partes[1]) && "POST".equals(metodo)) {
+                Inscricao alvo = inscricoes.buscarPorId(partes[0])
+                        .orElseThrow(() -> new DomainException("Inscrição não encontrada."));
+                if (!Papeis.exigirDonoOuOrganizador(logado, alvo.getParticipanteId(), ex)) return;
                 selecionar.executar(partes[0], partes[2]);
                 HttpErrors.json(ex, 200, Map.of("ok", true));
                 return;
             }
             if (partes.length == 2 && "agenda".equals(partes[1]) && "GET".equals(metodo)) {
+                if (!Papeis.exigirDonoOuOrganizador(logado, partes[0], ex)) return;
                 AgendaDoParticipante a = agenda.executar(partes[0]);
                 HttpErrors.json(ex, 200, new AgendaDTO(a.getParticipanteId(),
                         a.getAtividades().stream()

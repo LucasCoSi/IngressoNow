@@ -1,6 +1,7 @@
 package br.com.evento.adapters.in.http;
 
 import br.com.evento.application.usecase.GerenciarCertificadosUseCase;
+import br.com.evento.domain.exception.DomainException;
 import br.com.evento.domain.model.entity.Certificado;
 import br.com.evento.domain.model.entity.CriterioCertificado;
 import com.sun.net.httpserver.HttpExchange;
@@ -34,6 +35,8 @@ public class CertificadoHandler implements HttpHandler {
     public void handle(HttpExchange ex) throws IOException {
         try {
             if (!jwt.exigir(ex)) return;
+            var logado = jwt.autenticar(ex)
+                    .orElseThrow(() -> new DomainException("Autenticação exigida."));
             String metodo = ex.getRequestMethod().toUpperCase();
             String path = ex.getRequestURI().getPath();
 
@@ -43,6 +46,7 @@ public class CertificadoHandler implements HttpHandler {
                 String sufixo = path.substring(path.indexOf("/certificados")
                         + "/certificados".length());
                 if ("/criterio".equals(sufixo) && "POST".equals(metodo)) {
+                    if (!Papeis.exigirOrganizador(logado, ex)) return;
                     var req = Json.ler(HttpErrors.corpo(ex), CriterioRequest.class);
                     CriterioCertificado c = gerenciar.definirCriterio(eventoId,
                             req.percentualMinimo(), req.obrigatorias());
@@ -50,6 +54,7 @@ public class CertificadoHandler implements HttpHandler {
                     return;
                 }
                 if ("/participante".equals(sufixo) && "POST".equals(metodo)) {
+                    if (!Papeis.exigirOrganizador(logado, ex)) return;
                     var req = Json.ler(HttpErrors.corpo(ex), EmitirRequest.class);
                     exigir(req.inscricaoId(), "A inscrição é obrigatória");
                     HttpErrors.json(ex, 201, CertificadoDTO.from(
@@ -57,6 +62,7 @@ public class CertificadoHandler implements HttpHandler {
                     return;
                 }
                 if ("/palestrante".equals(sufixo) && "POST".equals(metodo)) {
+                    if (!Papeis.exigirOrganizador(logado, ex)) return;
                     var req = Json.ler(HttpErrors.corpo(ex), EmitirPalestranteRequest.class);
                     exigir(req.pessoaId(), "A pessoa é obrigatória");
                     HttpErrors.json(ex, 201, CertificadoDTO.from(
@@ -64,6 +70,7 @@ public class CertificadoHandler implements HttpHandler {
                     return;
                 }
                 if ((sufixo.isEmpty() || sufixo.equals("/")) && "GET".equals(metodo)) {
+                    if (!Papeis.exigirOrganizador(logado, ex)) return;
                     HttpErrors.json(ex, 200, gerenciar.listarPorEvento(eventoId).stream()
                             .map(CertificadoDTO::from).toList());
                     return;
@@ -78,6 +85,7 @@ public class CertificadoHandler implements HttpHandler {
                 }
                 // RF-34: POST .../certificados/enviar {certificadoId, email}
                 if ("/enviar".equals(sufixo) && "POST".equals(metodo)) {
+                    if (!Papeis.exigirOrganizador(logado, ex)) return;
                     var req = Json.ler(HttpErrors.corpo(ex), EnviarRequest.class);
                     HttpErrors.json(ex, 200, gerenciar.enviarPorEmail(
                             req.certificadoId(), req.email()));
@@ -97,6 +105,7 @@ public class CertificadoHandler implements HttpHandler {
                     throw new IllegalArgumentException(
                             "Informe participanteId ou codigo.");
                 }
+                if (!Papeis.exigirDonoOuOrganizador(logado, participanteId, ex)) return;
                 HttpErrors.json(ex, 200, gerenciar.listarPorParticipante(participanteId)
                         .stream().map(CertificadoDTO::from).toList());
                 return;

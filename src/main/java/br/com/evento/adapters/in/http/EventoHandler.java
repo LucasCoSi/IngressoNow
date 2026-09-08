@@ -78,6 +78,7 @@ public class EventoHandler implements HttpHandler {
                                     "Você só pode listar os próprios eventos.", ex.getRequestURI().getPath()));
                             return;
                         }
+                        if (!Papeis.exigirOrganizador(logado.get(), ex)) return;
                         HttpErrors.json(ex, 200, listarOrganizador.executar(organizadorId).stream()
                                 .map(EventoDTO::from).toList());
                     } else {
@@ -85,6 +86,9 @@ public class EventoHandler implements HttpHandler {
                     }
                 } else if ("POST".equals(metodo)) {
                     if (!jwt.exigir(ex)) return;
+                    var logado = jwt.autenticar(ex)
+                            .orElseThrow(() -> new DomainException("Autenticação exigida."));
+                    if (!Papeis.exigirOrganizador(logado, ex)) return;
                     var req = Json.ler(HttpErrors.corpo(ex), CriarEventoRequest.class);
                     validarCriar(req);
                     Evento evento = cadastrar.executar(req.titulo(), req.descricao(), req.organizadorId());
@@ -107,6 +111,9 @@ public class EventoHandler implements HttpHandler {
                     HttpErrors.json(ex, 200, EventoDTO.from(buscar(id)));
                 } else if ("PUT".equals(metodo)) {
                     if (!jwt.exigir(ex)) return;
+                    var logadoPut = jwt.autenticar(ex)
+                            .orElseThrow(() -> new DomainException("Autenticação exigida."));
+                    if (!Papeis.exigirOrganizador(logadoPut, ex)) return;
                     var req = Json.ler(HttpErrors.corpo(ex), AtualizarEventoRequest.class);
                     Evento evento = buscar(id);
                     evento.atualizar(req.titulo(), req.descricao());
@@ -115,6 +122,9 @@ public class EventoHandler implements HttpHandler {
                     HttpErrors.json(ex, 200, EventoDTO.from(eventos.salvar(evento)));
                 } else if ("DELETE".equals(metodo)) {
                     if (!jwt.exigir(ex)) return;
+                    var logadoDel = jwt.autenticar(ex)
+                            .orElseThrow(() -> new DomainException("Autenticação exigida."));
+                    if (!Papeis.exigirOrganizador(logadoDel, ex)) return;
                     buscar(id);
                     if (inscricoes.contarPorEvento(id) > 0) {
                         throw new DomainException(
@@ -146,6 +156,9 @@ public class EventoHandler implements HttpHandler {
             }
             if (partes.length == 2 && "POST".equals(metodo)) {
                 if (!jwt.exigir(ex)) return;
+                var logadoAcao = jwt.autenticar(ex)
+                        .orElseThrow(() -> new DomainException("Autenticação exigida."));
+                if (!Papeis.exigirOrganizador(logadoAcao, ex)) return;
                 switch (partes[1]) {
                     case "atividades" -> {
                         var req = Json.ler(HttpErrors.corpo(ex), CriarAtividadeRequest.class);
@@ -182,6 +195,9 @@ public class EventoHandler implements HttpHandler {
             // RF-07: PUT /api/eventos/{id}/atividades/{atId} (remarcar com revalidação)
             if (partes.length == 3 && "atividades".equals(partes[1]) && "PUT".equals(metodo)) {
                 if (!jwt.exigir(ex)) return;
+                var logadoRem = jwt.autenticar(ex)
+                        .orElseThrow(() -> new DomainException("Autenticação exigida."));
+                if (!Papeis.exigirOrganizador(logadoRem, ex)) return;
                 var req = Json.ler(HttpErrors.corpo(ex), RemarcarRequest.class);
                 if (req.inicio() == null || req.fim() == null) {
                     throw new IllegalArgumentException("Início e fim são obrigatórios");
@@ -205,6 +221,9 @@ public class EventoHandler implements HttpHandler {
                 }
                 if ("POST".equals(metodo)) {
                     if (!jwt.exigir(ex)) return;
+                    var logadoVinc = jwt.autenticar(ex)
+                            .orElseThrow(() -> new DomainException("Autenticação exigida."));
+                    if (!Papeis.exigirOrganizador(logadoVinc, ex)) return;
                     var req = Json.ler(HttpErrors.corpo(ex), VincularPessoaRequest.class);
                     if (req.nome() == null || req.nome().isBlank()) {
                         throw new IllegalArgumentException("O nome da pessoa é obrigatório");
@@ -219,6 +238,9 @@ public class EventoHandler implements HttpHandler {
             }
             if (partes.length == 3 && "pessoas".equals(partes[1]) && "DELETE".equals(metodo)) {
                 if (!jwt.exigir(ex)) return;
+                var logadoPessoa = jwt.autenticar(ex)
+                        .orElseThrow(() -> new DomainException("Autenticação exigida."));
+                if (!Papeis.exigirOrganizador(logadoPessoa, ex)) return;
                 vincularPessoa.remover(partes[2]);
                 HttpErrors.semConteudo(ex);
                 return;

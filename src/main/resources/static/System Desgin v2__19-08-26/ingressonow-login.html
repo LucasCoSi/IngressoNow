@@ -125,9 +125,15 @@
  <script src="/js/api-client.js"></script>
 
  <script>
+ // Destino por papel: organizador gerencia (/eventos), participante explora (/)
+ function destinoPosLogin() {
+     const u = window.Auth && window.Auth.getUser ? window.Auth.getUser() : null;
+     const t = u && u.tipo ? String(u.tipo).toUpperCase() : '';
+     return (t === 'ORGANIZADOR' || t === 'ADMIN' || t === 'ADMINISTRADOR') ? '/eventos' : '/';
+ }
  // Redireciona se ja autenticado
  if (window.Auth && window.Auth.isAuthenticated()) {
-     window.location.href = '/eventos';
+     window.location.href = destinoPosLogin();
  }
  document.querySelector('[data-od-id="login-form"]').addEventListener('submit', async function(e) {
  e.preventDefault();
@@ -136,7 +142,7 @@
  if (!email || !password) return;
  try {
      await window.API.Auth.login(email, password);
-     window.location.href = '/eventos';
+     window.location.href = destinoPosLogin();
  } catch (error) {
      window.API.exibirErro(error);
  }

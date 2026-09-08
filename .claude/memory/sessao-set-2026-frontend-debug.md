@@ -112,6 +112,64 @@ metadata:
   demais, escolha em localStorage); h1/descrição/métricas/vagas x/y/
   presença/grade passam a refletir o evento escolhido; grade mock
   (João Silva etc.) → atividades reais; vazio honesto. Harness 16/16.
+- ✅ Papéis PARTICIPANTE x ORGANIZADOR (2026-09-08): antes só
+  `/api/usuarios` exigia ORGANIZADOR. Novo `Papeis` (helper 403) aplicado
+  em Evento/Inscricao/Controle/Certificado/Avaliacao handlers (gestão só
+  organizador; próprios recursos = dono ou organizador; PDF/código e
+  submeter seguem JWT). Frontend `nav.js`: sem login em gestão→`/login`,
+  participante→`/area-participante`, sidebar filtrada + atalho injetado.
+  `mvn` 93/93, harness nav 9/9, E2E Docker 14/14 (Lucas 403 x7, próprios
+  200, Maria OK, públicas intactas). Follow-up: isolamento entre
+  organizadores (qualquer ORG edita evento alheio) + tela de submeter avaliação.
+- ✅ Homepage pública estilo Sympla / RF-10 (2026-09-08): `/` caía em
+  "Evento não encontrado" sem ?id=. `evento-publico.js` sem id agora
+  renderiza catálogo (cards reais da lista pública + detalhe ?id=);
+  login redireciona por papel (ORG→/eventos, PART→/); "Explorar Eventos"
+  → `/`. Harness 8/8 + E2E Docker (publicar exige atividade, inscrever
+  exige publicado, Lucas inscreve/cancela, limpeza). RF-10/11/12 cobertos.
+- ✅ Similaridade/continuidade (2026-09-08): auditoria CSS nas 14 telas.
+  Fixes: `.secondary` ausente em atividades (botões Remarcar/Pessoas sem
+  estilo) e eventos; `.main` 1600px→1440px na programação; "← Todos os
+  eventos" no detalhe (volta ao catálogo). Tokens :root já unificados;
+  h1 32px navy e topbar 68px consistentes (dashboard .primary resolve p/
+  #2563EB). De fora: unificar os 3 headers (site/app/auth = redesign).
+- ✅ Sidebar do participante (2026-09-08): `evento-publico.html` ganhou
+  layout `.app` + sidebar (Eventos disponíveis, Programação, Área do
+  Participante) no padrão admin; topbar enxuta (logo + conta — removidos
+  Explorar/Programação/Validar/Minhas + CTA); `profile-menu` + CSS
+  adicionados (página não tinha conta); rotas no `nav.js`.
+- ✅ Polish do catálogo (2026-09-08, a partir de print): hero navy com
+  contador ("N eventos publicados"), cards com faixa gradiente, pill de
+  vagas, hover lift, título navy, meta com divisor. Harness 4/4.
+- ✅ Sidebar quebrada no site (2026-09-08, via print + headless Edge):
+  `.sidebar{top:140px;height:fit-content}` do card de inscrição colidia
+  com a nova sidebar (mesma classe, regra posterior vencia). Escopado p/
+  `[data-od-id="sidebar-inscription"]`. Debug com páginas dbg-* temporárias
+  (removidas) + screenshots headless; catálogo e detalhe conferidos.
+- ✅ Logo duplicada no site (2026-09-08, via print): removida do
+  topbar (fica só a da sidebar); header com `justify-content:flex-end`
+  (só conta). Conferido via screenshot headless.
+- ✅ Logo por papel (2026-09-08): ia sempre p/ /dashboard e o guarda
+  rebatia o participante p/ área. `nav.js` agora decide: ORG→/dashboard,
+  PART/visitante→/ (título dinâmico). Harness 6/6.
+- ✅ Sidebar padrão do participante (2026-09-08): divergia por tela.
+  `area-participante.html` ganhou layout `.app` + sidebar + topbar enxuta
+  (logo/links removidos); `nav.js` reconstrói qualquer sidebar p/
+  não-organizador (3 itens + rodapé portal, ativo pela URL; organizador
+  mantém a admin); `.part-org` adicionado à programação. Harness 6/6 +
+  screenshots das 3 telas.
+- ✅ Voltar do detalhe (2026-09-08, via print): link solto virou barra
+  breadcrumb (fundo surface + borda, alinhada ao container 1440px).
+  Conferido via screenshot headless.
+- ✅ Voltar embutido no hero (2026-09-08, via print): faixa branca
+  separada quebrava o navy full-bleed → link `.ev-volta` dentro do
+  hero-content (mist, hover branco). Conferido via screenshot headless.
+- ✅ Voltar removido do detalhe (2026-09-08): redundante com
+  "Eventos disponíveis" da sidebar. Removidos função + CSS.
+- ✅ Modal de atividade (2026-09-08): 14 `prompt()` → modais System
+  Design (criar c/ selects, remarcar pré-preenchido, pessoas c/ lista +
+  vincular + remover) + lista de gestão p/ organizador (RASCUNHO). Harness
+  14/14 + E2E Docker (criar→remarcar→vincular→limpeza).
 - Commitar working tree + push.
 
 **Why:** retomar o debug do frontend sem redescobrir causas; contém fixes aplicados, pendências e armadilhas.
