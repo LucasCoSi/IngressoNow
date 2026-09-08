@@ -60,7 +60,211 @@
         'validar certificado': '/area-participante'
     };
 
+    // Favicon da marca (logo "IN") na guia do navegador.
+    function garantirFavicon() {
+        if (document.querySelector('link[rel="icon"]')) return;
+        const link = document.createElement('link');
+        link.rel = 'icon';
+        link.type = 'image/svg+xml';
+        link.href = '/favicon.svg';
+        document.head.appendChild(link);
+    }
+
+    // Menu de conta no canto superior direito.
+    // Páginas admin usam `.topbar .profile`; área do participante usa
+    // `.profile-section[data-od-id="profile-menu"]` (estrutura diferente).
+    // Logado: nome real + tipo; menu com "Meus dados" e "Sair".
+    // Visitante (primeiro acesso, sem token): "Visitante / Entrar";
+    // menu com "Fazer login" e "Não possui uma conta? Cadastre-se".
+    const CSS_MENU_CONTA = [
+        '.topbar .profile{position:relative;cursor:pointer;border-radius:8px}',
+        '.topbar .profile:focus-visible{outline:3px solid var(--mist, #38BDF8);outline-offset:2px}',
+        '.profile-section[data-od-id="profile-menu"]{position:relative;cursor:pointer;border-radius:8px}',
+        '.profile-section[data-od-id="profile-menu"]:focus-visible{outline:3px solid var(--mist, #38BDF8);outline-offset:2px}',
+        '.menu-seta{font-size:10px;color:inherit;opacity:.7}',
+        '.menu-conta{position:absolute;top:calc(100% + 8px);right:0;min-width:230px;background:#fff;color:var(--ink, #0F172A);border:1px solid var(--line, #E2E8F0);border-radius:10px;box-shadow:0 12px 32px rgba(2,6,23,.18);padding:6px;z-index:50;display:none}',
+        '.menu-conta.aberto{display:block}',
+        '.menu-conta .menu-info{padding:10px 12px;border-bottom:1px solid var(--line, #E2E8F0);margin-bottom:4px}',
+        '.menu-conta .menu-info strong{display:block;font-size:13px}',
+        '.menu-conta .menu-info small{color:var(--muted, #64748B);font-size:12px}',
+        '.menu-conta a.menu-item{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:8px;font-size:13px;font-weight:600;color:var(--ink, #0F172A);text-decoration:none}',
+        '.menu-conta a.menu-item:hover{background:#F1F5F9}',
+        '.menu-conta .menu-hint{padding:8px 12px 2px;font-size:12px;color:var(--muted, #64748B)}',
+        '.menu-conta .menu-divisor{border:0;border-top:1px solid var(--line, #E2E8F0);margin:4px 0}'
+    ].join('\n');
+
+    function garantirCssMenuConta() {
+        if (document.getElementById('menu-conta-css')) return;
+        const style = document.createElement('style');
+        style.id = 'menu-conta-css';
+        style.textContent = CSS_MENU_CONTA;
+        document.head.appendChild(style);
+    }
+
+    function iniciaisDe(nome) {
+        const partes = (nome || '').trim().split(/\s+/).filter(Boolean);
+        if (!partes.length) return '?';
+        if (partes.length === 1) return partes[0].slice(0, 2).toUpperCase();
+        return (partes[0][0] + partes[partes.length - 1][0]).toUpperCase();
+    }
+
+    function rotuloTipo(tipo) {
+        const t = (tipo || '').toUpperCase();
+        if (t === 'ORGANIZADOR') return 'Organizador';
+        if (t === 'PARTICIPANTE') return 'Participante';
+        if (t === 'ADMIN' || t === 'ADMINISTRADOR') return 'Administrador';
+        return t ? t : '';
+    }
+
+    function itemMenu(texto, destino, acao) {
+        const a = document.createElement('a');
+        a.className = 'menu-item';
+        a.href = destino || '#';
+        a.textContent = texto;
+        a.addEventListener('click', (ev) => {
+            ev.preventDefault();
+            ev.stopPropagation();
+            if (acao) acao();
+            else if (destino) window.location.href = destino;
+        });
+        return a;
+    }
+
+    // Alvos do menu de conta: páginas admin + área do participante.
+    const ALVOS_PERFIL = [
+        { seletor: '.topbar .profile', avatarClasse: 'avatar', variante: 'admin' },
+        { seletor: '.profile-section[data-od-id="profile-menu"]', avatarClasse: 'avatar-sm', variante: 'participante' }
+    ];
+
+    function configurarPerfil() {
+        garantirCssMenuConta();
+        ALVOS_PERFIL.forEach(cfg => {
+            const el = document.querySelector(cfg.seletor);
+            if (el) montarMenuConta(el, cfg);
+        });
+    }
+
+    function montarMenuConta(perfil, cfg) {
+        if (!perfil || perfil.dataset.menuConta === 'ok') return;
+        perfil.dataset.menuConta = 'ok';
+
+        const auth = window.Auth || null;
+        const autenticado = !!(auth && auth.isAuthenticated && auth.isAuthenticated());
+        const usuario = autenticado && auth.getUser ? auth.getUser() : null;
+        const nomeExibido = (autenticado && usuario && usuario.nome) || (autenticado ? 'Minha conta' : 'Visitante');
+        const papelExibido = (autenticado && usuario)
+            ? (rotuloTipo(usuario.tipo) || usuario.email || '')
+            : 'Entrar';
+
+        perfil.innerHTML = '';
+        const avatar = document.createElement('span');
+        avatar.className = cfg.avatarClasse;
+        avatar.textContent = autenticado ? iniciaisDe(nomeExibido) : 'V';
+
+        // Rótulo respeita a estrutura de cada variante (classes do System Design).
+        let rotulo;
+        if (cfg.variante === 'participante') {
+            rotulo = document.createElement('div');
+            rotulo.className = 'profile-text';
+            const nome = document.createElement('span');
+            nome.className = 'profile-name';
+            nome.textContent = nomeExibido;
+            const papel = document.createElement('span');
+            papel.className = 'profile-role';
+            papel.textContent = papelExibido;
+            rotulo.append(nome, papel);
+        } else {
+            rotulo = document.createElement('span');
+            const nome = document.createElement('span');
+            nome.textContent = nomeExibido;
+            const sub = document.createElement('small');
+            sub.textContent = papelExibido;
+            const quebra = document.createElement('br');
+            rotulo.append(nome, quebra, sub);
+        }
+
+        const seta = document.createElement('span');
+        seta.className = 'menu-seta';
+        seta.textContent = ' ▾';
+        seta.setAttribute('aria-hidden', 'true');
+
+        const menu = document.createElement('div');
+        menu.className = 'menu-conta';
+        menu.setAttribute('role', 'menu');
+
+        if (autenticado && usuario) {
+            const info = document.createElement('div');
+            info.className = 'menu-info';
+            const infoNome = document.createElement('strong');
+            infoNome.textContent = usuario.nome || 'Minha conta';
+            const infoEmail = document.createElement('small');
+            infoEmail.textContent = usuario.email || rotuloTipo(usuario.tipo);
+            info.append(infoNome, infoEmail);
+            menu.append(info);
+            menu.append(itemMenu('Meus dados', '/area-participante'));
+            menu.append(itemMenu('Sair', null, () => auth.logout()));
+        } else {
+            menu.append(itemMenu('Fazer login', '/login'));
+            const divisor = document.createElement('hr');
+            divisor.className = 'menu-divisor';
+            const hint = document.createElement('div');
+            hint.className = 'menu-hint';
+            hint.textContent = 'Não possui uma conta?';
+            menu.append(divisor, hint);
+            menu.append(itemMenu('Cadastre-se', '/cadastro'));
+        }
+
+        perfil.append(avatar, rotulo, seta, menu);
+        perfil.setAttribute('role', 'button');
+        perfil.setAttribute('tabindex', '0');
+        perfil.setAttribute('aria-haspopup', 'menu');
+        perfil.setAttribute('aria-expanded', 'false');
+
+        function alternar(abrir) {
+            const vaiAbrir = typeof abrir === 'boolean' ? abrir : !menu.classList.contains('aberto');
+            menu.classList.toggle('aberto', vaiAbrir);
+            perfil.setAttribute('aria-expanded', vaiAbrir ? 'true' : 'false');
+        }
+
+        perfil.addEventListener('click', (ev) => {
+            if (menu.contains(ev.target)) return;
+            ev.stopPropagation();
+            alternar();
+        });
+        perfil.addEventListener('keydown', (ev) => {
+            if (ev.key === 'Enter' || ev.key === ' ') {
+                ev.preventDefault();
+                alternar();
+            } else if (ev.key === 'Escape') {
+                alternar(false);
+            }
+        });
+        document.addEventListener('click', (ev) => {
+            if (!perfil.contains(ev.target)) alternar(false);
+        });
+        document.addEventListener('keydown', (ev) => {
+            if (ev.key === 'Escape') alternar(false);
+        });
+    }
+
     function ligarNav() {
+        // Logo → atalho para o dashboard (sidebar das páginas admin e
+        // logo do header da área do participante / evento público).
+        document.querySelectorAll('.sidebar .brand, .logo[data-od-id="logo-brand"]').forEach(logo => {
+            logo.style.cursor = 'pointer';
+            logo.setAttribute('title', 'Ir para o Dashboard');
+            logo.setAttribute('role', 'link');
+            logo.setAttribute('tabindex', '0');
+            logo.addEventListener('click', () => {
+                window.location.href = '/dashboard';
+            });
+            logo.addEventListener('keydown', (ev) => {
+                if (ev.key === 'Enter' || ev.key === ' ') {
+                    ev.preventDefault();
+                    window.location.href = '/dashboard';
+                }
+            });
+        });
         document.querySelectorAll('.nav-btn[data-od-id]').forEach(btn => {
             const destino = ROTAS[btn.getAttribute('data-od-id')];
             if (!destino) return;
@@ -85,10 +289,14 @@
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => {
             garantirIcones();
+            garantirFavicon();
             ligarNav();
+            configurarPerfil();
         });
     } else {
         garantirIcones();
+        garantirFavicon();
         ligarNav();
+        configurarPerfil();
     }
 })();

@@ -2,6 +2,7 @@ package br.com.evento.adapters.in.http;
 
 import br.com.evento.application.usecase.AdicionarAtividadeUseCase;
 import br.com.evento.application.usecase.CadastrarEventoUseCase;
+import br.com.evento.application.usecase.ListarEventosOrganizadorUseCase;
 import br.com.evento.application.usecase.ListarEventosPublicadosUseCase;
 import br.com.evento.application.usecase.RemarcarAtividadeUseCase;
 import br.com.evento.application.usecase.VincularPessoaUseCase;
@@ -27,6 +28,7 @@ import java.util.Map;
 public class EventoHandler implements HttpHandler {
 
     private final ListarEventosPublicadosUseCase listar;
+    private final ListarEventosOrganizadorUseCase listarOrganizador;
     private final CadastrarEventoUseCase cadastrar;
     private final AdicionarAtividadeUseCase adicionarAtividade;
     private final RemarcarAtividadeUseCase remarcarAtividade;
@@ -36,11 +38,13 @@ public class EventoHandler implements HttpHandler {
     private final PessoaRepository pessoas;
     private final JwtAuth jwt;
 
-    public EventoHandler(ListarEventosPublicadosUseCase listar, CadastrarEventoUseCase cadastrar,
+    public EventoHandler(ListarEventosPublicadosUseCase listar, ListarEventosOrganizadorUseCase listarOrganizador,
+                         CadastrarEventoUseCase cadastrar,
                          AdicionarAtividadeUseCase adicionarAtividade, RemarcarAtividadeUseCase remarcarAtividade,
                          VincularPessoaUseCase vincularPessoa, EventoRepository eventos,
                          InscricaoRepository inscricoes, PessoaRepository pessoas, JwtAuth jwt) {
         this.listar = listar;
+        this.listarOrganizador = listarOrganizador;
         this.cadastrar = cadastrar;
         this.adicionarAtividade = adicionarAtividade;
         this.remarcarAtividade = remarcarAtividade;
@@ -59,7 +63,26 @@ public class EventoHandler implements HttpHandler {
             String resto = ex.getRequestURI().getPath().substring("/api/eventos".length());
             if (resto.isEmpty() || resto.equals("/")) {
                 if ("GET".equals(metodo)) {
-                    HttpErrors.json(ex, 200, listar.executar().stream().map(EventoDTO::from).toList());
+                    // ?organizadorId= — gestão admin: todos os status do organizador (exige JWT do dono).
+                    // Sem o parâmetro: lista pública (só PUBLICADO/INSCRICOES_ABERTAS).
+                    String organizadorId = InscricaoHandler.query(ex.getRequestURI().getRawQuery()).get("organizadorId");
+                    if (organizadorId != null && !organizadorId.isBlank()) {
+                        var logado = jwt.autenticar(ex);
+                        if (logado.isEmpty()) {
+                            HttpErrors.json(ex, 401, StandardError.de(401, "Unauthorized",
+                                    "Autenticação exigida.", ex.getRequestURI().getPath()));
+                            return;
+                        }
+                        if (!logado.get().getId().equals(organizadorId)) {
+                            HttpErrors.json(ex, 403, StandardError.de(403, "Forbidden",
+                                    "Você só pode listar os próprios eventos.", ex.getRequestURI().getPath()));
+                            return;
+                        }
+                        HttpErrors.json(ex, 200, listarOrganizador.executar(organizadorId).stream()
+                                .map(EventoDTO::from).toList());
+                    } else {
+                        HttpErrors.json(ex, 200, listar.executar().stream().map(EventoDTO::from).toList());
+                    }
                 } else if ("POST".equals(metodo)) {
                     if (!jwt.exigir(ex)) return;
                     var req = Json.ler(HttpErrors.corpo(ex), CriarEventoRequest.class);

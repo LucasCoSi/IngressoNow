@@ -69,6 +69,49 @@ metadata:
   (**364ms**). Tempos finais: eventos 203ms, programação/100 1,18s,
   inscrições/500 364ms, relatório presenca 811ms. Base de demo limpa
   (só seeds).
+- ✅ Escopo D validado em Docker 2026-09-08 (working tree, sem commit):
+  RF-33 PDF binário real (`%PDF-1.4`, 1466 bytes, texto extraído com
+  nome/código em `PdfBoxCertificadoServiceTest`); fluxo manual:
+  critério 0% → emissão 201 → `GET .../pdf` 200 binário → área do
+  participante lista e baixa. RF-34: `POST .../enviar` sem SMTP → 422
+  com mensagem ("download preservado"); envio real requer servidor
+  SMTP (declarado). `mvn test` 91/91. **Fix de higiene:** `.gitignore`
+  `out/` genérico escondia `adapters/out/` + `port/out/` do git
+  (pushes anteriores sem backend!) — ancorado p/ `/out/`, recomprometido.
+- ✅ Menu de conta no `.topbar .profile` (2026-09-08, só `nav.js`, sem editar
+  HTML): visitante vê "Visitante / Entrar" + menu "Fazer login" (/login) e
+  "Não possui uma conta? / Cadastre-se" (/cadastro); logado vê nome+tipo
+  reais (some o mock "Mariana Azevedo") + menu "Meus dados" e "Sair".
+  Validado em Docker + harness Node (14/14: toggle, clique fora, Escape,
+  destinos, logout). Correção: área do participante usa `.logo-brand` e
+  `.profile-section` (não sidebar/topbar) — `nav.js` generalizado p/ as
+  duas variantes + logo → `/dashboard` (harness v2 17/17).
+- ✅ Modal de evento em `eventos.js` (2026-09-08, sem editar HTML):
+  `prompt()`/`confirm()` → modal System Design (título, descrição, local,
+  início/fim, vagas + validação inline + erro do servidor). Criar, editar
+  (pré-preenche) e excluir (confirmação) no mesmo padrão. Harness Node
+  20/20 + fluxo real via API (criar RASCUNHO 201 com detalhes, limpeza).
+- ✅ Evento criado não listado (2026-09-08): `GET /api/eventos` só retorna
+  PUBLICADO/INSCRICOES_ABERTAS → RASCUNHO sumia. Novo
+  `ListarEventosOrganizadorUseCase` + `GET /api/eventos?organizadorId=`
+  (JWT do dono; 401/403) + `eventos.js` usa gestão p/ ORGANIZADOR/ADMIN
+  (participante/visitante seguem na pública). `mvn test` 93/93; E2E Docker:
+  criar→gestão contém, pública não, 403/401 OK, base limpa. ENDPOINTS atualizado.
+- ✅ Aviso "2 eventos em rascunho" fixo (2026-09-08): mock chapado no HTML
+  (`management-notice`) → `atualizarAvisoRascunhos()` em `eventos.js`
+  conta RASCUNHO reais (singular em 1, esconde em 0). Harness 4/4.
+- ✅ Ações rápidas do dashboard mortas (2026-09-08): botões/cards sem
+  handler em `dashboard.js` → rotas reais (scanner/presença→`/frequencia`,
+  certificados/exportar→`/relatorios`, minicurso→`/atividades`; match por
+  prefixo ASCII p/ tolerar mojibake; funciona mesmo se métricas falharem).
+  Harness 9/9. Decisão usuário: seção "Ações Rápidas de Portaria" removida
+  de `interface.html` (duplicava cards + sidebar); `dashboard.js` limpo
+  (só cards + CTA minicurso).
+- ✅ Dashboard multi-evento (2026-09-08): título mock fixo → seletor de
+  evento (`dashboard.js`, lista de gestão p/ organizador, pública p/
+  demais, escolha em localStorage); h1/descrição/métricas/vagas x/y/
+  presença/grade passam a refletir o evento escolhido; grade mock
+  (João Silva etc.) → atividades reais; vazio honesto. Harness 16/16.
 - Commitar working tree + push.
 
 **Why:** retomar o debug do frontend sem redescobrir causas; contém fixes aplicados, pendências e armadilhas.

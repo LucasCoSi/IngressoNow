@@ -251,6 +251,8 @@ const AuthAPI = {
  */
 const EventosAPI = {
     listar: () => get('/eventos'),
+    // Gestão admin: todos os status do organizador (exige JWT do dono).
+    listarPorOrganizador: (organizadorId) => get(`/eventos?organizadorId=${encodeURIComponent(organizadorId)}`),
     buscar: (id) => get(`/eventos/${id}`),
     criar: (data) => post('/eventos', data),
     atualizar: (id, data) => put(`/eventos/${id}`, data),

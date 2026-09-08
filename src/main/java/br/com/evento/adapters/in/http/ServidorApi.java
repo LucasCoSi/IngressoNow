@@ -22,7 +22,7 @@ public class ServidorApi {
 
     public void iniciar(int porta) throws IOException {
         JwtAuth jwt = new JwtAuth(app.config.jwtSecret(), app.config.jwtExpirationMs(), app.usuarios);
-        EventoHandler eventoHandler = new EventoHandler(app.listarEventosPublicados, app.cadastrarEvento,
+        EventoHandler eventoHandler = new EventoHandler(app.listarEventosPublicados, app.listarEventosOrganizador, app.cadastrarEvento,
                 app.adicionarAtividade, app.remarcarAtividade, app.vincularPessoa,
                 app.eventos, app.inscricoes, app.pessoas, jwt);
         AvaliacaoHandler avaliacaoHandler = new AvaliacaoHandler(app.criarQuestionario,

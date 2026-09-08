@@ -12,8 +12,8 @@
  }
  *{box-sizing:border-box} html{background:var(--bg)} body{margin:0;color:var(--ink);font:400 15px/1.55 var(--font-ui);background:var(--bg)}
  button,input{font:inherit} button{cursor:pointer} button:focus-visible,input:focus-visible{outline:3px solid var(--mist);outline-offset:2px}.icon{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto}
- .app{min-height:100vh;display:grid;grid-template-columns:260px minmax(0,1fr)}
- .sidebar{background:var(--navy-dark);color:#fff;padding:20px 0;display:flex;flex-direction:column;position:sticky;inset:0 auto 0 0;height:100vh;overflow-y:auto}
+ .app{min-height:100vh;display:grid;grid-template-columns:240px minmax(0,1fr)}
+ .sidebar{background:var(--navy-dark);color:#fff;padding:26px 14px;display:flex;flex-direction:column;position:sticky;inset:0 auto 0 0;height:100vh}
  .brand{display:flex;align-items:center;gap:10px;margin:0 10px 40px;font-size:20px;font-weight:650;letter-spacing:-.03em}.mark{width:30px;height:30px;border-radius:6px;background:var(--navy);border:1px solid #2749A1;display:grid;place-items:center;color:#fff;font:700 10px var(--font-mono);letter-spacing:.08em}.brand-now{color:#38BDF8}
  .nav{display:grid;gap:2px}.nav-group{margin:19px 10px 7px;color:#93A7C6;font:600 10px var(--font-mono);letter-spacing:.08em;text-transform:uppercase}.nav-btn{border:0;border-radius:6px;background:transparent;color:#D9E4F4;padding:10px 11px;display:flex;align-items:center;gap:10px;text-align:left;font-size:13px;font-weight:550;transition:background .15s ease,color .15s ease}.nav-btn:hover{background:#16223A;color:#fff}.nav-btn.active{background:var(--nav-active);color:var(--mist);box-shadow:inset 2px 0 0 var(--cyan)}.org{margin-top:auto;border-top:1px solid #283854;padding:16px 10px 0;color:#B7C8E0;font-size:12px}.org strong{display:block;color:#fff;font-weight:600;margin-top:2px}
  .workspace{min-width:0}.topbar{height:68px;background:var(--surface);border-bottom:1px solid var(--line);padding:0 34px;display:flex;align-items:center;justify-content:space-between;gap:18px;position:sticky;top:0;z-index:2}.search-box{position:relative}.search-box .icon{position:absolute;left:11px;top:10px;color:var(--muted);pointer-events:none;width:16px;height:16px}.search{width:min(392px,45vw);height:38px;border:1px solid var(--line);border-radius:6px;background:#fff;padding:0 12px 0 34px;color:var(--ink)}.search::placeholder{color:#64748B}.profile{display:flex;align-items:center;gap:10px;font-size:12px;font-weight:600}.avatar{width:31px;height:31px;border-radius:50%;background:var(--cyan-soft);color:var(--navy);display:grid;place-items:center;font-size:11px;font-weight:750}
@@ -51,7 +51,6 @@
  <aside class="sidebar" data-od-id="admin-sidebar">
  <div class="brand" data-od-id="brand-logo"><span class="mark">IN</span><span>Ingresso<span class="brand-now">Now</span></span></div>
  <nav class="nav" aria-label="Navegação administrativa">
- <p class="nav-group">Operacional</p>
  <button class="nav-btn active" data-od-id="nav-dashboard"><svg class="icon" aria-hidden="true"><use href="#i-home"/></svg>Dashboard</button>
  <button class="nav-btn" data-od-id="nav-events"><svg class="icon" aria-hidden="true"><use href="#i-calendar"/></svg>Eventos</button>
  <button class="nav-btn" data-od-id="nav-activities"><svg class="icon" aria-hidden="true"><use href="#i-grid"/></svg>Atividades</button>
@@ -94,7 +93,6 @@
   </div><div class="capacity" data-od-id="capacity-summary"><p>Resumo de Participação</p><div class="capacity-line"><span>Presentes no Evento</span><b>—</b></div><div class="capacity-line"><span>Frequência Média Acumulada</span><b>—</b></div></div>
  </aside>
  </div>
- <section class="operational" data-od-id="quick-actions"><div><h2>Ações Rápidas de Portaria</h2><p>Acesse os recursos de validação em tempo real e liberação de certificados para os aprovados.</p></div><div class="quick-actions"><button class="primary gradient" data-od-id="create-activity-btn">Abrir Scanner QR</button><button class="secondary">Liberar Certificados</button><button class="secondary">Exportar Relatório</button><button class="secondary">Consultar Presença</button></div></section>
  <div class="notice" data-od-id="operational-notice"><strong>Aviso:</strong> 2 atividades aguardam revisão de capacidade. Confira a frequência mínima antes de publicar os certificados na programação.</div>
  </section>
  </section>

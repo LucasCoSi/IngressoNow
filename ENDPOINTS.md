@@ -33,6 +33,8 @@ curl -X PUT /api/usuarios/{id} -H "Authorization: Bearer $T" \
 
 ```bash
 curl /api/eventos                          # público, só PUBLICADO/INSCRICOES_ABERTAS
+curl "/api/eventos?organizadorId={id}" -H "Authorization: Bearer $T"
+# → gestão: todos os status do organizador (401 sem JWT, 403 em id alheio)
 curl /api/eventos/{id}                     # público
 curl -X POST /api/eventos -H "Authorization: Bearer $T" \
   -d '{"titulo":"...","descricao":"... (≥10 chars)","organizadorId":"...","maxVagas":50}'

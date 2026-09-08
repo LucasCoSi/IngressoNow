@@ -25,6 +25,7 @@ import br.com.evento.application.usecase.GerenciarUsuariosUseCase;
 import br.com.evento.application.usecase.GerarRelatorioInscritosUseCase;
 import br.com.evento.application.usecase.GerarRelatorioPresencaUseCase;
 import br.com.evento.application.usecase.InscreverParticipanteUseCase;
+import br.com.evento.application.usecase.ListarEventosOrganizadorUseCase;
 import br.com.evento.application.usecase.ListarEventosPublicadosUseCase;
 import br.com.evento.application.usecase.RealizarCheckInManualUseCase;
 import br.com.evento.application.usecase.RemarcarAtividadeUseCase;
@@ -70,6 +71,7 @@ public class FabricaAplicacao {
     public final GerenciarUsuariosUseCase gerenciarUsuarios;
     public final CadastrarEventoUseCase cadastrarEvento;
     public final ListarEventosPublicadosUseCase listarEventosPublicados;
+    public final ListarEventosOrganizadorUseCase listarEventosOrganizador;
     public final AdicionarAtividadeUseCase adicionarAtividade;
     public final RemarcarAtividadeUseCase remarcarAtividade;
     public final VincularPessoaUseCase vincularPessoa;
@@ -109,6 +111,7 @@ public class FabricaAplicacao {
         this.gerenciarUsuarios = new GerenciarUsuariosUseCase(usuarios, eventos);
         this.cadastrarEvento = new CadastrarEventoUseCase(eventos, usuarios);
         this.listarEventosPublicados = new ListarEventosPublicadosUseCase(eventos);
+        this.listarEventosOrganizador = new ListarEventosOrganizadorUseCase(eventos);
         this.adicionarAtividade = new AdicionarAtividadeUseCase(eventos);
         this.remarcarAtividade = new RemarcarAtividadeUseCase(eventos);
         this.vincularPessoa = new VincularPessoaUseCase(eventos, pessoas);
