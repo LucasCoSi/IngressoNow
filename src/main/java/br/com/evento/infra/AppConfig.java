@@ -48,6 +48,28 @@ public class AppConfig {
         return Integer.parseInt(v);
     }
 
+    /** RF-34 (D): SMTP opcional — vazio = envio desabilitado (download segue OK). */
+    public String smtpHost() {
+        return env("SMTP_HOST", props.getProperty("smtp.host", ""));
+    }
+
+    public int smtpPort() {
+        String v = env("SMTP_PORT", props.getProperty("smtp.port", "587"));
+        return Integer.parseInt(v);
+    }
+
+    public String smtpUser() {
+        return env("SMTP_USER", props.getProperty("smtp.user", ""));
+    }
+
+    public String smtpPass() {
+        return env("SMTP_PASS", props.getProperty("smtp.pass", ""));
+    }
+
+    public String smtpFrom() {
+        return env("SMTP_FROM", props.getProperty("smtp.from", ""));
+    }
+
     private static String env(String name, String def) {
         // PowerShell: $env:DB_URL=... define variável de *processo*, que System.getenv enxerga.
         String v = System.getenv(name);

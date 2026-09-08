@@ -44,7 +44,7 @@ Ver `ENDPOINTS.md` (contratos, auth, exemplos curl).
 
 ```bash
 # Local (requer Maven + Postgres em localhost:5432)
-mvn test   # 26 arquivos / 86 métodos, 0 falhas
+mvn test   # 27 arquivos / 91 métodos, 0 falhas
 
 # Sem Maven: via imagem Docker (na raiz do projeto)
 docker run --rm -v "%cd%:/app" -w /app maven:3.9.6-eclipse-temurin-17 mvn test

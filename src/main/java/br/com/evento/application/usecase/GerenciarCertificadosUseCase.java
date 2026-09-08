@@ -7,20 +7,26 @@ import br.com.evento.domain.model.entity.Evento;
 import br.com.evento.domain.model.entity.Inscricao;
 import br.com.evento.domain.model.entity.Pessoa;
 import br.com.evento.domain.port.out.CertificadoRepository;
+import br.com.evento.domain.port.out.DadosCertificado;
+import br.com.evento.domain.port.out.EmailMsg;
+import br.com.evento.domain.port.out.EmailService;
 import br.com.evento.domain.port.out.EventoRepository;
 import br.com.evento.domain.port.out.InscricaoRepository;
+import br.com.evento.domain.port.out.PdfCertificadoService;
 import br.com.evento.domain.port.out.PessoaRepository;
 import br.com.evento.domain.port.out.UsuarioRepository;
 
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
 /**
  * RF-32–35 (D) + CA-08 — certificados de participante e de palestrante.
  * Elegibilidade calculável (RN-16); inelegível recebe justificativa.
- * RF-34 (envio por e-mail): registrado como pendência declarada —
- * o certificado é baixável (texto verificável); sem SMTP no MVP.
+ * RF-33: PDF binário via `PdfCertificadoService` (adapter PDFBox).
+ * RF-34: envio via `EmailService`; sem SMTP configurado o envio é
+ * rejeitado com mensagem clara e o download segue disponível.
  */
 public class GerenciarCertificadosUseCase {
 
@@ -29,17 +35,23 @@ public class GerenciarCertificadosUseCase {
     private final UsuarioRepository usuarioRepository;
     private final PessoaRepository pessoaRepository;
     private final CertificadoRepository certificadoRepository;
+    private final PdfCertificadoService pdfService;
+    private final EmailService emailService;
 
     public GerenciarCertificadosUseCase(EventoRepository eventoRepository,
                                         InscricaoRepository inscricaoRepository,
                                         UsuarioRepository usuarioRepository,
                                         PessoaRepository pessoaRepository,
-                                        CertificadoRepository certificadoRepository) {
+                                        CertificadoRepository certificadoRepository,
+                                        PdfCertificadoService pdfService,
+                                        EmailService emailService) {
         this.eventoRepository = eventoRepository;
         this.inscricaoRepository = inscricaoRepository;
         this.usuarioRepository = usuarioRepository;
         this.pessoaRepository = pessoaRepository;
         this.certificadoRepository = certificadoRepository;
+        this.pdfService = pdfService;
+        this.emailService = emailService;
     }
 
     public CriterioCertificado definirCriterio(String eventoId, Integer percentualMinimo,
@@ -103,6 +115,61 @@ public class GerenciarCertificadosUseCase {
 
     public List<Certificado> listarPorParticipante(String participanteId) {
         return certificadoRepository.buscarPorParticipante(participanteId);
+    }
+
+    /** RF-33: bytes do PDF (application/pdf) do certificado. */
+    public byte[] gerarPdf(String certificadoId) {
+        Certificado cert = certificadoRepository.buscarPorId(certificadoId)
+                .orElseThrow(() -> new DomainException("Certificado não encontrado."));
+        return pdfService.gerar(dados(cert));
+    }
+
+    /** RF-33: PDF localizado pelo código verificável (CA-08). */
+    public byte[] gerarPdfPorCodigo(String eventoId, String codigo) {
+        Certificado cert = certificadoRepository.buscarPorCodigo(codigo)
+                .filter(c -> c.getEventoId().equals(eventoId))
+                .orElseThrow(() -> new DomainException("Certificado não encontrado."));
+        return pdfService.gerar(dados(cert));
+    }
+
+    /**
+     * RF-34: envia o PDF ao e-mail cadastrado. O envio é registrado no
+     * retorno; falha (ex: sem SMTP) não elimina o download.
+     */
+    public RegistroEnvio enviarPorEmail(String certificadoId, String emailDestino) {
+        Certificado cert = certificadoRepository.buscarPorId(certificadoId)
+                .orElseThrow(() -> new DomainException("Certificado não encontrado."));
+        if (emailDestino == null || emailDestino.isBlank()) {
+            throw new DomainException("O e-mail de destino é obrigatório.");
+        }
+        byte[] pdf = pdfService.gerar(dados(cert));
+        emailService.enviar(new EmailMsg(emailDestino.trim(),
+                "Seu certificado — " + tituloEvento(cert.getEventoId()),
+                "Segue em anexo o seu certificado (código " + cert.getCodigo() + ").",
+                "certificado-" + cert.getCodigo() + ".pdf", pdf));
+        RegistroEnvio registro = new RegistroEnvio(cert.getId(), emailDestino.trim(),
+                LocalDateTime.now(), true, "enviado");
+        System.out.println("[Certificados] e-mail enviado: " + registro);
+        return registro;
+    }
+
+    private DadosCertificado dados(Certificado cert) {
+        boolean palestrante = cert.getPapelDeclarado() != null && !cert.getPapelDeclarado().isBlank();
+        return new DadosCertificado(
+                palestrante ? "Declaração de Participação" : "Certificado de Participação",
+                cert.getParticipanteNome(), cert.getPapelDeclarado(),
+                tituloEvento(cert.getEventoId()), cert.getCargaHoraria(),
+                cert.getCodigo(), cert.getEmitidoEm().toString());
+    }
+
+    private String tituloEvento(String eventoId) {
+        return eventoRepository.buscarPorId(eventoId)
+                .map(Evento::getTitulo).orElse(eventoId);
+    }
+
+    /** RF-34: registro do envio (resposta da API + log do servidor). */
+    public record RegistroEnvio(String certificadoId, String para, LocalDateTime enviadoEm,
+                                boolean ok, String detalhe) {
     }
 
     private static String gerarCodigo(String eventoId, String sujeitoId) {

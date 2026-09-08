@@ -53,7 +53,7 @@ local.properties
 .idea/
 *.iml
 *.iws
-out/
+/out/
 
 # Visual Studio Code
 .vscode/

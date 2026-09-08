@@ -40,8 +40,8 @@
 | RF-30 | Relatório de frequência/participação | ✅ | `GerarRelatorioPresencaUseCase` + `GET /api/controle/relatorio/presenca/{eventoId}` (CSV) | Demo CA-07; CSV conta como RF-31 também |
 | RF-31 | Exportação portátil (CSV/PDF) | ✅ | CSV de presença (RNF-10 OK p/ demo) | Baixável via frontend `relatorios.js` |
 | RF-32 | Critério de elegibilidade p/ certificado | ✅ (D) | `CriterioCertificado` (% mínimo + obrigatórias); `POST .../certificados/criterio`; RN-16 calculável | `CriterioCertificadoTest` (4 casos) |
-| RF-33 | Certificado em PDF p/ elegível | ⚠️ (D) | Emissão + código verificável + listagem; PDF binário **não** gerado (baixa DTO/CSV; declarado como pendência) | CA-08 parcial: elegível emite, inelegível vê motivo |
-| RF-34 | Envio de certificado por e-mail | ❌ (D) | Sem SMTP no MVP — registrado como pendência declarada no use case; download permanece possível | Não fazer nesta versão |
+| RF-33 | Certificado em PDF p/ elegível | ✅ (D) | `PdfCertificadoService` (porta) + `PdfBoxCertificadoService` (adapter) + `GET .../certificados/{codigo}/pdf` (binário); área do participante lista e baixa | `PdfBoxCertificadoServiceTest` (header %PDF + texto extraído) + Docker |
+| RF-34 | Envio de certificado por e-mail | ✅ (D) | `EmailService` (porta) + `SmtpEmailService` (adapter, `SMTP_*`); `POST .../certificados/enviar` retorna registro; sem SMTP → 422 claro, download preservado | Teste com stub (registro + anexo) + teste de rejeição sem SMTP; envio real requer servidor SMTP |
 | RF-35 | Certificado/declaração p/ palestrante | ✅ (D) | `POST .../certificados/palestrante` reflete papel exercido (`Pessoa.papel`) | `GerenciarCertificadosUseCaseTest` |
 | RF-36 | Social (P) | ❌ | Fora do escopo obrigatório | Não fazer |
 
@@ -68,7 +68,7 @@
 | ROO-09 hexagonal | `domain/` sem imports de framework; `application/` sem anotações (fiação manual em `FabricaAplicacao`); JDBC isolado em `adapters/out`; HTTP e desktop em `adapters/in` | `Poo2Application.java`, `infra/FabricaAplicacao.java`, adapters |
 | ROO-10 padrões | ① Strategy (inscrição + frequência) com efeito real; ② Ports & Adapters; candidato a 3º: Builder/Factory p/ `Questionario` ou Specification p/ elegibilidade — Task #2/#4 | — |
 | ROO-11 erros de domínio | `DomainException` + `GlobalExceptionHandler` (400/404/422/500) + `StandardError` | `exception/*` |
-| ROO-12 testes/refatoração | 26 arquivos / 86 métodos JUnit 5 + Mockito (`mvn test`: 0 falhas); 2 refatorações registradas em `REFATORACOES.md` (R-01 `exigirSemConflito`, R-02 upsert + DELETE de órfãs) | `src/test/**`, `REFATORACOES.md` |
+| ROO-12 testes/refatoração | 27 arquivos / 91 métodos JUnit 5 + Mockito (`mvn test`: 0 falhas); 2 refatorações registradas em `REFATORACOES.md` (R-01 `exigirSemConflito`, R-02 upsert + DELETE de órfãs) | `src/test/**`, `REFATORACOES.md` |
 
 **Dívida de modelagem (resolvida na migração Java SE):** pacotes legados
 duplicados foram excluídos — `domain/` contém só `entity/`, `vo/`,

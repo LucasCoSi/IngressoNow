@@ -23,9 +23,11 @@
               └────────────────────┬────────────────────┘
                                    │ implementado por
                     ┌──────────────▼──────────────┐
-                    │        ADAPTERS OUT         │
-                    │  jdbc/ (5 repos + pessoas)  │
-                    │  security/ (BCryptHasher)   │
+│        ADAPTERS OUT         │
+│  jdbc/ (7 repos)           │
+│  security/ (BCryptHasher)  │
+│  pdf/ (PDFBox, RF-33 D)    │
+│  email/ (SMTP, RF-34 D)    │
                     └──────────────┬──────────────┘
                                    │ via
                     ┌──────────────▼──────────────┐

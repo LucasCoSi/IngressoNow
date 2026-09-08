@@ -141,7 +141,12 @@ curl -X POST /api/eventos/{id}/certificados/criterio -H "Authorization: Bearer $
 # → 200 critério configurado (RF-32)
 curl -X POST /api/eventos/{id}/certificados/participante -H "Authorization: Bearer $T" \
   -d '{"inscricaoId":"..."}'
-# → 201 certificado (422 se inelegível, com motivo — CA-08 parcial; sem PDF binário)
+# → 201 certificado (422 se inelegível, com motivo — CA-08)
+curl /api/eventos/{id}/certificados/{codigo}/pdf -H "Authorization: Bearer $T"
+# → 200 application/pdf (RF-33, download; área do participante lista e baixa)
+curl -X POST /api/eventos/{id}/certificados/enviar -H "Authorization: Bearer $T" \
+  -d '{"certificadoId":"...","email":"aluno@email.com"}'
+# → 200 registro do envio (RF-34; sem SMTP_* configurado → 422 claro, download segue OK)
 curl -X POST /api/eventos/{id}/certificados/palestrante -H "Authorization: Bearer $T" \
   -d '{"pessoaId":"..."}'
 # → 201 reflete papel exercido (RF-35)

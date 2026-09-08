@@ -28,6 +28,12 @@ services:
       DB_PASS: postgres
       JWT_SECRET: my-secret-key-for-jwt-token-generation-minimum-256-bits-for-security
       PORT: 8080
+      # RF-34 (D): SMTP opcional — vazio = envio desabilitado (download segue OK)
+      SMTP_HOST: ""
+      SMTP_PORT: "587"
+      SMTP_USER: ""
+      SMTP_PASS: ""
+      SMTP_FROM: ""
     ports:
       - "8080:8080"
     restart: unless-stopped

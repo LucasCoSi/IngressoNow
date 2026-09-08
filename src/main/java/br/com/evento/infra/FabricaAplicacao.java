@@ -7,6 +7,8 @@ import br.com.evento.adapters.out.jdbc.JdbcCertificadoRepository;
 import br.com.evento.adapters.out.jdbc.JdbcPessoaRepository;
 import br.com.evento.adapters.out.jdbc.JdbcQuestionarioRepository;
 import br.com.evento.adapters.out.jdbc.JdbcUsuarioRepository;
+import br.com.evento.adapters.out.email.SmtpEmailService;
+import br.com.evento.adapters.out.pdf.PdfBoxCertificadoService;
 import br.com.evento.adapters.out.security.BCryptHasher;
 import br.com.evento.application.service.SimpleQrCodeService;
 import br.com.evento.application.usecase.AdicionarAtividadeUseCase;
@@ -31,7 +33,9 @@ import br.com.evento.application.usecase.RealizarCheckInQrCodeUseCase;
 import br.com.evento.application.usecase.SelecionarAtividadeUseCase;
 import br.com.evento.application.usecase.SubmeterAvaliacaoUseCase;
 import br.com.evento.domain.port.out.AvaliacaoRepository;
+import br.com.evento.domain.port.out.EmailService;
 import br.com.evento.domain.port.out.EventoRepository;
+import br.com.evento.domain.port.out.PdfCertificadoService;
 import br.com.evento.domain.port.out.InscricaoRepository;
 import br.com.evento.domain.port.out.CertificadoRepository;
 import br.com.evento.domain.port.out.PasswordHasher;
@@ -57,6 +61,8 @@ public class FabricaAplicacao {
     public final CertificadoRepository certificados;
     public final PasswordHasher hasher;
     public final SimpleQrCodeService qrCodeService;
+    public final PdfCertificadoService pdfService;
+    public final EmailService emailService;
 
     public final CadastrarUsuarioUseCase cadastrarUsuario;
     public final AutenticarUsuarioUseCase autenticarUsuario;
@@ -93,6 +99,9 @@ public class FabricaAplicacao {
         this.certificados = new JdbcCertificadoRepository(connections);
         this.hasher = new BCryptHasher();
         this.qrCodeService = new SimpleQrCodeService();
+        this.pdfService = new PdfBoxCertificadoService();
+        this.emailService = new SmtpEmailService(config.smtpHost(), config.smtpPort(),
+                config.smtpUser(), config.smtpPass(), config.smtpFrom());
 
         this.cadastrarUsuario = new CadastrarUsuarioUseCase(usuarios, hasher);
         this.autenticarUsuario = new AutenticarUsuarioUseCase(usuarios, hasher);
@@ -104,7 +113,7 @@ public class FabricaAplicacao {
         this.remarcarAtividade = new RemarcarAtividadeUseCase(eventos);
         this.vincularPessoa = new VincularPessoaUseCase(eventos, pessoas);
         this.gerenciarCertificados = new GerenciarCertificadosUseCase(
-                eventos, inscricoes, usuarios, pessoas, certificados);
+                eventos, inscricoes, usuarios, pessoas, certificados, pdfService, emailService);
         this.inscreverParticipante = new InscreverParticipanteUseCase(eventos, usuarios, inscricoes);
         this.cancelarInscricao = new CancelarInscricaoUseCase(inscricoes, eventos);
         this.selecionarAtividade = new SelecionarAtividadeUseCase(inscricoes, eventos);

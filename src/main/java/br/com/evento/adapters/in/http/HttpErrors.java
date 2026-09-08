@@ -42,6 +42,18 @@ public final class HttpErrors {
         ex.close();
     }
 
+    /** RF-33: responde bytes binários (ex: PDF) com download sugerido. */
+    public static void binario(HttpExchange ex, int status, byte[] bytes,
+                               String contentType, String nomeArquivo) throws IOException {
+        ex.getResponseHeaders().set("Content-Type", contentType);
+        ex.getResponseHeaders().set("Content-Disposition",
+                "attachment; filename=\"" + nomeArquivo + "\"");
+        ex.sendResponseHeaders(status, bytes.length);
+        try (var out = ex.getResponseBody()) {
+            out.write(bytes);
+        }
+    }
+
     public static void tratar(HttpExchange ex, Exception e) {
         try {
             tratarInterno(ex, e);

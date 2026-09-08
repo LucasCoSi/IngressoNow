@@ -41,7 +41,7 @@ Arquivos: `adapters/out/jdbc/JdbcQuestionarioRepository.java`,
 
 ## Cobertura
 
-26 arquivos / 86 métodos JUnit 5 + Mockito (`mvn test`: 0 falhas), incluindo:
+27 arquivos / 91 métodos JUnit 5 + Mockito (`mvn test`: 0 falhas), incluindo:
 - `EditarUsuarioUseCaseTest` (RF-03), `RemarcarAtividadeUseCaseTest` (RF-07),
   `VincularPessoaUseCaseTest` (RF-08), `RealizarCheckInManualUseCaseTest` (RF-22),
   `GerarRelatorioInscritosUseCaseTest` (RF-29),

@@ -15,7 +15,9 @@ import java.util.List;
  * POST /api/eventos/{id}/certificados/criterio
  * POST /api/eventos/{id}/certificados/participante (body {inscricaoId})
  * POST /api/eventos/{id}/certificados/palestrante (body {pessoaId})
+ * POST /api/eventos/{id}/certificados/enviar (body {certificadoId, email})
  * GET  /api/eventos/{id}/certificados
+ * GET  /api/eventos/{id}/certificados/{codigo}/pdf (binário)
  * GET  /api/certificados?participanteId= | ?codigo=
  */
 public class CertificadoHandler implements HttpHandler {
@@ -66,6 +68,21 @@ public class CertificadoHandler implements HttpHandler {
                             .map(CertificadoDTO::from).toList());
                     return;
                 }
+                // RF-33: GET .../certificados/{codigo}/pdf (binário p/ download)
+                if (sufixo.startsWith("/") && sufixo.endsWith("/pdf") && "GET".equals(metodo)) {
+                    String codigo = sufixo.substring(1, sufixo.length() - "/pdf".length());
+                    byte[] pdf = gerenciar.gerarPdfPorCodigo(eventoId, codigo);
+                    HttpErrors.binario(ex, 200, pdf, "application/pdf",
+                            "certificado-" + codigo + ".pdf");
+                    return;
+                }
+                // RF-34: POST .../certificados/enviar {certificadoId, email}
+                if ("/enviar".equals(sufixo) && "POST".equals(metodo)) {
+                    var req = Json.ler(HttpErrors.corpo(ex), EnviarRequest.class);
+                    HttpErrors.json(ex, 200, gerenciar.enviarPorEmail(
+                            req.certificadoId(), req.email()));
+                    return;
+                }
             }
             if (path.equals("/api/certificados") && "GET".equals(metodo)) {
                 var params = InscricaoHandler.query(ex.getRequestURI().getRawQuery());
@@ -102,6 +119,9 @@ public class CertificadoHandler implements HttpHandler {
     }
 
     public record EmitirPalestranteRequest(String pessoaId) {
+    }
+
+    public record EnviarRequest(String certificadoId, String email) {
     }
 
     public record CriterioDTO(String id, String eventoId, Integer percentualMinimo,

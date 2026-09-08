@@ -161,4 +161,71 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     await carregarMinhasInscricoes();
+    await carregarCertificados();
 });
+
+/**
+ * RF-33/CA-08 (D): lista certificados reais do participante
+ * (GET /api/certificados?participanteId=) com download do PDF.
+ * Sem certificados, mostra estado honesto em vez dos mocks estáticos.
+ */
+async function carregarCertificados() {
+    const secao = document.querySelector('[data-od-id="tab-content-history"] .certificates-section');
+    if (!secao) return;
+    const user = window.Auth ? window.Auth.getToken() && window.Auth.getUser() : null;
+    const headers = { 'Accept': 'application/json' };
+    const token = window.Auth ? window.Auth.getToken() : null;
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+    const usuarioId = user && user.usuarioId ? user.usuarioId : null;
+    if (!usuarioId) return;
+    secao.innerHTML = '<h2 class="section-title">Certificados de Participação</h2>'
+        + '<p style="padding:16px">Carregando certificados...</p>';
+    let certs = [];
+    try {
+        const resp = await fetch(`/api/certificados?participanteId=${encodeURIComponent(usuarioId)}`, { headers });
+        if (resp.ok) certs = await resp.json();
+    } catch (e) {
+        console.warn('[Area Participante] Certificados indisponíveis');
+    }
+    if (!certs || certs.length === 0) {
+        secao.innerHTML = '<h2 class="section-title">Certificados de Participação</h2>'
+            + '<p style="padding:16px">Nenhum certificado emitido ainda. '
+            + 'Participantes elegíveis recebem o documento após a apuração da frequência.</p>';
+        return;
+    }
+    const esc = (t) => {
+        const div = document.createElement('div');
+        div.textContent = t == null ? '' : String(t);
+        return div.innerHTML;
+    };
+    secao.innerHTML = '<h2 class="section-title">Certificados de Participação</h2>'
+        + certs.map(c => `
+            <div class="certificate-card">
+                <div class="certificate-info">
+                    <div class="certificate-name">${esc(c.papelDeclarado ? 'Declaração — ' + c.papelDeclarado : 'Certificado de Participação')}</div>
+                    <div class="certificate-details">Código: <strong>${esc(c.codigo)}</strong> • Carga horária: <strong>${esc(c.cargaHoraria)}h</strong></div>
+                </div>
+                <div class="certificate-actions">
+                    <button class="download-btn" data-cert-evento="${esc(c.eventoId)}" data-cert-codigo="${esc(c.codigo)}">Baixar (PDF)</button>
+                </div>
+            </div>`).join('');
+    secao.querySelectorAll('.download-btn[data-cert-codigo]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            try {
+                const resp = await fetch(`/api/eventos/${encodeURIComponent(btn.dataset.certEvento)}/certificados/${encodeURIComponent(btn.dataset.certCodigo)}/pdf`, { headers });
+                if (!resp.ok) throw new Error(`Falha ao baixar (HTTP ${resp.status})`);
+                const blob = await resp.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `certificado-${btn.dataset.certCodigo}.pdf`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+            } catch (e) {
+                window.API.exibirErro(e);
+            }
+        });
+    });
+}
