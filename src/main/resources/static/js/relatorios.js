@@ -16,10 +16,50 @@ document.addEventListener('DOMContentLoaded', async function() {
                 eventSelect.innerHTML = eventos.map(e =>
                     `<option value="${e.id}">${e.titulo}</option>`).join('');
             }
+            if (eventos.length > 0) await atualizarMetricas(eventos[0].id);
+            else pintarVazio();
         } catch (error) {
             console.error('[Relatorios] Erro ao carregar eventos:', error);
             window.API.exibirErro(error);
         }
+    }
+
+    function setMetrica(odId, valor) {
+        const el = document.querySelector(`[data-od-id="${odId}"] b`);
+        if (el) el.textContent = valor;
+    }
+
+    function pintarVazio() {
+        setMetrica('metric-inscribed', '0');
+        setMetrica('metric-attendance', '—');
+        setMetrica('metric-certificates', '0');
+        setMetrica('metric-nps', '—');
+    }
+
+    // Métricas reais do evento selecionado (RF-29/30 + certificados).
+    // NPS não tem fonte no backend do MVP — exibe "—".
+    async function atualizarMetricas(eventoId) {
+        const token = window.Auth ? window.Auth.getToken() : null;
+        const headers = { 'Accept': 'application/json' };
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+        try {
+            const insc = await fetch(`/api/inscricoes?eventoId=${encodeURIComponent(eventoId)}`,
+                { headers }).then(r => r.ok ? r.json() : []);
+            setMetrica('metric-inscribed', insc.length);
+            const csv = await fetch(`/api/controle/relatorio/presenca/${encodeURIComponent(eventoId)}`,
+                { headers }).then(r => r.ok ? r.text() : '');
+            const linhas = csv.split('\n').slice(1).filter(l => l.trim() !== '');
+            const presentes = linhas.filter(l => l.includes('PRESENTE')).length;
+            setMetrica('metric-attendance', linhas.length > 0
+                ? (Math.round(presentes / linhas.length * 1000) / 10).toString().replace('.', ',') + '%'
+                : '—');
+            const certs = await fetch(`/api/eventos/${encodeURIComponent(eventoId)}/certificados`,
+                { headers }).then(r => r.ok ? r.json() : []);
+            setMetrica('metric-certificates', Array.isArray(certs) ? certs.length : '—');
+        } catch (err) {
+            console.warn('[Relatorios] Métricas indisponíveis:', err);
+        }
+        setMetrica('metric-nps', '—');
     }
 
     async function baixarCsv(rota, prefixo, eventoId) {
@@ -82,6 +122,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         btnInscritos.addEventListener('click', baixarRelatorioInscritos);
         generateBtn.parentNode.insertBefore(btnInscritos, generateBtn.nextSibling);
     }
+
+    if (eventSelect) eventSelect.addEventListener('change', () => atualizarMetricas(eventSelect.value));
 
     await carregarEventos();
 });

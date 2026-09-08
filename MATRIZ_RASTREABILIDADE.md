@@ -20,7 +20,7 @@
 | RF-10 | Site público de eventos | ✅ | `HomeController` + `evento-publico.js` consumindo `GET /api/eventos` | Demo validada |
 | RF-11 | Programação + destaques no site | ✅ | Programação + pessoas vinculadas (elenco por atividade); destaques = palestrantes via `GET .../pessoas` | Elenco validado via API |
 | RF-12 | Cadastro + inscrição pelo site | ✅ | `/cadastro` → `POST /api/auth/cadastro` → `POST /api/inscricoes` | Fluxo CA-02 demonstrável |
-| RF-13 | Regra de inscrição configurável (evento/atividade) | ⚠️ | `Evento.maxVagas` + `getPoliticaInscricao()` (Strategy); **sem** regra por atividade nem flag "exige escolha de atividades" | Backlog mínimo consciente |
+| RF-13 | Regra de inscrição configurável (evento/atividade) | ✅ | `Evento.maxVagas` + `getPoliticaInscricao()` (Strategy) + flags `exigeEscolhaAtividades`/`vagasPorAtividade` (V9, expostas em `POST/PUT /api/eventos`); `Atividade.maxVagas` (V11, `POST /atividades`, `AtividadeDTO`) + enforcement em `SelecionarAtividadeUseCase` via `contarPorAtividade` (RN-06, 422 lotada) | `SelecionarAtividadeUseCaseTest` (4 casos) + `AtividadeTest` (limite) + Docker 2026-09-08 (V11 em base zerada; seleção OK 200, lotada 422 "sem mais vagas") |
 | RF-14 | Controle de vagas | ✅ | `PoliticaComLimiteDeVagas` + `PoliticaSemLimite`, checado em `InscreverParticipanteUseCase` (RN-06) | `InscreverParticipanteUseCaseTest` |
 | RF-15 | Cancelamento de inscrição (libera vaga) | ✅ | `DELETE /api/inscricoes/{id}` via `CancelarInscricaoUseCase` (decisão: remoção física + CASCADE limpa filhas; bloqueia se evento ENCERRADO); botão na área do participante | Validado em Docker (204 + listagem vazia) |
 | RF-16 | Seleção de atividades | ✅ | `Inscricao.selecionarAtividade` + `POST /api/inscricoes/{id}/atividades/{atId}` | `InscricaoTest` |
@@ -51,8 +51,7 @@
 - RN-11/RN-12 (rastreabilidade da frequência): ✅ `CheckIn` com `origem` + `responsavelId` (V7); QR registra data/hora, manual registra autoria.
 - RN-17 (mudança de regra não reescreve histórico): ✅ questionário congela após 1ª resposta (`congelar()` + `exigirEditavel()`); `politicaFrequencia` documentada como recálculo aceito.
 - RN-19 (mesmo banco p/ desktop, API e site): ✅ Postgres (V1–V8) + `MigradorSql`/`migrations.txt`; desktop JavaFX usa `FabricaAplicacao` direta.
-- RN-20 (fuso do evento): ❌ `LocalDateTime` sem zona — simplificação declarada.
-- RN-20 (fuso do evento): ❌ `LocalDateTime` sem zona — documentar como simplificação declarada.
+- RN-20 (fuso do evento): ✅ `Evento.fuso` (IANA, validado em `definirFuso`, default `UTC`, coluna V9, exposto no DTO); simplificação declarada: horários persistem/exibem em `LocalDateTime` sem conversão de zona.
 
 ## 3. Evidências ROO (avaliação — 60% da nota)
 
@@ -69,15 +68,15 @@
 | ROO-09 hexagonal | `domain/` sem imports de framework; `application/` sem anotações (fiação manual em `FabricaAplicacao`); JDBC isolado em `adapters/out`; HTTP e desktop em `adapters/in` | `Poo2Application.java`, `infra/FabricaAplicacao.java`, adapters |
 | ROO-10 padrões | ① Strategy (inscrição + frequência) com efeito real; ② Ports & Adapters; candidato a 3º: Builder/Factory p/ `Questionario` ou Specification p/ elegibilidade — Task #2/#4 | — |
 | ROO-11 erros de domínio | `DomainException` + `GlobalExceptionHandler` (400/404/422/500) + `StandardError` | `exception/*` |
-| ROO-12 testes/refatoração | 73 testes JUnit 5 + Mockito (0 falhas); 2 refatorações registradas em `REFATORACOES.md` (R-01 `exigirSemConflito`, R-02 upsert + DELETE de órfãs) | `src/test/**`, `REFATORACOES.md` |
+| ROO-12 testes/refatoração | 26 arquivos / 86 métodos JUnit 5 + Mockito (`mvn test`: 0 falhas); 2 refatorações registradas em `REFATORACOES.md` (R-01 `exigirSemConflito`, R-02 upsert + DELETE de órfãs) | `src/test/**`, `REFATORACOES.md` |
 
 **Dívida de modelagem:** pacotes legados duplicados (`domain/model/usuario`, `dominio/model/evento`, `dominio/model/inscricao`, `dominio/model/vo`) coexistem com `domain/model/entity` — decidir: excluir ou marcar `@Deprecated`. Recomendado excluir na Task #4.
 
 ## 4. Decisões D-01–D-08 (rascunho p/ README — Task #5)
 
 - D-01 desktop: **JavaFX** (`adapters/in/desktop/DesktopApp`, código puro sem FXML; login → eventos → detalhe com elenco → inscrever; mesmo banco/use cases via `FabricaAplicacao`; `--headless` = só API). Ver `DECISOES.md`.
-- D-02 API/auth: **Spring Boot + JWT** (justificativa: time já domina, adapters isolados, Bean Validation/RNF-07, alternativa Javalin descartada por falta de ecossistema de segurança).
-- D-03 banco: **Postgres + JPA + Flyway** (RNF-04 reproduzível V1–V3; alternativa JDBC puro descartada pelo custo de reescrita dos mappers).
+- D-02 API/auth: **Java SE + JWT (jjwt)** (migração Spring Boot → Java SE puro, commit `f465e46`, checkpoint `spring-final`; HTTP via `com.sun.net.httpserver`, hash via jBCrypt; contratos `/api/*` preservados).
+- D-03 banco: **Postgres + JDBC puro + MigradorSql** (reproduzível V1–V10 via `migrations.txt`; alternativa JPA/Flyway da era Spring descartada na migração pelo custo de manter o container de DI).
 - D-04 site: HTML/JS estático consumindo `/api/*` (mesma API/banco — RNF-02).
 - D-05 QR: token opaco `inscricaoId+atividadeId` assinado, sem PII (RN-10); expiração a definir na Task #4.
 - D-06 políticas: Strategy p/ inscrição e frequência; Specification p/ elegibilidade de certificado (quando D).

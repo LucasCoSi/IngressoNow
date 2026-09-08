@@ -95,7 +95,7 @@ public class InscricaoHandler implements HttpHandler {
                                 .map(at -> new AtividadeDTO(at.getId(), at.getTitulo(),
                                         at.getPeriodo().getInicio().toString(),
                                         at.getPeriodo().getFim().toString(), at.getLocal(),
-                                        at.getTipo(), at.getTrilha()))
+                                        at.getTipo(), at.getTrilha(), at.getMaxVagas()))
                                 .toList()));
                 return;
             }
@@ -147,7 +147,7 @@ public class InscricaoHandler implements HttpHandler {
     }
 
     public record AtividadeDTO(String id, String titulo, String inicio, String fim, String local,
-                               String tipo, String trilha) {
+                               String tipo, String trilha, Integer maxVagas) {
     }
 
     public record AgendaDTO(String participanteId, List<AtividadeDTO> atividades) {

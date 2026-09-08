@@ -68,10 +68,24 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 
+    function pintarMetricas(total) {
+        const set = (odId, valor) => {
+            const el = document.querySelector(`[data-od-id="${odId}"] b`);
+            if (el) el.textContent = valor;
+        };
+        // Só o total tem fonte na API; status/pagamento não existem no
+        // domínio do MVP (toda inscrição listada está confirmada).
+        set('metric-total', total);
+        set('metric-confirmed', total);
+        set('metric-pending', '—');
+        set('metric-canceled', '—');
+    }
+
     /**
      * Renderiza lista de inscrições na tabela
      */
     function renderizarInscricoes(inscricoes) {
+        pintarMetricas(inscricoes.length);
         if (inscricoes.length === 0) {
             tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--muted);">Nenhuma inscrição encontrada</td></tr>';
             return;

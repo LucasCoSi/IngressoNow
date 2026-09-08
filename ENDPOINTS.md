@@ -53,6 +53,12 @@ curl -X POST /api/eventos/{id}/atividades -H "Authorization: Bearer $T" \
        "local":"Auditório A","tipo":"WORKSHOP","trilha":"Backend"}'
 # → 201 (422 se conflito mesmo local + período sobreposto)
 
+# RF-13: vagas por atividade (só enforced com vagasPorAtividade=TRUE no evento)
+curl -X POST /api/eventos/{id}/atividades -H "Authorization: Bearer $T" \
+  -d '{"titulo":"...","inicio":"2026-09-10T09:00","fim":"2026-09-10T11:00",
+       "local":"Lab 1","maxVagas":30}'
+# → 201; POST /api/inscricoes/{id}/atividades/{atId} → 422 lotada (RN-06)
+
 # RF-07: remarcar com revalidação
 curl -X PUT /api/eventos/{id}/atividades/{atId} -H "Authorization: Bearer $T" \
   -d '{"inicio":"2026-09-10T10:00","fim":"2026-09-10T12:00","local":"Auditório A"}'
@@ -125,6 +131,23 @@ curl /api/controle/relatorio/presenca/{eventoId} -H "Authorization: Bearer $T"
 # InscricaoID,ParticipanteID,AtividadeID,StatusPresenca
 curl /api/controle/relatorio/inscritos/{eventoId} -H "Authorization: Bearer $T"
 # InscricaoID,ParticipanteID,ParticipanteNome,EventoID,EventoTitulo,DataInscricao,AtividadesSelecionadas
+```
+
+## Certificados — RF-32/33/35 (D, JWT; escrita = organizador)
+
+```bash
+curl -X POST /api/eventos/{id}/certificados/criterio -H "Authorization: Bearer $T" \
+  -d '{"percentualMinimo":75,"obrigatorias":[]}'
+# → 200 critério configurado (RF-32)
+curl -X POST /api/eventos/{id}/certificados/participante -H "Authorization: Bearer $T" \
+  -d '{"inscricaoId":"..."}'
+# → 201 certificado (422 se inelegível, com motivo — CA-08 parcial; sem PDF binário)
+curl -X POST /api/eventos/{id}/certificados/palestrante -H "Authorization: Bearer $T" \
+  -d '{"pessoaId":"..."}'
+# → 201 reflete papel exercido (RF-35)
+curl /api/eventos/{id}/certificados -H "Authorization: Bearer $T"  # → 200 [...]
+curl '/api/certificados?participanteId=...' -H "Authorization: Bearer $T"
+curl '/api/certificados?codigo=...' -H "Authorization: Bearer $T"  # validação do identificador
 ```
 
 ## Erros

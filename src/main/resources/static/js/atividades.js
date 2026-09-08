@@ -77,7 +77,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 <td>${escapeHtml(window.API.formatarDataHora(a.inicio))}<br>
                     <small>${escapeHtml(a.local || '')}</small></td>
                 <td><small>${escapeHtml(a.politicaFrequencia || 'UNICA')}</small></td>
-                <td>—</td>
+                <td><small>${a.maxVagas != null ? escapeHtml(String(a.maxVagas)) + ' vagas' : 'Sem limite'}</small></td>
                 <td><span class="badge badge-confirmed">Ativa</span></td>
                 <td style="text-align:right">
                     <button class="secondary" data-action="remarcar" data-id="${a.id}">Remarcar</button>
@@ -160,11 +160,18 @@ document.addEventListener('DOMContentLoaded', async function() {
             const tipo = prompt('Tipo (ex: PALESTRA, WORKSHOP) — vazio = sem tipo:') || null;
             const trilha = prompt('Trilha — vazio = sem trilha:') || null;
             const politica = prompt('Critério de presença (UNICA ou ENTRADA_SAIDA):', 'UNICA') || 'UNICA';
+            const vagasRaw = prompt('Vagas da atividade — vazio = sem limite:');
+            if (vagasRaw === null) return;
+            const maxVagas = vagasRaw.trim() === '' ? null : Number(vagasRaw);
+            if (maxVagas !== null && (!Number.isInteger(maxVagas) || maxVagas <= 0)) {
+                window.API.exibirErro(new window.API.APIError('Vagas deve ser um inteiro positivo.', 400));
+                return;
+            }
             try {
                 const resp = await fetch(`/api/eventos/${encodeURIComponent(eventoId)}/atividades`, {
                     method: 'POST',
                     headers: authHeaders(true),
-                    body: JSON.stringify({ titulo, inicio, fim, local, tipo, trilha, politicaFrequencia: politica })
+                    body: JSON.stringify({ titulo, inicio, fim, local, tipo, trilha, politicaFrequencia: politica, maxVagas })
                 });
                 if (!resp.ok) {
                     const err = await resp.json().catch(() => ({}));

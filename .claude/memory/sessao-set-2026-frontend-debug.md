@@ -31,12 +31,35 @@ metadata:
 - **`MigradorSql` lê `migrations.txt`:** ao criar V11+, acrescentar linha no manifesto.
 - **Sessões antigas sem `tipo`:** fallback busca perfil; logout/login resolve.
 
-## Pendente (próxima sessão)
+## Pendente (próxima sessão) — atualização 2026-09-08 (PDF como mestre)
 
-- Métricas chapadas em relatórios/dashboard/interface (zerar ou ligar no `dashboard.js`).
-- Deletar `login.html`/`cadastro.html` raiz órfãos (ou manter como fallback).
-- `nav-link` da área do participante (Explorar/Validar Certificado com `href="#"`) — sem destino.
+- ✅ Métricas chapadas resolvidas: `dashboard.js` reescrito p/ IDs reais da
+  `interface.html` (inscritos, esgotados x/y, taxa, capacidade); `relatorios.js`
+  com `atualizarMetricas` (inscritos, taxa, certificados, NPS "—");
+  `inscricoes.js` pinta total/confimadas e "—" no resto; `avaliacoes.js` zera
+  NPS/melhor; HTMLs com placeholder "—" inicial. Frequência segue sem fonte
+  (validador só faz check-in) — placeholders honestos.
+- ✅ Deletados `static/login.html`/`cadastro.html` raiz órfãos (rotas
+  `/login`, `/cadastro` servem o System Design; sem referências restantes).
+- ✅ `nav-link` da área do participante/evento-público: `nav.js` mapeia texto
+  → rota real (`/eventos`, `/programacao`, `/area-participante`); "Ver todos"
+  do dashboard → `/eventos`.
+- ✅ Docs §11 sincronizados ao código Java SE: MATRIZ (D-02/D-03, RF-13
+  parcial honesto, RN-20 fuso ✅, ROO-12 25 arqs/92 métodos), DECISOES D-08,
+  ARQUITETURA (21 use cases, V1–V10), ENDPOINTS (+certificados RF-32/33/35),
+  SEEDS (V1–V10, MigradorSql, fuso), REFATORACOES (92 métodos).
 - RF-34 (e-mail), PDF binário de certificado, RF-36 social (P) — backlog consciente.
+- RF-13 enforcement por atividade (`Atividade.maxVagas` + V11) — ✅ feito
+  (working tree, sem commit): `Atividade` (`configurarLimiteDeVagas`,
+  `podeAcomodar`), V11 + `migrations.txt`, `contarPorAtividade` (porta +
+  JDBC), `AdicionarAtividadeUseCase` (overload), `EventoHandler`
+  (validação + DTO) + agenda DTO, `SelecionarAtividadeUseCase` (422
+  lotada quando `vagasPorAtividade`), `atividades.js` (prompt + coluna),
+  `SelecionarAtividadeUseCaseTest` (4 casos) + `AtividadeTest` (2 casos),
+  MATRIZ RF-13 ✅ + ENDPOINTS. **Validado em Docker 2026-09-08:**
+  V1–V11 em base zerada, `mvn test` 86/86 OK (via imagem Maven),
+  fluxo manual: atividade `maxVagas=1` → seleção 200 `{ok:true}` →
+  2ª seleção 422 "não possui mais vagas disponíveis".
 - Commitar working tree + push.
 
 **Why:** retomar o debug do frontend sem redescobrir causas; contém fixes aplicados, pendências e armadilhas.

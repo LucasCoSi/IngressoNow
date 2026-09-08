@@ -29,6 +29,18 @@ public class SelecionarAtividadeUseCase {
                 .findFirst()
                 .orElseThrow(() -> new DomainException("Atividade não pertence a este evento."));
 
+        // RF-13/RN-06: vagas por atividade (só quando o evento ativa a regra
+        // e a atividade tem limite). Duplicada cai no selecionarAtividade abaixo.
+        boolean jaSelecionada = inscricao.getAtividadesSelecionadas().stream()
+                .anyMatch(a -> a.getId().equals(atividadeId));
+        if (!jaSelecionada && evento.isVagasPorAtividade() && atividade.getMaxVagas() != null) {
+            int ocupadas = inscricaoRepository.contarPorAtividade(inscricao.getEventoId(), atividadeId);
+            if (!atividade.podeAcomodar(ocupadas)) {
+                throw new DomainException("A atividade '" + atividade.getTitulo()
+                        + "' não possui mais vagas disponíveis.");
+            }
+        }
+
         inscricao.selecionarAtividade(atividade);
         return inscricaoRepository.salvar(inscricao);
     }

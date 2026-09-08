@@ -45,6 +45,21 @@
         void svg;
     }
 
+    // Links textuais do header do participante / evento público (href="#"
+    // no protótipo). Mapeia pelo texto visível para as rotas reais.
+    // "Validar Certificado" leva à área do participante (aba de
+    // certificados) — sem página dedicada no MVP.
+    const NAV_LINK_POR_TEXTO = {
+        'explorar eventos': '/eventos',
+        'programação': '/programacao',
+        'programacao': '/programacao',
+        'minhas inscrições': '/area-participante',
+        'meus ingressos': '/area-participante',
+        'área do participante': '/area-participante',
+        'area do participante': '/area-participante',
+        'validar certificado': '/area-participante'
+    };
+
     function ligarNav() {
         document.querySelectorAll('.nav-btn[data-od-id]').forEach(btn => {
             const destino = ROTAS[btn.getAttribute('data-od-id')];
@@ -57,6 +72,13 @@
         const path = window.location.pathname;
         document.querySelectorAll('.nav-btn[data-od-id]').forEach(btn => {
             btn.classList.toggle('active', ROTAS[btn.getAttribute('data-od-id')] === path);
+        });
+        document.querySelectorAll('a.nav-link').forEach(a => {
+            const texto = (a.textContent || '').trim().toLowerCase();
+            const destino = NAV_LINK_POR_TEXTO[texto];
+            if (!destino) return;
+            a.setAttribute('href', destino);
+            if (destino === path) a.classList.add('active');
         });
     }
 

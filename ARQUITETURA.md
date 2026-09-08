@@ -11,9 +11,9 @@
                     └──────────────┬──────────────┘
                                    │ usa
                     ┌──────────────▼──────────────┐
-                    │         APPLICATION         │
-                    │  20 use cases (orquestram   │
-                    │  domínio via portas)        │
+│         APPLICATION         │
+│  21 use cases (orquestram   │
+│  domínio via portas)        │
                     └──────────────┬──────────────┘
                                    │ depende de
               ┌────────────────────▼────────────────────┐
@@ -33,7 +33,7 @@
                     │  AppConfig, Connection-     │
                     │  Factory, FabricaAplicacao  │
                     │  (fiação manual),           │
-                    │  MigradorSql + V1–V9        │
+                    │  MigradorSql + V1–V10       │
                     └─────────────────────────────┘
 
   Site estático (static/) ──HTTP──▶ /api/* ──▶ handlers ──▶ use cases

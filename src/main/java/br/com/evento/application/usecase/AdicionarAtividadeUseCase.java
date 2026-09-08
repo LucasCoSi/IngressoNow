@@ -26,11 +26,18 @@ public class AdicionarAtividadeUseCase {
 
     public Evento executar(String eventoId, String titulo, LocalDateTime inicio, LocalDateTime fim,
                            String local, String tipo, String trilha) {
+        return executar(eventoId, titulo, inicio, fim, local, tipo, trilha, null);
+    }
+
+    /** RF-13: maxVagas opcional por atividade (null = sem limite). */
+    public Evento executar(String eventoId, String titulo, LocalDateTime inicio, LocalDateTime fim,
+                           String local, String tipo, String trilha, Integer maxVagas) {
         Evento evento = eventoRepository.buscarPorId(eventoId)
                 .orElseThrow(() -> new DomainException("Evento não encontrado com id: " + eventoId));
 
         Periodo periodo = new Periodo(inicio, fim);
         Atividade atividade = new Atividade(null, titulo, periodo, local, tipo, trilha);
+        if (maxVagas != null) atividade.configurarLimiteDeVagas(maxVagas);
 
         // A regra de conflito de horário+local é responsabilidade da entidade Evento
         evento.adicionarAtividade(atividade);

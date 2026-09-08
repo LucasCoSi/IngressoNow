@@ -129,7 +129,7 @@ public class EventoHandler implements HttpHandler {
                         validarAtividade(req);
                         Evento evento = adicionarAtividade.executar(id, req.titulo(),
                                 LocalDateTime.parse(req.inicio()), LocalDateTime.parse(req.fim()), req.local(),
-                                req.tipo(), req.trilha());
+                                req.tipo(), req.trilha(), req.maxVagas());
                         Atividade criada = evento.getAtividades().get(evento.getAtividades().size() - 1);
                         // RF-19: critério de presença opcional (UNICA default)
                         if (req.politicaFrequencia() != null && !req.politicaFrequencia().isBlank()) {
@@ -238,6 +238,9 @@ public class EventoHandler implements HttpHandler {
         if (req.local() == null || req.local().isBlank()) {
             throw new IllegalArgumentException("O local é obrigatório");
         }
+        if (req.maxVagas() != null && req.maxVagas() <= 0) {
+            throw new IllegalArgumentException("O número de vagas da atividade deve ser positivo");
+        }
     }
 
     public record DetalhesEvento(String periodoInicio, String periodoFim, String local, String fuso,
@@ -307,11 +310,11 @@ public class EventoHandler implements HttpHandler {
     }
 
     public record AtividadeDTO(String id, String titulo, String inicio, String fim, String local,
-                               String tipo, String trilha, String politicaFrequencia) {
+                               String tipo, String trilha, String politicaFrequencia, Integer maxVagas) {
         static AtividadeDTO from(Atividade a) {
             return new AtividadeDTO(a.getId(), a.getTitulo(),
                     a.getPeriodo().getInicio().toString(), a.getPeriodo().getFim().toString(), a.getLocal(),
-                    a.getTipo(), a.getTrilha(), a.getNomePoliticaFrequencia());
+                    a.getTipo(), a.getTrilha(), a.getNomePoliticaFrequencia(), a.getMaxVagas());
         }
 
         static AtividadeDTO from(Atividade a, List<PessoaDTO> pessoas) {

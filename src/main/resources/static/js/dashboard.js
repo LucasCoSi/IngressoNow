@@ -1,7 +1,8 @@
 /**
  * dashboard.js - Painel do organizador (ingressonow-interface.html).
- * Métricas reais via API: eventos publicados, inscrições, presenças.
- * Sem backend de métricas dedicado — agrega listagens existentes.
+ * Métricas reais via API: total de inscritos, eventos esgotados,
+ * taxa de presença e resumo de participação.
+ * Sem fonte no MVP: carga horária total (exibe "—").
  */
 
 document.addEventListener('DOMContentLoaded', async function() {
@@ -27,29 +28,37 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     try {
         const eventos = await window.API.Eventos.listar();
-        setMetric('metric-active-events', eventos.length);
+        setMetric('metric-active-events', '0');
+        setMetric('metric-published-events', `0/${eventos.length}`);
+        setMetric('metric-activities', '—');
+        setMetric('metric-participants', '—');
 
         let inscricoes = 0;
         let presentes = 0;
+        let esgotados = 0;
         for (const e of eventos) {
             try {
                 const lista = await get(`/api/inscricoes?eventoId=${encodeURIComponent(e.id)}`);
                 inscricoes += lista.length;
-                const csv = await window.API.Controle.relatorioPresenca
-                    ? await fetch(`/api/controle/relatorio/presenca/${encodeURIComponent(e.id)}`,
-                        { headers: authHeaders() }).then(r => r.ok ? r.text() : '')
-                    : '';
+                if (e.maxVagas != null && lista.length >= e.maxVagas) esgotados += 1;
+                const csv = await fetch(`/api/controle/relatorio/presenca/${encodeURIComponent(e.id)}`,
+                    { headers: authHeaders() }).then(r => r.ok ? r.text() : '');
                 presentes += (csv.match(/PRESENTE/g) || []).length;
             } catch (err) {
                 console.warn('[Dashboard] Evento sem dados:', e.id);
             }
         }
-        // Reaproveita os cards existentes com números reais
-        const metrics = document.querySelectorAll('[data-od-id="metrics-summary"] .metric b');
-        if (metrics.length >= 1) metrics[0].textContent = inscricoes;
-        if (metrics.length >= 2) metrics[1].textContent = presentes;
-        setMetric('metric-total-inscritos', inscricoes);
-        setMetric('metric-presentes', presentes);
+        const taxa = inscricoes > 0
+            ? (Math.round(presentes / inscricoes * 1000) / 10).toString().replace('.', ',') + '%'
+            : '—';
+        setMetric('metric-active-events', inscricoes);
+        setMetric('metric-published-events', `${esgotados}/${eventos.length}`);
+        setMetric('metric-activities', taxa);
+        setMetric('metric-participants', '—');
+        const capacity = document.querySelectorAll('[data-od-id="capacity-summary"] .capacity-line b');
+        if (capacity.length >= 1) capacity[0].textContent = inscricoes > 0
+            ? `${presentes} (${taxa})` : `${presentes}`;
+        if (capacity.length >= 2) capacity[1].textContent = taxa;
     } catch (error) {
         console.error('[Dashboard] Erro:', error);
         if (window.API) window.API.exibirErro(error);

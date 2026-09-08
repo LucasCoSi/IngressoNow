@@ -50,7 +50,9 @@ elegibilidade de certificado (D, pós-núcleo).
 
 ## D-08 testes/seeds: JUnit 5 no domínio + seeds V3
 
-15 testes de comportamento (`src/test/**`). Seeds V3: Maria
-(ORGANIZADOR) / Lucas (PARTICIPANTE), `senha123`, 2 eventos PUBLICADO
-com 5 atividades. Zero refatorações registradas — débito: escrever 2
-(ex: extração de `PoliticaInscricao`, extração de `AgendaDoParticipante`).
+26 arquivos de teste, 86 métodos (`mvn test`), cobrindo domínio e use
+cases (`src/test/**`: RF-03/07/08/13/14/22/29, RN-11/12, certificados
+CA-08). Seeds V3: Maria (ORGANIZADOR) / Lucas (PARTICIPANTE),
+`senha123`, 2 eventos PUBLICADO com 5 atividades. Refatorações
+registradas em `REFATORACOES.md` (R-01 `exigirSemConflito`, R-02 upsert
++ DELETE de órfãs).

@@ -13,6 +13,9 @@ document.addEventListener('DOMContentLoaded', async function() {
     const createBtn = document.querySelector('[data-od-id="create-survey-cta"]');
     const ratingMetric = document.querySelector('[data-od-id="metric-rating"] b');
     const responseMetric = document.querySelector('[data-od-id="metric-response"] b');
+    // Sem fonte no backend do MVP: NPS e melhor atividade (placeholders honestos).
+    const npsMetric = document.querySelector('[data-od-id="metric-nps"] b');
+    const bestMetric = document.querySelector('[data-od-id="metric-best"] b');
     const rankingBox = document.querySelector('.activities-ranking');
     const feedbackBox = document.querySelector('.feedback-feed');
 
@@ -73,6 +76,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     function pintarVazio() {
         if (ratingMetric) ratingMetric.textContent = '—';
         if (responseMetric) responseMetric.textContent = '0';
+        if (npsMetric) npsMetric.textContent = '—';
+        if (bestMetric) bestMetric.textContent = '—';
         if (rankingBox) rankingBox.innerHTML = '<div class="activity-header">Sem questionários neste evento</div>';
         if (feedbackBox) feedbackBox.innerHTML = '<div class="feedback-header">Sem comentários</div>';
     }
@@ -88,6 +93,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                 ? `${mediaGeral.toFixed(1)} ★` : '—';
         }
         if (responseMetric) responseMetric.textContent = `${resultado.totalAvaliacoes || 0}`;
+        if (npsMetric) npsMetric.textContent = '—';
+        if (bestMetric) bestMetric.textContent = '—';
         if (rankingBox) {
             rankingBox.innerHTML = '<div class="activity-header">Perguntas — '
                 + escapeHtml(questionario.titulo)

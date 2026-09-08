@@ -16,6 +16,8 @@ public class Atividade {
     /** RF-06: trilha/categoria/espaço para filtrar e agrupar a programação. */
     private String trilha;
     private PoliticaFrequencia politicaFrequencia;
+    /** RF-13: limite de vagas da atividade (null = sem limite). */
+    private Integer maxVagas;
 
     public Atividade(String id, String titulo, Periodo periodo, String local) {
         this(id, titulo, periodo, local, null, null);
@@ -44,6 +46,7 @@ public class Atividade {
         this.tipo = tipo == null || tipo.isBlank() ? null : tipo.trim();
         this.trilha = trilha == null || trilha.isBlank() ? null : trilha.trim();
         this.politicaFrequencia = new FrequenciaUnicaStrategy();
+        this.maxVagas = null;
     }
 
     public Atividade(String titulo, Periodo periodo, String local) {
@@ -72,6 +75,29 @@ public class Atividade {
 
     public String getTrilha() {
         return trilha;
+    }
+
+    public Integer getMaxVagas() {
+        return maxVagas;
+    }
+
+    /**
+     * RF-13: configura o limite de vagas da atividade.
+     * null = sem limite. Só faz sentido com `vagasPorAtividade` do evento.
+     */
+    public void configurarLimiteDeVagas(Integer maxVagas) {
+        if (maxVagas != null && maxVagas <= 0) {
+            throw new DomainException("O limite de vagas da atividade deve ser positivo.");
+        }
+        this.maxVagas = maxVagas;
+    }
+
+    /**
+     * RF-13/RN-06: há vaga para mais uma seleção? Sem limite → sempre true.
+     */
+    public boolean podeAcomodar(int ocupadas) {
+        if (maxVagas == null) return true;
+        return ocupadas < maxVagas;
     }
 
     public PoliticaFrequencia getPoliticaFrequencia() {

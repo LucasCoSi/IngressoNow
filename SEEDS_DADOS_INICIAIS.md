@@ -122,7 +122,7 @@ docker logs poo2-app -f
 java -jar target/plataforma-eventos-*.jar --headless
 ```
 
-O `MigradorSql` aplica V1–V8 em ordem (manifesto `migrations.txt`).
+O `MigradorSql` aplica V1–V10 em ordem (manifesto `migrations.txt`).
 
 ---
 
@@ -193,10 +193,9 @@ ORDER BY a.inicio;
 
 - **UUIDs**: Todos os IDs seguem o padrão UUID v4
 - **Datas**: Eventos em 15, 16 e 20 de setembro de 2026
-- **Timezone**: Horários em UTC (sem fuso horário explícito)
-- **BCrypt**: Hash gerado com custo 10 (padrão Spring Security)
-- **Flyway**: Versão V3, executa após V1 e V2
-- **Rollback**: Flyway não faz rollback automático, faça backup do banco antes
+- **Timezone**: `fuso` default `UTC` (coluna V9, RN-20); horários em `LocalDateTime` sem conversão de zona (simplificação declarada)
+- **MigradorSql**: sem Flyway na era Java SE; baseline `flyway_schema_history` só em bancos da era Spring
+- **Rollback**: sem rollback automático, faça backup do banco antes
 
 ---
 

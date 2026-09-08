@@ -31,4 +31,27 @@ class AtividadeTest {
 
         assertFalse(a1.conflitaCom(a2));
     }
+
+    @Test
+    void deveAceitarLimiteDeVagasPositivo() {
+        Periodo p = new Periodo(LocalDateTime.of(2026, 10, 10, 10, 0), LocalDateTime.of(2026, 10, 10, 12, 0));
+        Atividade a = new Atividade("Workshop", p, "Lab 1");
+
+        assertNull(a.getMaxVagas());
+        assertTrue(a.podeAcomodar(999));
+
+        a.configurarLimiteDeVagas(30);
+        assertEquals(30, a.getMaxVagas());
+        assertTrue(a.podeAcomodar(29));
+        assertFalse(a.podeAcomodar(30));
+    }
+
+    @Test
+    void naoDeveAceitarLimiteDeVagasNaoPositivo() {
+        Periodo p = new Periodo(LocalDateTime.of(2026, 10, 10, 10, 0), LocalDateTime.of(2026, 10, 10, 12, 0));
+        Atividade a = new Atividade("Workshop", p, "Lab 1");
+
+        assertThrows(DomainException.class, () -> a.configurarLimiteDeVagas(0));
+        assertThrows(DomainException.class, () -> a.configurarLimiteDeVagas(-5));
+    }
 }
