@@ -6,7 +6,10 @@ Mesmo banco + mesmos use cases via `FabricaAplicacao` direta (sem HTTP,
 RN-19). Alternativa CLI descartada: cumpre RN-19 mas não demonstra
 interface desktop avaliável. JavaFX roda no modo sem `--headless`;
 Docker usa `--headless` (só API). Código puro em vez de FXML: menos
-arquivos, sem risco de quebra no shade plugin.
+arquivos, sem risco de quebra no shade plugin. Natives Windows (`*-win`)
+embutidos no shade — sem eles, `java -jar` falha com "no suitable
+pipeline found". No JDK 25, rodar com `--enable-native-access=ALL-UNNAMED`
+(validado 2026-09-16: login Maria OK, DSK-00/DSK-10).
 
 ## D-02 API/auth: Java SE + JWT (jjwt)
 

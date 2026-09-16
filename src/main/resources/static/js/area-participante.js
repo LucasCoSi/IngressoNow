@@ -50,12 +50,14 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     async function renderizarInscricoes(inscricoes) {
         if (!activeTab) return;
+        const badge = document.querySelector('[data-od-id="tab-active"] .tab-badge');
+        if (badge) badge.textContent = String(inscricoes.length);
         if (inscricoes.length === 0) {
             activeTab.innerHTML = '<p style="padding:32px;text-align:center">Voce ainda nao possui inscricoes. <a href="/eventos">Ver eventos</a></p>';
             return;
         }
-        // Mantem o primeiro card estatico como modelo e replica para as demais
-        const modelo = activeTab.querySelector('[data-od-id="ticket-active"]');
+        // Monta o card do ingresso do zero (o HTML só tem o placeholder
+        // "Carregando inscrições..." — não há card-modelo para clonar).
         activeTab.innerHTML = '';
         for (const inscricao of inscricoes) {
             let agenda = null;
@@ -65,12 +67,21 @@ document.addEventListener('DOMContentLoaded', async function() {
                 console.warn('[Area Participante] Agenda indisponivel para', inscricao.id);
             }
             const atividades = agenda && agenda.atividades ? agenda.atividades : [];
-            const card = modelo ? modelo.cloneNode(true) : document.createElement('div');
+            const card = document.createElement('div');
+            card.className = 'ticket-card';
             const nomeEvento = inscricao.eventoTitulo || inscricao.eventoId;
-            const nomeEl = card.querySelector('.ticket-event-name');
-            if (nomeEl) nomeEl.textContent = nomeEvento;
-            const codeEl = card.querySelector('.ticket-code');
-            if (codeEl) codeEl.textContent = '#' + inscricao.id.substring(0, 8).toUpperCase();
+            const codigo = '#' + inscricao.id.substring(0, 8).toUpperCase();
+            const detalhes = document.createElement('div');
+            detalhes.className = 'ticket-details';
+            const nomeEl = document.createElement('h3');
+            nomeEl.className = 'ticket-event-name';
+            nomeEl.textContent = nomeEvento;
+            const codeEl = document.createElement('div');
+            codeEl.className = 'ticket-code';
+            codeEl.textContent = codigo;
+            detalhes.appendChild(nomeEl);
+            detalhes.appendChild(codeEl);
+            card.appendChild(detalhes);
             // Botao RF-15: cancelar inscricao (libera vaga)
             const btnCancelar = document.createElement('button');
             btnCancelar.textContent = 'Cancelar inscrição';

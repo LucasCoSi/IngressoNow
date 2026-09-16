@@ -19,7 +19,7 @@ public class Poo2Application {
         AppConfig config = new AppConfig();
         ConnectionFactory connections = new ConnectionFactory(config.dbUrl(), config.dbUser(), config.dbPass());
         new MigradorSql(connections).migrar();
-        FabricaAplicacao app = new FabricaAplicacao(config);
+        FabricaAplicacao app = new FabricaAplicacao(config, connections);
         ServidorApi api = new ServidorApi(app);
         api.iniciar(config.serverPort());
         if (headless) {

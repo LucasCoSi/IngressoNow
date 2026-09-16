@@ -10,6 +10,7 @@ import br.com.evento.domain.exception.DomainException;
 import br.com.evento.domain.model.entity.Atividade;
 import br.com.evento.domain.model.entity.Evento;
 import br.com.evento.domain.model.entity.Pessoa;
+import br.com.evento.domain.model.entity.Usuario;
 import br.com.evento.domain.port.out.EventoRepository;
 import br.com.evento.domain.port.out.InscricaoRepository;
 import br.com.evento.domain.port.out.PessoaRepository;
@@ -91,7 +92,16 @@ public class EventoHandler implements HttpHandler {
                     if (!Papeis.exigirOrganizador(logado, ex)) return;
                     var req = Json.ler(HttpErrors.corpo(ex), CriarEventoRequest.class);
                     validarCriar(req);
-                    Evento evento = cadastrar.executar(req.titulo(), req.descricao(), req.organizadorId());
+                    // Isolamento entre organizadores: o dono é sempre o logado.
+                    // Body com organizadorId divergente = 403 (impede criar em nome alheio).
+                    if (req.organizadorId() != null && !req.organizadorId().isBlank()
+                            && !logado.getId().equals(req.organizadorId())) {
+                        HttpErrors.json(ex, 403, StandardError.de(403, "Forbidden",
+                                "Você só pode criar eventos em seu próprio nome.",
+                                ex.getRequestURI().getPath()));
+                        return;
+                    }
+                    Evento evento = cadastrar.executar(req.titulo(), req.descricao(), logado.getId());
                     aplicarDetalhes(evento, req);
                     if (req.maxVagas() != null) {
                         evento.configurarLimiteDeVagas(req.maxVagas());
@@ -116,6 +126,7 @@ public class EventoHandler implements HttpHandler {
                     if (!Papeis.exigirOrganizador(logadoPut, ex)) return;
                     var req = Json.ler(HttpErrors.corpo(ex), AtualizarEventoRequest.class);
                     Evento evento = buscar(id);
+                    if (!exigirDonoEvento(logadoPut, evento, ex)) return;
                     evento.atualizar(req.titulo(), req.descricao());
                     if (req.maxVagas() != null) evento.configurarLimiteDeVagas(req.maxVagas());
                     aplicarDetalhes(evento, req);
@@ -125,7 +136,8 @@ public class EventoHandler implements HttpHandler {
                     var logadoDel = jwt.autenticar(ex)
                             .orElseThrow(() -> new DomainException("Autenticação exigida."));
                     if (!Papeis.exigirOrganizador(logadoDel, ex)) return;
-                    buscar(id);
+                    Evento alvoDel = buscar(id);
+                    if (!exigirDonoEvento(logadoDel, alvoDel, ex)) return;
                     if (inscricoes.contarPorEvento(id) > 0) {
                         throw new DomainException(
                                 "Evento possui inscricoes e nao pode ser excluido. Encerre o evento em vez disso.");
@@ -163,6 +175,7 @@ public class EventoHandler implements HttpHandler {
                     case "atividades" -> {
                         var req = Json.ler(HttpErrors.corpo(ex), CriarAtividadeRequest.class);
                         validarAtividade(req);
+                        if (!exigirDonoEvento(logadoAcao, buscar(id), ex)) return;
                         Evento evento = adicionarAtividade.executar(id, req.titulo(),
                                 LocalDateTime.parse(req.inicio()), LocalDateTime.parse(req.fim()), req.local(),
                                 req.tipo(), req.trilha(), req.maxVagas());
@@ -179,11 +192,13 @@ public class EventoHandler implements HttpHandler {
                     }
                     case "publicar" -> {
                         Evento evento = buscar(id);
+                        if (!exigirDonoEvento(logadoAcao, evento, ex)) return;
                         evento.publicar();
                         HttpErrors.json(ex, 200, EventoDTO.from(eventos.salvar(evento)));
                     }
                     case "encerrar" -> {
                         Evento evento = buscar(id);
+                        if (!exigirDonoEvento(logadoAcao, evento, ex)) return;
                         evento.encerrar();
                         HttpErrors.json(ex, 200, EventoDTO.from(eventos.salvar(evento)));
                     }
@@ -205,6 +220,7 @@ public class EventoHandler implements HttpHandler {
                 if (req.local() == null || req.local().isBlank()) {
                     throw new IllegalArgumentException("O local é obrigatório");
                 }
+                if (!exigirDonoEvento(logadoRem, buscar(id), ex)) return;
                 remarcarAtividade.executar(id, partes[2],
                         LocalDateTime.parse(req.inicio()), LocalDateTime.parse(req.fim()), req.local());
                 HttpErrors.json(ex, 200, AtividadeDTO.from(buscar(id).getAtividades().stream()
@@ -224,6 +240,7 @@ public class EventoHandler implements HttpHandler {
                     var logadoVinc = jwt.autenticar(ex)
                             .orElseThrow(() -> new DomainException("Autenticação exigida."));
                     if (!Papeis.exigirOrganizador(logadoVinc, ex)) return;
+                    if (!exigirDonoEvento(logadoVinc, buscar(id), ex)) return;
                     var req = Json.ler(HttpErrors.corpo(ex), VincularPessoaRequest.class);
                     if (req.nome() == null || req.nome().isBlank()) {
                         throw new IllegalArgumentException("O nome da pessoa é obrigatório");
@@ -241,6 +258,7 @@ public class EventoHandler implements HttpHandler {
                 var logadoPessoa = jwt.autenticar(ex)
                         .orElseThrow(() -> new DomainException("Autenticação exigida."));
                 if (!Papeis.exigirOrganizador(logadoPessoa, ex)) return;
+                if (!exigirDonoEvento(logadoPessoa, buscar(id), ex)) return;
                 vincularPessoa.remover(partes[2]);
                 HttpErrors.semConteudo(ex);
                 return;
@@ -258,6 +276,18 @@ public class EventoHandler implements HttpHandler {
                 .orElseThrow(() -> new DomainException("Evento nao encontrado com id: " + id));
     }
 
+    /** Isolamento entre organizadores (§3/RN-18): só o dono gerencia o próprio evento. */
+    private static boolean exigirDonoEvento(Usuario logado, Evento evento, HttpExchange ex)
+            throws IOException {
+        if (evento.getOrganizador() != null
+                && logado.getId().equals(evento.getOrganizador().getId())) {
+            return true;
+        }
+        HttpErrors.json(ex, 403, StandardError.de(403, "Forbidden",
+                "Você só pode gerenciar os próprios eventos.", ex.getRequestURI().getPath()));
+        return false;
+    }
+
     private static void validarCriar(CriarEventoRequest req) {
         if (req.titulo() == null || req.titulo().isBlank() || req.titulo().length() < 3) {
             throw new IllegalArgumentException("O título deve ter ao menos 3 caracteres");
@@ -265,9 +295,7 @@ public class EventoHandler implements HttpHandler {
         if (req.descricao() == null || req.descricao().isBlank() || req.descricao().length() < 10) {
             throw new IllegalArgumentException("A descrição deve ter ao menos 10 caracteres");
         }
-        if (req.organizadorId() == null || req.organizadorId().isBlank()) {
-            throw new IllegalArgumentException("O ID do organizador é obrigatório");
-        }
+        // organizadorId no body é opcional/legado: o dono efetivo é o JWT (ver POST acima).
         if (req.maxVagas() != null && req.maxVagas() <= 0) {
             throw new IllegalArgumentException("O número de vagas deve ser positivo");
         }

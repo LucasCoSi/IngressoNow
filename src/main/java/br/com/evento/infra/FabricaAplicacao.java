@@ -89,8 +89,13 @@ public class FabricaAplicacao {
     public final ConsolidarAvaliacoesUseCase consolidarAvaliacoes;
 
     public FabricaAplicacao(AppConfig config) {
+        this(config, new ConnectionFactory(config.dbUrl(), config.dbUser(), config.dbPass()));
+    }
+
+    /** Reusa a mesma {@link ConnectionFactory} do startup (evita duplicar config/pool). */
+    public FabricaAplicacao(AppConfig config, ConnectionFactory connections) {
         this.config = config;
-        this.connections = new ConnectionFactory(config.dbUrl(), config.dbUser(), config.dbPass());
+        this.connections = connections;
 
         this.usuarios = new JdbcUsuarioRepository(connections);
         this.eventos = new JdbcEventoRepository(connections);

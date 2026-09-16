@@ -204,7 +204,7 @@
             infoEmail.textContent = usuario.email || rotuloTipo(usuario.tipo);
             info.append(infoNome, infoEmail);
             menu.append(info);
-            menu.append(itemMenu('Meus dados', '/area-participante'));
+            menu.append(itemMenu('Meus dados', '/area-participante#perfil'));
             menu.append(itemMenu('Sair', null, () => auth.logout()));
         } else {
             menu.append(itemMenu('Fazer login', '/login'));
