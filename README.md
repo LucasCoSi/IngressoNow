@@ -31,6 +31,24 @@ Variáveis (compose já define): `DB_URL`, `DB_USER`, `DB_PASS`,
 `JWT_SECRET`, `PORT`. Sem Docker: `java -jar target/*.jar --headless`
 (só API) ou sem flag (API + desktop JavaFX).
 
+## Desktop JavaFX (DSK-00–DSK-51, operador ORGANIZADOR)
+
+```bash
+# Requer JDK 25 (natives Windows *-win já embutidos no shade, ~22 MB)
+java --enable-native-access=ALL-UNNAMED -jar target/plataforma-eventos-0.0.1-SNAPSHOT.jar
+# Só API (Docker/CI sem display):
+java -jar target/*.jar --headless
+# Sem Maven instalado: build via imagem Docker
+docker run --rm -v "%cd%:/app" -w /app maven:3.9.6-eclipse-temurin-17 mvn package -DskipTests
+```
+
+Mesmos use cases via `FabricaAplicacao` direta (sem HTTP, RN-19/RNF-02);
+mesmo Postgres da API/site. Telas: login/cadastro, Meus eventos
+(Novo/Editar/Excluir/Publicar/Encerrar), atividades (Nova/Remarcar/
+critério/pessoas), programação com filtros, inscrições/agenda,
+frequência + QR + manual, avaliações, relatórios CSV, certificados
+PDF/e-mail. Detalhe em `BACKLOG_DESKTOP.md`.
+
 ## Credenciais seed (V3)
 
 - Organizadora: `maria.santos@email.com` / `senha123`
@@ -44,7 +62,7 @@ Ver `ENDPOINTS.md` (contratos, auth, exemplos curl).
 
 ```bash
 # Local (requer Maven + Postgres em localhost:5432)
-mvn test   # 27 arquivos / 91 métodos, 0 falhas
+mvn test   # 28 arquivos / 93 métodos, 0 falhas
 
 # Sem Maven: via imagem Docker (na raiz do projeto)
 docker run --rm -v "%cd%:/app" -w /app maven:3.9.6-eclipse-temurin-17 mvn test
@@ -56,10 +74,12 @@ refatorações registradas em `REFATORACOES.md`.
 ## Frontend
 
 Páginas estáticas em `src/main/resources/static/` (System Design v2):
-login, cadastro, eventos, evento-público, inscrições, programação
-(com filtros tipo/trilha/local + motivo de conflito em destaque),
-área do participante (com edição de perfil), frequência
-(com check-in manual), avaliações, relatórios (presença + inscritos).
+catálogo público em `/` + detalhe `/evento-publico?id=` (grade e elenco
+reais, sem mock), programação com filtros + Adicionar à Grade/Exportar
+Agenda/Grade-Lista, área do participante (perfil, ingressos, avaliações,
+certificados PDF), frequência (check-in manual), avaliações (Criar
+Pesquisa/Exportar NPS), relatórios (presença + inscritos). Sem fonte no
+MVP = "—"/"a definir" honesto (ex.: métricas da frequência).
 
 ## Decisões de projeto (D-01–D-08)
 
@@ -67,4 +87,5 @@ Ver `DECISOES.md`.
 
 ## Rastreabilidade
 
-`MATRIZ_RASTREABILIDADE.md` (RF × ROO, RNs, cenários CA-01–CA-07).
+`MATRIZ_RASTREABILIDADE.md` (RF × ROO, RNs, cenários CA-01–CA-08,
+coluna Desktop DSK-00–DSK-51).

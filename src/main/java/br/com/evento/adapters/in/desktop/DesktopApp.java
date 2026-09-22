@@ -28,8 +28,10 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
+import java.nio.file.Files;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
@@ -149,7 +151,11 @@ public class DesktopApp extends Application {
             gestao.setOnAction(e -> mostrarGestao());
             var novo = new Button("Novo evento (RASCUNHO)");
             novo.setOnAction(e -> dialogoEvento(null));
-            botoes.getChildren().addAll(gestao, novo);
+            var prog = new Button("Programação");
+            prog.setOnAction(e -> dialogoProgramacao());
+            var insc = new Button("Inscrições");
+            insc.setOnAction(e -> dialogoInscricoes());
+            botoes.getChildren().addAll(gestao, novo, prog, insc);
         }
         var explorar = new Button("Explorar publicados");
         explorar.setOnAction(e -> mostrarExplorar());
@@ -415,7 +421,11 @@ public class DesktopApp extends Application {
             });
             var freqBtn = new Button("Frequência");
             freqBtn.setOnAction(e -> dialogoFrequencia(eventoId, veioDaGestao));
-            var barraGestao = new HBox(8, nova, remarcar, criterio, pessoasBtn, freqBtn);
+            var avalBtn = new Button("Avaliações");
+            avalBtn.setOnAction(e -> dialogoAvaliacoes(eventoId, veioDaGestao));
+            var relBtn = new Button("Relatórios");
+            relBtn.setOnAction(e -> dialogoRelatorios(eventoId, veioDaGestao));
+            var barraGestao = new HBox(8, nova, remarcar, criterio, pessoasBtn, freqBtn, avalBtn, relBtn);
             linhas.getChildren().add(barraGestao);
         }
 
@@ -818,6 +828,633 @@ public class DesktopApp extends Application {
                     .orElse(participanteId.substring(0, 8));
         } catch (Exception e) {
             return participanteId;
+        }
+    }
+
+    // ---------- DSK-40/41/42: avaliações (RF-24–28, CA-06) ----------
+
+    private void dialogoAvaliacoes(String eventoId, boolean veioDaGestao) {
+        Evento evento = app.eventos.buscarPorId(eventoId).orElse(null);
+        if (evento == null) return;
+        try {
+            exigirDono(evento);
+        } catch (Exception ex) {
+            alerta("Falha: " + mensagem(ex));
+            return;
+        }
+        var box = new ChoiceBox<>(FXCollections.observableArrayList(
+                app.questionarios.buscarPorEvento(eventoId)));
+        box.setConverter(new javafx.util.StringConverter<>() {
+            @Override
+            public String toString(br.com.evento.domain.model.entity.Questionario q) {
+                return q == null ? "" : q.getTitulo()
+                        + (q.isCongelado() ? " [congelado]" : "");
+            }
+
+            @Override
+            public br.com.evento.domain.model.entity.Questionario fromString(String s) {
+                return null;
+            }
+        });
+        var listaQ = app.questionarios.buscarPorEvento(eventoId);
+        if (!listaQ.isEmpty()) box.setValue(listaQ.get(0));
+        var msg = new Label();
+        var novo = new Button("Novo questionário");
+        novo.setOnAction(e -> dialogoNovoQuestionario(eventoId, veioDaGestao));
+        var resultados = new Button("Ver resultados");
+        resultados.setOnAction(e -> {
+            var q = box.getValue();
+            if (q == null) {
+                msg.setText("Escolha um questionário.");
+                return;
+            }
+            try {
+                var r = app.consolidarAvaliacoes.executar(q.getId());
+                var sb = new StringBuilder("Avaliações: " + r.totalAvaliacoes() + "\n\n");
+                for (var p : r.perguntas()) {
+                    sb.append("• ").append(p.enunciado())
+                            .append(" [").append(p.tipo()).append("] — ")
+                            .append(p.totalRespostas()).append(" resposta(s)\n");
+                    if (p.media() != null) sb.append("  média: ").append(p.media()).append("\n");
+                    if (p.distribuicao() != null) {
+                        p.distribuicao().forEach((k, v) -> sb.append("  ").append(k).append(": ").append(v).append("\n"));
+                    }
+                    if (p.comentarios() != null) {
+                        p.comentarios().forEach(c -> sb.append("  - ").append(c).append("\n"));
+                    }
+                }
+                var area = new javafx.scene.control.TextArea(sb.toString());
+                area.setEditable(false);
+                area.setPrefSize(560, 380);
+                var voltar2 = new Button("Voltar");
+                voltar2.setOnAction(e2 -> dialogoAvaliacoes(eventoId, veioDaGestao));
+                palco.setScene(new Scene(new VBox(8,
+                        new Label("Resultados — " + q.getTitulo()), area, voltar2), 600, 480));
+            } catch (Exception ex) {
+                msg.setText("Falha: " + mensagem(ex));
+            }
+        });
+        var responder = new Button("Responder como inscrito");
+        responder.setOnAction(e -> {
+            var q = box.getValue();
+            if (q == null) {
+                msg.setText("Escolha um questionário.");
+                return;
+            }
+            dialogoResponder(eventoId, q.getId(), veioDaGestao);
+        });
+        var voltar = new Button("Voltar ao evento");
+        voltar.setOnAction(e -> mostrarDetalhe(eventoId, veioDaGestao));
+        var caixa = new VBox(8,
+                new Label("Questionários do evento (RF-24; congela após 1ª resposta, RN-17):"),
+                box, new HBox(8, novo, resultados, responder), msg, voltar);
+        caixa.setPadding(new Insets(12));
+        palco.setScene(new Scene(caixa, 640, 320));
+    }
+
+    private void dialogoNovoQuestionario(String eventoId, boolean veioDaGestao) {
+        var titulo = new TextField();
+        titulo.setPromptText("título (obrigatório)");
+        var politica = new ChoiceBox<>(FXCollections.observableArrayList("IDENTIFICADO", "ANONIMO"));
+        politica.setValue("IDENTIFICADO");
+        var perguntas = FXCollections.<br.com.evento.domain.model.entity.Pergunta>observableArrayList();
+        var listaP = new ListView<>(perguntas);
+        listaP.setPrefHeight(140);
+        listaP.setCellFactory(v -> new ListCell<>() {
+            @Override
+            protected void updateItem(br.com.evento.domain.model.entity.Pergunta p, boolean vazio) {
+                super.updateItem(p, vazio);
+                setText(vazio || p == null ? null
+                        : p.getEnunciado() + " [" + p.getTipo() + "]"
+                                + (p.isObrigatoria() ? " *" : ""));
+            }
+        });
+        var enunciado = new TextField();
+        enunciado.setPromptText("enunciado da pergunta");
+        var tipo = new ChoiceBox<>(FXCollections.observableArrayList(
+                br.com.evento.domain.model.entity.TipoPergunta.TEXTO_LIVRE,
+                br.com.evento.domain.model.entity.TipoPergunta.ESCOLHA_SIMPLES,
+                br.com.evento.domain.model.entity.TipoPergunta.ESCALA_NUMERICA));
+        tipo.setValue(br.com.evento.domain.model.entity.TipoPergunta.TEXTO_LIVRE);
+        var opcoes = new TextField();
+        opcoes.setPromptText("opções separadas por vírgula (só escolha única, mín. 2)");
+        var escala = new TextField("5");
+        escala.setPromptText("escala máxima (só escala, mín. 2)");
+        var obrig = new CheckBox("Obrigatória");
+        obrig.setSelected(true);
+        var msg = new Label("Informe a política antes do envio (RN-15).");
+        var add = new Button("Adicionar pergunta");
+        add.setOnAction(e -> {
+            try {
+                if (enunciado.getText() == null || enunciado.getText().isBlank()) {
+                    throw new IllegalArgumentException("O enunciado da pergunta é obrigatório.");
+                }
+                List<String> ops = null;
+                Integer max = null;
+                if (tipo.getValue() == br.com.evento.domain.model.entity.TipoPergunta.ESCOLHA_SIMPLES) {
+                    ops = java.util.Arrays.stream(opcoes.getText().split(","))
+                            .map(String::trim).filter(s -> !s.isEmpty()).toList();
+                    if (ops.size() < 2) {
+                        throw new IllegalArgumentException("Escolha única exige ao menos 2 opções.");
+                    }
+                }
+                if (tipo.getValue() == br.com.evento.domain.model.entity.TipoPergunta.ESCALA_NUMERICA) {
+                    max = Integer.parseInt(escala.getText().trim());
+                    if (max < 2) throw new IllegalArgumentException("Escala máxima deve ser >= 2.");
+                }
+                perguntas.add(new br.com.evento.domain.model.entity.Pergunta(
+                        null, enunciado.getText().trim(), tipo.getValue(),
+                        obrig.isSelected(), ops, max));
+                enunciado.clear();
+                opcoes.clear();
+            } catch (Exception ex) {
+                msg.setText("Falha: " + mensagem(ex));
+            }
+        });
+        var salvar = new Button("Salvar questionário");
+        salvar.setOnAction(e -> {
+            try {
+                if (titulo.getText() == null || titulo.getText().isBlank()) {
+                    throw new IllegalArgumentException("O título do questionário é obrigatório.");
+                }
+                if (perguntas.isEmpty()) {
+                    throw new IllegalArgumentException("Adicione ao menos uma pergunta.");
+                }
+                app.criarQuestionario.executar(eventoId, titulo.getText().trim(),
+                        new java.util.ArrayList<>(perguntas), politica.getValue());
+                dialogoAvaliacoes(eventoId, veioDaGestao);
+            } catch (Exception ex) {
+                msg.setText("Falha: " + mensagem(ex));
+            }
+        });
+        var voltar = new Button("Voltar");
+        voltar.setOnAction(e -> dialogoAvaliacoes(eventoId, veioDaGestao));
+        var grade = new GridPane();
+        grade.setPadding(new Insets(12));
+        grade.setVgap(8);
+        grade.setHgap(8);
+        grade.add(new Label("Título:"), 0, 0);
+        grade.add(titulo, 1, 0);
+        grade.add(new Label("Política:"), 0, 1);
+        grade.add(politica, 1, 1);
+        grade.add(new Label("Perguntas:"), 0, 2);
+        grade.add(listaP, 1, 2);
+        grade.add(new Label("Nova:"), 0, 3);
+        grade.add(enunciado, 1, 3);
+        grade.add(tipo, 1, 4);
+        grade.add(opcoes, 1, 5);
+        var linhaEscala = new HBox(8, new Label("Escala máx.:"), escala,
+                obrig, add);
+        grade.add(linhaEscala, 1, 6);
+        grade.add(salvar, 1, 7);
+        grade.add(voltar, 1, 8);
+        grade.add(msg, 1, 9);
+        palco.setScene(new Scene(grade, 680, 640));
+    }
+
+    private void dialogoResponder(String eventoId, String questionarioId, boolean veioDaGestao) {
+        var q = app.questionarios.buscarPorId(questionarioId).orElse(null);
+        if (q == null) {
+            alerta("Questionário não encontrado.");
+            return;
+        }
+        var inscBox = new ChoiceBox<>(FXCollections.observableArrayList(
+                app.inscricoes.buscarPorEvento(eventoId)));
+        inscBox.setConverter(new javafx.util.StringConverter<>() {
+            @Override
+            public String toString(Inscricao i) {
+                return i == null ? "" : nomeParticipante(i.getParticipanteId());
+            }
+
+            @Override
+            public Inscricao fromString(String s) {
+                return null;
+            }
+        });
+        var caixa = new VBox(8);
+        caixa.setPadding(new Insets(12));
+        caixa.getChildren().add(new Label("Responder — " + q.getTitulo()
+                + " (só inscrito + presença validada, RN-13):"));
+        caixa.getChildren().add(inscBox);
+        var campos = new java.util.LinkedHashMap<String, TextField>();
+        for (var p : q.getPerguntas()) {
+            String dica = switch (p.getTipo()) {
+                case TEXTO_LIVRE -> "texto livre";
+                case ESCOLHA_SIMPLES -> "opções: " + String.join(" | ", p.getOpcoes());
+                case ESCALA_NUMERICA -> "número de 1 a " + p.getEscalaMax();
+            };
+            var f = new TextField();
+            f.setPromptText(dica);
+            campos.put(p.getId(), f);
+            caixa.getChildren().addAll(new Label(p.getEnunciado()
+                    + (p.isObrigatoria() ? " *" : "")), f);
+        }
+        var msg = new Label();
+        var enviar = new Button("Enviar avaliação");
+        enviar.setOnAction(e -> {
+            try {
+                var sel = inscBox.getValue();
+                if (sel == null) throw new IllegalArgumentException("Escolha a inscrição.");
+                var respostas = new java.util.ArrayList<br.com.evento.domain.model.entity.Resposta>();
+                for (var p : q.getPerguntas()) {
+                    respostas.add(new br.com.evento.domain.model.entity.Resposta(
+                            p.getId(), campos.get(p.getId()).getText()));
+                }
+                app.submeterAvaliacao.executar(questionarioId, sel.getId(), respostas);
+                dialogoAvaliacoes(eventoId, veioDaGestao);
+            } catch (Exception ex) {
+                // RN-13/RN-14: inelegível ou duplicada mostra o motivo.
+                msg.setText("Falha: " + mensagem(ex));
+            }
+        });
+        var voltar = new Button("Voltar");
+        voltar.setOnAction(e -> dialogoAvaliacoes(eventoId, veioDaGestao));
+        caixa.getChildren().addAll(enviar, voltar, msg);
+        palco.setScene(new Scene(caixa, 620, 560));
+    }
+
+    // ---------- DSK-50/51: relatórios (RF-29/30/31, CA-07) + certificados (RF-32–35, CA-08) ----------
+
+    private void dialogoRelatorios(String eventoId, boolean veioDaGestao) {
+        Evento evento = app.eventos.buscarPorId(eventoId).orElse(null);
+        if (evento == null) return;
+        try {
+            exigirDono(evento);
+        } catch (Exception ex) {
+            alerta("Falha: " + mensagem(ex));
+            return;
+        }
+        var msg = new Label();
+        var csvInscritos = new Button("Baixar inscritos (CSV)");
+        csvInscritos.setOnAction(e -> {
+            try {
+                salvarTexto("inscritos-" + eventoId.substring(0, 8) + ".csv",
+                        app.relatorioInscritos.executarEmCsv(eventoId));
+                msg.setText("CSV de inscritos salvo.");
+            } catch (Exception ex) {
+                msg.setText("Falha: " + mensagem(ex));
+            }
+        });
+        var csvPresenca = new Button("Baixar presença (CSV)");
+        csvPresenca.setOnAction(e -> {
+            try {
+                salvarTexto("presenca-" + eventoId.substring(0, 8) + ".csv",
+                        app.relatorioPresenca.executarEmCsv(eventoId));
+                msg.setText("CSV de presença salvo.");
+            } catch (Exception ex) {
+                msg.setText("Falha: " + mensagem(ex));
+            }
+        });
+
+        // RF-32: critério de elegibilidade (percentual mínimo).
+        var percentual = new TextField();
+        percentual.setPromptText("% mínimo ex: 75 (vazio = padrão)");
+        var definirCriterio = new Button("Definir critério");
+        definirCriterio.setOnAction(e -> {
+            try {
+                Integer pct = percentual.getText().isBlank() ? null
+                        : Integer.parseInt(percentual.getText().trim());
+                app.gerenciarCertificados.definirCriterio(eventoId, pct, null);
+                msg.setText("Critério atualizado (RN-16 calculável).");
+            } catch (Exception ex) {
+                msg.setText("Falha: " + mensagem(ex));
+            }
+        });
+
+        // RF-33/35: emitir + baixar PDF.
+        var inscBox = new ChoiceBox<>(FXCollections.observableArrayList(
+                app.inscricoes.buscarPorEvento(eventoId)));
+        inscBox.setConverter(new javafx.util.StringConverter<>() {
+            @Override
+            public String toString(Inscricao i) {
+                return i == null ? "" : nomeParticipante(i.getParticipanteId());
+            }
+
+            @Override
+            public Inscricao fromString(String s) {
+                return null;
+            }
+        });
+        var emitirPart = new Button("Emitir p/ participante");
+        emitirPart.setOnAction(e -> {
+            try {
+                var sel = inscBox.getValue();
+                if (sel == null) throw new IllegalArgumentException("Escolha a inscrição.");
+                var c = app.gerenciarCertificados.emitirParaParticipante(eventoId, sel.getId());
+                msg.setText("Emitido! Código: " + c.getCodigo());
+                dialogoRelatorios(eventoId, veioDaGestao);
+            } catch (Exception ex) {
+                // CA-08: inelegível vê a justificativa.
+                msg.setText("Falha: " + mensagem(ex));
+            }
+        });
+        var todasPessoas = new java.util.ArrayList<br.com.evento.domain.model.entity.Pessoa>();
+        for (var a : evento.getAtividades()) {
+            todasPessoas.addAll(app.pessoas.buscarPorAtividade(a.getId()));
+        }
+        var pessoaBox = new ChoiceBox<>(FXCollections.observableArrayList(todasPessoas));
+        pessoaBox.setConverter(new javafx.util.StringConverter<>() {
+            @Override
+            public String toString(br.com.evento.domain.model.entity.Pessoa p) {
+                return p == null ? "" : p.getNome() + " (" + p.getPapel() + ")";
+            }
+
+            @Override
+            public br.com.evento.domain.model.entity.Pessoa fromString(String s) {
+                return null;
+            }
+        });
+        var emitirPal = new Button("Declaração p/ palestrante");
+        emitirPal.setOnAction(e -> {
+            try {
+                var sel = pessoaBox.getValue();
+                if (sel == null) throw new IllegalArgumentException("Escolha a pessoa.");
+                var c = app.gerenciarCertificados.emitirParaPalestrante(eventoId, sel.getId());
+                msg.setText("Declaração emitida! Código: " + c.getCodigo());
+                dialogoRelatorios(eventoId, veioDaGestao);
+            } catch (Exception ex) {
+                msg.setText("Falha: " + mensagem(ex));
+            }
+        });
+
+        var listaCert = new ListView<>(FXCollections.observableArrayList(
+                app.gerenciarCertificados.listarPorEvento(eventoId)));
+        listaCert.setPrefHeight(140);
+        listaCert.setCellFactory(v -> new ListCell<>() {
+            @Override
+            protected void updateItem(br.com.evento.domain.model.entity.Certificado c, boolean vazio) {
+                super.updateItem(c, vazio);
+                setText(vazio || c == null ? null : c.getCodigo() + " — "
+                        + c.getParticipanteNome()
+                        + (c.getPapelDeclarado() != null ? " (" + c.getPapelDeclarado() + ")" : ""));
+            }
+        });
+        var baixarPdf = new Button("Baixar PDF");
+        baixarPdf.setOnAction(e -> {
+            var sel = listaCert.getSelectionModel().getSelectedItem();
+            if (sel == null) {
+                msg.setText("Escolha um certificado na lista.");
+                return;
+            }
+            try {
+                byte[] pdf = app.gerenciarCertificados.gerarPdf(sel.getId());
+                var fc = new FileChooser();
+                fc.setInitialFileName("certificado-" + sel.getCodigo() + ".pdf");
+                var arq = fc.showSaveDialog(palco);
+                if (arq != null) Files.write(arq.toPath(), pdf);
+                msg.setText("PDF salvo.");
+            } catch (Exception ex) {
+                msg.setText("Falha: " + mensagem(ex));
+            }
+        });
+        var emailDestino = new TextField();
+        emailDestino.setPromptText("e-mail de destino");
+        var enviar = new Button("Enviar por e-mail");
+        enviar.setOnAction(e -> {
+            var sel = listaCert.getSelectionModel().getSelectedItem();
+            if (sel == null) {
+                msg.setText("Escolha um certificado na lista.");
+                return;
+            }
+            try {
+                // RF-34: sem SMTP → 422 claro, download preservado.
+                var reg = app.gerenciarCertificados.enviarPorEmail(sel.getId(), emailDestino.getText());
+                msg.setText("Envio registrado: " + reg.detalhe() + " → " + reg.para());
+            } catch (Exception ex) {
+                msg.setText("Falha: " + mensagem(ex));
+            }
+        });
+
+        var voltar = new Button("Voltar ao evento");
+        voltar.setOnAction(e -> mostrarDetalhe(eventoId, veioDaGestao));
+        var caixa = new VBox(8,
+                new Label("Relatórios (CA-07):"),
+                new HBox(8, csvInscritos, csvPresenca),
+                new Label("Certificados — critério e emissão (CA-08, D):"),
+                new HBox(8, percentual, definirCriterio),
+                new HBox(8, inscBox, emitirPart),
+                new HBox(8, pessoaBox, emitirPal),
+                new Label("Emitidos:"),
+                listaCert,
+                new HBox(8, baixarPdf, emailDestino, enviar),
+                msg, voltar);
+        caixa.setPadding(new Insets(12));
+        palco.setScene(new Scene(caixa, 720, 680));
+    }
+
+    private void salvarTexto(String nomeSugerido, String conteudo) throws Exception {
+        var fc = new FileChooser();
+        fc.setInitialFileName(nomeSugerido);
+        var arq = fc.showSaveDialog(palco);
+        if (arq != null) Files.writeString(arq.toPath(), conteudo);
+    }
+
+    // ---------- DSK-13: programação com filtros (RF-09) ----------
+
+    private void dialogoProgramacao() {
+        if (!exigirOrganizador()) return;
+        var eventos = app.listarEventosOrganizador.executar(logado.getId());
+        if (eventos.isEmpty()) {
+            alerta("Você ainda não tem eventos. Crie um em Meus eventos.");
+            return;
+        }
+        var eventoBox = new ChoiceBox<>(FXCollections.observableArrayList(eventos));
+        eventoBox.setConverter(new javafx.util.StringConverter<>() {
+            @Override
+            public String toString(Evento e) {
+                return e == null ? "" : e.getTitulo() + " [" + e.getStatus() + "]";
+            }
+
+            @Override
+            public Evento fromString(String s) {
+                return null;
+            }
+        });
+        eventoBox.setValue(eventos.get(0));
+        var fData = new TextField();
+        fData.setPromptText("data yyyy-MM-dd (opcional)");
+        var fTipo = new TextField();
+        fTipo.setPromptText("tipo (opcional)");
+        var fTrilha = new TextField();
+        fTrilha.setPromptText("trilha (opcional)");
+        var fLocal = new TextField();
+        fLocal.setPromptText("local (opcional)");
+        var lista = new ListView<Atividade>();
+        lista.setPrefHeight(280);
+        lista.setCellFactory(v -> new ListCell<>() {
+            @Override
+            protected void updateItem(Atividade a, boolean vazio) {
+                super.updateItem(a, vazio);
+                if (vazio || a == null) {
+                    setText(null);
+                    return;
+                }
+                setText("• " + a.getTitulo()
+                        + " | " + a.getPeriodo().getInicio() + "–" + a.getPeriodo().getFim()
+                        + " | " + a.getLocal()
+                        + (a.getTipo() != null ? " | " + a.getTipo() : "")
+                        + (a.getTrilha() != null ? " [" + a.getTrilha() + "]" : ""));
+            }
+        });
+        var msg = new Label("Filtros combináveis (RF-09: data, tipo, trilha, local).");
+        Runnable filtrar = () -> {
+            try {
+                Evento ev = app.eventos.buscarPorId(eventoBox.getValue().getId()).orElseThrow();
+                String data = fData.getText() == null ? "" : fData.getText().trim();
+                java.time.LocalDate dia = null;
+                if (!data.isEmpty()) {
+                    try {
+                        dia = java.time.LocalDate.parse(data);
+                    } catch (Exception e) {
+                        throw new IllegalArgumentException("Data inválida (use yyyy-MM-dd, ex: 2026-10-05).");
+                    }
+                }
+                java.time.LocalDate diaF = dia;
+                var res = ev.getAtividades().stream()
+                        // Mesmos 4 filtros server-side da API (RF-09).
+                        .filter(a -> diaF == null
+                                || a.getPeriodo().getInicio().toLocalDate().equals(diaF))
+                        .filter(a -> casaFiltro(fTipo.getText(), a.getTipo()))
+                        .filter(a -> casaFiltro(fTrilha.getText(), a.getTrilha()))
+                        .filter(a -> casaFiltro(fLocal.getText(), a.getLocal()))
+                        .toList();
+                lista.setItems(FXCollections.observableArrayList(res));
+                msg.setText(res.size() + " atividade(s).");
+            } catch (Exception ex) {
+                msg.setText("Falha: " + mensagem(ex));
+            }
+        };
+        var filtrarBtn = new Button("Filtrar");
+        filtrarBtn.setOnAction(e -> filtrar.run());
+        eventoBox.setOnAction(e -> filtrar.run());
+        filtrar.run();
+        var voltar = new Button("Voltar");
+        voltar.setOnAction(e -> mostrarPrincipal());
+        var caixa = new VBox(8,
+                new Label("Programação:"),
+                eventoBox,
+                new HBox(8, fData, fTipo, fTrilha, fLocal, filtrarBtn),
+                lista, msg, voltar);
+        caixa.setPadding(new Insets(12));
+        palco.setScene(new Scene(caixa, 760, 560));
+    }
+
+    private static boolean casaFiltro(String filtro, String valor) {
+        if (filtro == null || filtro.isBlank()) return true;
+        if (valor == null) return false;
+        return valor.equalsIgnoreCase(filtro.trim());
+    }
+
+    // ---------- DSK-20/21/22: inscrições, vagas e agenda (RF-12–18, CA-02/03) ----------
+
+    private void dialogoInscricoes() {
+        if (!exigirOrganizador()) return;
+        var eventos = app.listarEventosOrganizador.executar(logado.getId());
+        if (eventos.isEmpty()) {
+            alerta("Você ainda não tem eventos.");
+            return;
+        }
+        var eventoBox = new ChoiceBox<>(FXCollections.observableArrayList(eventos));
+        eventoBox.setConverter(new javafx.util.StringConverter<>() {
+            @Override
+            public String toString(Evento e) {
+                return e == null ? "" : e.getTitulo() + " [" + e.getStatus() + "]";
+            }
+
+            @Override
+            public Evento fromString(String s) {
+                return null;
+            }
+        });
+        eventoBox.setValue(eventos.get(0));
+        var vagasInfo = new Label();
+        var lista = new ListView<Inscricao>();
+        lista.setPrefHeight(260);
+        lista.setCellFactory(v -> new ListCell<>() {
+            @Override
+            protected void updateItem(Inscricao i, boolean vazio) {
+                super.updateItem(i, vazio);
+                if (vazio || i == null) {
+                    setText(null);
+                    return;
+                }
+                setText(nomeParticipante(i.getParticipanteId())
+                        + " — " + i.getAtividadesSelecionadas().size() + " atividade(s)");
+            }
+        });
+        Runnable recarregar = () -> {
+            Evento ev = eventoBox.getValue();
+            int total = app.inscricoes.contarPorEvento(ev.getId());
+            String limite = ev.getMaxVagas() != null ? String.valueOf(ev.getMaxVagas()) : "sem limite";
+            // RF-14/RN-06: vagas controladas quando maxVagas definido.
+            vagasInfo.setText("Inscritos: " + total + " / " + limite);
+            lista.setItems(FXCollections.observableArrayList(
+                    app.inscricoes.buscarPorEvento(ev.getId())));
+        };
+        eventoBox.setOnAction(e -> recarregar.run());
+        recarregar.run();
+        var msg = new Label();
+        var cancelar = new Button("Cancelar inscrição");
+        cancelar.setOnAction(e -> {
+            Inscricao sel = lista.getSelectionModel().getSelectedItem();
+            if (sel == null) return;
+            var confirma = new Alert(Alert.AlertType.CONFIRMATION,
+                    "Cancelar a inscrição de " + nomeParticipante(sel.getParticipanteId())
+                            + "? A vaga será liberada (RF-15).",
+                    ButtonType.YES, ButtonType.NO);
+            confirma.showAndWait();
+            if (confirma.getResult() != ButtonType.YES) return;
+            try {
+                app.cancelarInscricao.executar(sel.getId());
+                msg.setText("Inscrição cancelada. Vaga liberada.");
+                recarregar.run();
+            } catch (Exception ex) {
+                msg.setText("Falha: " + mensagem(ex));
+            }
+        });
+        var agenda = new Button("Ver agenda");
+        agenda.setOnAction(e -> {
+            Inscricao sel = lista.getSelectionModel().getSelectedItem();
+            if (sel == null) return;
+            dialogoAgenda(eventoBox.getValue().getId(), sel.getId());
+        });
+        var voltar = new Button("Voltar");
+        voltar.setOnAction(e -> mostrarPrincipal());
+        var caixa = new VBox(8,
+                new Label("Inscrições por evento:"),
+                eventoBox, vagasInfo, lista,
+                new HBox(8, cancelar, agenda),
+                msg, voltar);
+        caixa.setPadding(new Insets(12));
+        palco.setScene(new Scene(caixa, 680, 560));
+    }
+
+    private void dialogoAgenda(String eventoId, String inscricaoId) {
+        try {
+            // RF-17/RN-08: agenda deriva das escolhas válidas, em ordem cronológica.
+            var agenda = app.consultarAgenda.executar(inscricaoId);
+            var lista = new ListView<>(FXCollections.observableArrayList(agenda.getAtividades()));
+            lista.setCellFactory(v -> new ListCell<>() {
+                @Override
+                protected void updateItem(Atividade a, boolean vazio) {
+                    super.updateItem(a, vazio);
+                    setText(vazio || a == null ? null
+                            : a.getPeriodo().getInicio() + " — " + a.getTitulo()
+                                    + " | " + a.getLocal());
+                }
+            });
+            var voltar = new Button("Voltar");
+            voltar.setOnAction(e -> dialogoInscricoes());
+            var caixa = new VBox(8,
+                    new Label("Agenda de " + nomeParticipante(
+                            app.inscricoes.buscarPorId(inscricaoId)
+                                    .map(Inscricao::getParticipanteId).orElse("?"))
+                            + (agenda.estaVazia() ? " (vazia)" : "")),
+                    lista, voltar);
+            caixa.setPadding(new Insets(12));
+            palco.setScene(new Scene(caixa, 620, 440));
+        } catch (Exception ex) {
+            alerta("Falha: " + mensagem(ex));
         }
     }
 

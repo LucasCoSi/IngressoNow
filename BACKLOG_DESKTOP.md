@@ -70,9 +70,9 @@
 
 ## Ordem de execução sugerida
 
-1. **Sem 6 (agora):** DSK-00 ✅ → DSK-10 ✅ (validado desktop real 2026-09-16) → DSK-11/12 ✅ (jar rebuildado 2026-09-16, falta teste no desktop real) → DSK-30/31/32 (demonstra CA-01 + CA-04/05 na terça 17/09).
-2. **Sem 7:** DSK-13/20/21/22 → DSK-40/41/42 → DSK-50 (CA-02/03/06/07).
-3. **Sem 8:** DSK-51 (D) → DSK-60/61/62 (integração + docs + ensaio).
+1. **Sem 6 (agora):** DSK-00 ✅ → DSK-10 ✅ (validado desktop real 2026-09-16) → DSK-11/12 ✅ → DSK-30/31/32 ✅ → DSK-13 ✅ + DSK-20/21/22 ✅ (jar 2026-09-16, falta teste real).
+2. **Sem 7:** DSK-13/20/21/22 → DSK-40/41/42 ✅ (jar 2026-09-16, falta teste real) → DSK-50/51 ✅ (jar 2026-09-16, falta teste real).
+3. **Sem 8:** DSK-51 (D) → DSK-60/62 (integração + RNF-10 smoke + ensaio). DSK-61 docs ✅ 2026-09-22 (README desktop/headless, D-01/D-08, ENDPOINTS, MATRIZ coluna desktop).
 
 ## Fora de escopo
 

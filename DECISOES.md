@@ -10,6 +10,11 @@ arquivos, sem risco de quebra no shade plugin. Natives Windows (`*-win`)
 embutidos no shade — sem eles, `java -jar` falha com "no suitable
 pipeline found". No JDK 25, rodar com `--enable-native-access=ALL-UNNAMED`
 (validado 2026-09-16: login Maria OK, DSK-00/DSK-10).
+Integração além do literal do §9-Semana-4 ("desktop consumindo a API"):
+o desktop chama os **mesmos use cases/portas via `FabricaAplicacao`
+direta** (hexagonal §8.1 item 3, adaptador de entrada), sem HTTP/JWT —
+mesmas regras e mesmo banco (RN-19/RNF-02), com checagem de dono
+repetida na tela (RN-18).
 
 ## D-02 API/auth: Java SE + JWT (jjwt)
 
@@ -53,9 +58,10 @@ elegibilidade de certificado (D, pós-núcleo).
 
 ## D-08 testes/seeds: JUnit 5 no domínio + seeds V3
 
-27 arquivos de teste, 91 métodos (`mvn test`), cobrindo domínio e use
+28 arquivos de teste, 93 métodos (`mvn test`), cobrindo domínio e use
 cases (`src/test/**`: RF-03/07/08/13/14/22/29/32–35, RN-11/12, certificados
 CA-08). Seeds V3: Maria (ORGANIZADOR) / Lucas (PARTICIPANTE),
 `senha123`, 2 eventos PUBLICADO com 5 atividades. Refatorações
 registradas em `REFATORACOES.md` (R-01 `exigirSemConflito`, R-02 upsert
-+ DELETE de órfãs).
++ DELETE de órfãs). Desktop validado em banco real (login Maria,
+DSK-00/10; jar DSK-11–51 rebuildado 2026-09-16).

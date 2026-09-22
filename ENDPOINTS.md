@@ -4,6 +4,14 @@ Base: `http://localhost:8080`. Auth: `Authorization: Bearer <JWT>`
 (login em `/api/auth/login`). `GET /api/eventos` e
 `GET /api/eventos/{id}/programacao` são públicos; resto exige JWT.
 
+> Desktop (D-01): o JavaFX **não** chama estes endpoints via HTTP —
+> usa os **mesmos use cases via `FabricaAplicacao` direta** (hexagonal
+> §8.1 item 3), mesmo banco (RN-19). Mapeamento: DSK-00 auth/usuários,
+> DSK-10/11/12 eventos/atividades/pessoas, DSK-13 programação, DSK-20/21/22
+> inscrições/agenda, DSK-30/31/32 controle, DSK-40/41/42 avaliações,
+> DSK-50/51 relatórios/certificados. Checagem de dono (RN-18) hoje no
+> handler (403) + repetida na tela do desktop.
+
 ## Papéis (§3) — PARTICIPANTE vs ORGANIZADOR
 
 - **Público (sem login):** `/`, `/evento-publico`, `/programacao`,

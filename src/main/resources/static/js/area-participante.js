@@ -113,7 +113,113 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
             activeTab.appendChild(card);
             activeTab.appendChild(lista);
+            await montarAvaliacoes(inscricao, nomeEvento);
         }
+    }
+
+    /**
+     * CA-06/RF-26: resposta do participante (só inscrito + presença validada).
+     * Questionários do evento com formulário por tipo; inelegível/duplicada
+     * mostra o motivo do servidor.
+     */
+    async function montarAvaliacoes(inscricao, nomeEvento) {
+        let questionarios = [];
+        try {
+            const resp = await fetch(`/api/eventos/${encodeURIComponent(inscricao.eventoId)}/questionarios`, {
+                headers: authHeaders()
+            });
+            if (!resp.ok) return;
+            questionarios = await resp.json();
+        } catch (e) {
+            console.warn('[Area Participante] Questionários indisponíveis para', inscricao.eventoId);
+            return;
+        }
+        if (!questionarios || questionarios.length === 0) return;
+        const secao = document.createElement('div');
+        secao.style.cssText = 'margin:0 0 32px 0;padding:16px;border:1px solid var(--line);border-radius:8px;background:#fff';
+        const titulo = document.createElement('h3');
+        titulo.style.cssText = 'margin:0 0 12px;font-size:14px;color:var(--navy)';
+        titulo.textContent = `Avaliar — ${nomeEvento}`;
+        secao.appendChild(titulo);
+        for (const q of questionarios) {
+            const bloco = document.createElement('div');
+            bloco.style.cssText = 'margin-bottom:16px;padding-top:12px;border-top:1px solid var(--line)';
+            const nomeQ = document.createElement('div');
+            nomeQ.style.cssText = 'font-weight:700;font-size:13px;margin-bottom:4px';
+            nomeQ.textContent = q.titulo;
+            const pol = document.createElement('div');
+            pol.style.cssText = 'font-size:11px;color:var(--muted);margin-bottom:8px';
+            pol.textContent = `Respostas: ${q.politicaIdentificacao || 'IDENTIFICADO'}`;
+            bloco.appendChild(nomeQ);
+            bloco.appendChild(pol);
+            const form = document.createElement('div');
+            form.style.cssText = 'display:grid;gap:8px;max-width:520px';
+            const campos = [];
+            for (const p of (q.perguntas || [])) {
+                const rotulo = document.createElement('label');
+                rotulo.style.cssText = 'font-size:12px;display:grid;gap:4px';
+                const span = document.createElement('span');
+                span.textContent = p.enunciado + (p.obrigatoria ? ' *' : '');
+                rotulo.appendChild(span);
+                let campo;
+                if (p.tipo === 'ESCOLHA_SIMPLES') {
+                    campo = document.createElement('select');
+                    campo.innerHTML = '<option value="">Selecione...</option>'
+                        + (p.opcoes || []).map(o => `<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`).join('');
+                } else if (p.tipo === 'ESCALA_NUMERICA') {
+                    campo = document.createElement('input');
+                    campo.type = 'number';
+                    campo.min = '1';
+                    campo.max = String(p.escalaMax || 5);
+                    campo.placeholder = `1 a ${p.escalaMax || 5}`;
+                } else {
+                    campo = document.createElement('input');
+                    campo.type = 'text';
+                    campo.placeholder = 'Sua resposta';
+                    campo.maxLength = 500;
+                }
+                campo.style.cssText = 'padding:8px;border:1px solid var(--line);border-radius:6px';
+                campo.dataset.perguntaId = p.id;
+                rotulo.appendChild(campo);
+                form.appendChild(rotulo);
+                campos.push(campo);
+            }
+            const feedback = document.createElement('div');
+            feedback.style.cssText = 'font-size:12px';
+            const btn = document.createElement('button');
+            btn.textContent = 'Enviar avaliação';
+            btn.style.cssText = 'justify-self:start';
+            btn.addEventListener('click', async () => {
+                const respostas = campos.map(c => ({ perguntaId: c.dataset.perguntaId, valor: c.value }));
+                try {
+                    const resp = await fetch('/api/avaliacoes', {
+                        method: 'POST',
+                        headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            questionarioId: q.id,
+                            inscricaoId: inscricao.id,
+                            respostas
+                        })
+                    });
+                    if (!resp.ok) {
+                        const err = await resp.json().catch(() => ({}));
+                        throw new Error(err.message || `Falha ao enviar (HTTP ${resp.status})`);
+                    }
+                    feedback.style.color = 'green';
+                    feedback.textContent = 'Avaliação enviada. Obrigado!';
+                    btn.disabled = true;
+                } catch (e) {
+                    feedback.style.color = 'red';
+                    feedback.textContent = e.message;
+                    window.API.exibirErro(e);
+                }
+            });
+            form.appendChild(btn);
+            form.appendChild(feedback);
+            bloco.appendChild(form);
+            secao.appendChild(bloco);
+        }
+        activeTab.appendChild(secao);
     }
 
     /**
@@ -198,6 +304,8 @@ async function carregarCertificados() {
     } catch (e) {
         console.warn('[Area Participante] Certificados indisponíveis');
     }
+    const badgeH = document.querySelector('[data-od-id="tab-history"] .tab-badge');
+    if (badgeH) badgeH.textContent = String(certs ? certs.length : 0);
     if (!certs || certs.length === 0) {
         secao.innerHTML = '<h2 class="section-title">Certificados de Participação</h2>'
             + '<p style="padding:16px">Nenhum certificado emitido ainda. '

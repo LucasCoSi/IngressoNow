@@ -137,9 +137,15 @@ document.addEventListener('DOMContentLoaded', async function() {
         try {
             console.log(`[Evento Público] Carregando evento ID: ${eventoId}`);
 
-            // Buscar evento da API
-            const eventos = await window.API.Eventos.listar();
-            const evento = eventos.find(e => e.id === eventoId);
+            // Buscar evento completo (inclui atividades); fallback p/ lista pública.
+            let evento = null;
+            try {
+                evento = await window.API.Eventos.buscar(eventoId);
+            } catch (e) {
+                console.warn('[Evento Público] buscar falhou, tentando lista:', e);
+                const eventos = await window.API.Eventos.listar();
+                evento = eventos.find(ev => ev.id === eventoId);
+            }
 
             if (!evento) {
                 exibirMensagem('Evento não encontrado.');
@@ -147,12 +153,139 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
 
             console.log('[Evento Público] Evento carregado:', evento);
-            renderizarEvento(evento);
+            await renderizarEvento(evento);
 
         } catch (error) {
             console.error('[Evento Público] Erro ao carregar:', error);
             exibirMensagem(`Erro ao carregar evento: ${error.message}`);
         }
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text == null ? '' : String(text);
+        return div.innerHTML;
+    }
+
+    function formatarStatus(status) {
+        const mapa = {
+            RASCUNHO: 'Rascunho',
+            PUBLICADO: 'Publicado',
+            INSCRICOES_ABERTAS: 'Inscrições abertas',
+            ENCERRADO: 'Encerrado',
+            CANCELADO: 'Cancelado'
+        };
+        return mapa[status] || status || 'Evento';
+    }
+
+    function iniciais(nome) {
+        if (!nome) return '?';
+        const partes = String(nome).trim().split(/\s+/);
+        const prim = partes[0] ? partes[0][0] : '';
+        const ult = partes.length > 1 ? partes[partes.length - 1][0] : '';
+        return (prim + ult).toUpperCase();
+    }
+
+    /** Grade real agrupada por dia (substitui o mock fixo Dia 1/2). */
+    function renderizarProgramacaoReal(atividades) {
+        const preview = document.querySelector('[data-od-id="section-schedule-preview"]');
+        if (!preview) return;
+        // Preserva o título, troca o corpo (remove placeholder "Carregando..."/mock).
+        preview.querySelectorAll('.schedule-day, .section-text').forEach(el => el.remove());
+        if (!atividades || atividades.length === 0) {
+            const vazio = document.createElement('p');
+            vazio.className = 'section-text';
+            vazio.textContent = 'Programação a definir. Volte em breve!';
+            preview.appendChild(vazio);
+            return;
+        }
+        const ordenadas = [...atividades].sort((a, b) =>
+            String(a.inicio || '').localeCompare(String(b.inicio || '')));
+        const porDia = new Map();
+        ordenadas.forEach(a => {
+            const dia = a.inicio ? String(a.inicio).slice(0, 10) : 'datas-a-definir';
+            if (!porDia.has(dia)) porDia.set(dia, []);
+            porDia.get(dia).push(a);
+        });
+        porDia.forEach((lista, dia) => {
+            const bloco = document.createElement('div');
+            bloco.className = 'schedule-day';
+            const titulo = document.createElement('div');
+            titulo.className = 'schedule-day-title';
+            let rotulo = dia;
+            try {
+                const d = new Date(dia.length === 10 ? dia + 'T12:00:00' : dia);
+                if (!isNaN(d)) rotulo = d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' });
+            } catch (e) { /* mantém yyyy-MM-dd */ }
+            titulo.textContent = rotulo;
+            bloco.appendChild(titulo);
+            lista.forEach(a => {
+                const item = document.createElement('div');
+                item.className = 'schedule-item';
+                const hora = a.inicio ? String(a.inicio).slice(11, 16) : '--:--';
+                item.innerHTML =
+                    `<div class="schedule-time">${escapeHtml(hora)}</div>` +
+                    `<div class="schedule-activity">` +
+                    `<div class="schedule-activity-name">${escapeHtml(a.titulo || 'Atividade')}</div>` +
+                    `<div class="schedule-activity-location">${escapeHtml(
+                        [a.local, a.tipo, a.trilha].filter(Boolean).join(' • ') || 'Local a definir'
+                    )}</div></div>`;
+                bloco.appendChild(item);
+            });
+            preview.appendChild(bloco);
+        });
+    }
+
+    /** Elenco real (GET .../atividades/{atId}/pessoas); sem mock de 6 palestrantes. */
+    async function renderizarPalestrantesReal(eventoId, atividades) {
+        const grade = document.querySelector('.speakers-grid');
+        if (!grade) return;
+        grade.innerHTML = '<p class="section-text">Carregando palestrantes...</p>';
+        const elenco = [];
+        for (const a of (atividades || [])) {
+            if (!a.id) continue;
+            try {
+                const resp = await fetch(
+                    `/api/eventos/${encodeURIComponent(eventoId)}/atividades/${encodeURIComponent(a.id)}/pessoas`);
+                if (!resp.ok) continue;
+                const pessoas = await resp.json();
+                (pessoas || []).forEach(p => elenco.push({ ...p, atividadeTitulo: a.titulo }));
+            } catch (e) {
+                console.warn('[Evento Público] pessoas indisponíveis p/ atividade', a.id);
+            }
+        }
+        grade.innerHTML = '';
+        if (elenco.length === 0) {
+            grade.innerHTML = '<p class="section-text">Elenco a definir.</p>';
+            return;
+        }
+        elenco.slice(0, 12).forEach(p => {
+            const card = document.createElement('div');
+            card.className = 'speaker-card';
+            card.innerHTML =
+                `<div class="speaker-photo">${escapeHtml(iniciais(p.nome))}</div>` +
+                `<h3 class="speaker-name">${escapeHtml(p.nome)}</h3>` +
+                `<p class="speaker-title">${escapeHtml(p.papel || 'Participação')}</p>` +
+                `<p class="speaker-org">${escapeHtml(p.atividadeTitulo || '')}</p>`;
+            grade.appendChild(card);
+        });
+    }
+
+    /** Abas placeholder ("em desenvolvimento...") → conteúdo real do evento. */
+    function preencherAbasReais(evento, atividades) {
+        const setTab = (nome, html) => {
+            const el = document.querySelector(`[data-od-id="tab-content-${nome}"] .section-text`);
+            if (el) el.innerHTML = html;
+        };
+        const total = (atividades || []).length;
+        setTab('schedule', total === 0
+            ? 'Programação a definir. Volte em breve!'
+            : `${escapeHtml(String(total))} ${total === 1 ? 'atividade publicada' : 'atividades publicadas'} — veja o resumo na grade acima ou a programação completa em <a href="/programacao">/programacao</a>.`);
+        setTab('speakers', 'Elenco carregado acima a partir das pessoas vinculadas às atividades (GET .../pessoas).');
+        setTab('registration', evento.status === 'ENCERRADO'
+            ? 'Inscrições encerradas para este evento.'
+            : 'Use o botão de inscrição ao lado para garantir sua vaga. Acompanhe tudo em <a href="/area-participante">/area-participante</a>.');
+        setTab('location', `${escapeHtml(evento.local || 'Local a definir')}${evento.fuso && evento.fuso !== 'UTC' ? ` (${escapeHtml(evento.fuso)})` : ''}`);
     }
 
     /**
@@ -165,12 +298,13 @@ document.addEventListener('DOMContentLoaded', async function() {
             document.title = `${evento.titulo} - IngressoNow`;
         }
 
-        // Atualizar badges
+        // Atualizar badges (reais: status + vagas + nº de atividades; sem chapado)
         if (heroBadges) {
+            const totalAtiv = (evento.atividades || []).length;
             heroBadges.innerHTML = `
-                <span class="hero-badge">Evento Acadêmico</span>
-                <span class="hero-badge">Presencial & Online</span>
-                <span class="hero-badge">Inscrição Gratuita</span>
+                <span class="hero-badge">${escapeHtml(formatarStatus(evento.status))}</span>
+                <span class="hero-badge">${evento.maxVagas != null ? `${escapeHtml(String(evento.maxVagas))} vagas` : 'Vagas livres'}</span>
+                <span class="hero-badge">${totalAtiv === 0 ? 'Programação a definir' : `${escapeHtml(String(totalAtiv))} ${totalAtiv === 1 ? 'atividade' : 'atividades'}`}</span>
             `;
         }
 
@@ -220,12 +354,17 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
 
         // Atualizar descrição (se existir seção)
-        const descricaoSection = document.querySelector('.section-text');
-        if (descricaoSection && evento.descricao) {
-            descricaoSection.innerHTML = `
-                <p>${evento.descricao}</p>
-            `;
+        const descricaoSection = document.querySelector('[data-od-id="section-about"] .section-text');
+        if (descricaoSection) {
+            descricaoSection.innerHTML = evento.descricao
+                ? `<p>${escapeHtml(evento.descricao)}</p>`
+                : '<p>Descrição a definir.</p>';
         }
+
+        // Grade + elenco + abas reais (sem mock fixo).
+        renderizarProgramacaoReal(evento.atividades || []);
+        preencherAbasReais(evento, evento.atividades || []);
+        await renderizarPalestrantesReal(evento.id, evento.atividades || []);
     }
 
     /**

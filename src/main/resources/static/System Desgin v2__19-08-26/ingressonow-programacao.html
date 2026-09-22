@@ -116,210 +116,26 @@
  <option value="symposium">Simpósio de Ciência de Dados Aplicada</option>
  <option value="architecture">Jornada de Arquitetura de Software</option>
  </select>
- </div>
+  </div>
+  </div>
 
- <div class="day-tabs" data-od-id="day-tabs">
- <button class="day-tab active" data-od-id="day-1">
- <span>Dia 1</span>
- <span class="day-tab-date">10 de outubro</span>
- </button>
- <button class="day-tab" data-od-id="day-2">
- <span>Dia 2</span>
- <span class="day-tab-date">11 de outubro</span>
- </button>
- <button class="day-tab" data-od-id="day-3">
- <span>Dia 3</span>
- <span class="day-tab-date">12 de outubro</span>
- </button>
- </div>
-
- <div class="filters-group">
- <select class="filter-select" data-od-id="room-filter">
- <option value="">Todas as salas</option>
- <option value="auditorio-a">Auditório A (Principal)</option>
- <option value="lab-2">Laboratório de Informática 2</option>
- <option value="sala-b">Sala de Palestras B</option>
- </select>
- <select class="filter-select" data-od-id="track-filter">
- <option value="">Todas as trilhas</option>
- <option value="backend">Backend</option>
- <option value="frontend">Frontend</option>
- <option value="architecture">Arquitetura</option>
- </select>
- </div>
- </div>
-
- <div class="status-banner" data-od-id="schedule-status">
+  <div class="status-banner" data-od-id="schedule-status">
  <div class="status-banner-content">
  <div class="status-icon"></div>
  <div class="status-text">Nenhuma sobreposição de horário ou sala detectada nesta programação.</div>
  </div>
- <div class="status-metrics">
- <div class="status-metric"><strong>18</strong> sessões</div>
- <div class="status-metric"><strong>3</strong> auditórios</div>
- <div class="status-metric"><strong>100%</strong> palestrantes</div>
- </div>
+  <div class="status-metrics">
+  <div class="status-metric"><strong id="metric-sessoes">0</strong> sessões</div>
+  <div class="status-metric"><strong id="metric-locais">0</strong> locais</div>
+  </div>
  </div>
 
  <div class="schedule-grid" data-od-id="schedule-grid">
  <p style="padding:32px;text-align:center">Carregando programação...</p>
  </div>
- <div class="grid-cell"></div>
- <div class="grid-cell"></div>
- </div>
-
- <div class="grid-row">
- <div class="grid-time-slot">10:00</div>
- <div class="grid-cell"></div>
- <div class="grid-cell">
- <div class="session-card">
- <div class="session-title">Fundamentos de React Moderno</div>
- <div class="session-meta">
- <span class="session-category">Workshop</span>
- <span class="session-capacity">26/30</span>
- </div>
- <div class="session-speaker">👤 Prof. Ana Costa</div>
- </div>
- </div>
- <div class="grid-cell">
- <div class="session-card">
- <div class="session-title">Segurança em APIs Web</div>
- <div class="session-meta">
- <span class="session-category">Palestra</span>
- <span class="session-capacity">78/100</span>
- </div>
- <div class="session-speaker">👤 Bruno Silva</div>
- </div>
- </div>
- </div>
-
- <div class="grid-row">
- <div class="grid-time-slot">11:00</div>
- <div class="grid-cell">
- <div class="session-card">
- <div class="session-title">Workshop de APIs REST em Java</div>
- <div class="session-meta">
- <span class="session-category">Workshop</span>
- <span class="session-capacity">30/30</span>
- </div>
- <div class="session-speaker">👤 Prof. Carlos Lima</div>
- </div>
- </div>
- <div class="grid-cell"></div>
- <div class="grid-cell">
- <div class="session-card">
- <div class="session-title">Design Patterns em Microserviços</div>
- <div class="session-meta">
- <span class="session-category">Palestra</span>
- <span class="session-capacity">95/120</span>
- </div>
- <div class="session-speaker">👤 Dr. Marcelo Costa</div>
- </div>
- </div>
- </div>
-
- <div class="grid-row">
- <div class="grid-time-slot">12:00</div>
- <div class="grid-cell break-span">
- <div class="session-card break">
- <div class="session-title">🍽️ Almoço & Feira de Projetos</div>
- <div class="session-meta" style="margin-top:4px">
- <span class="session-category">Intervalo</span>
- </div>
- </div>
- </div>
- </div>
-
- <div class="grid-row">
- <div class="grid-time-slot">14:00</div>
- <div class="grid-cell"></div>
- <div class="grid-cell">
- <div class="session-card">
- <div class="session-title">Backend em NodeJS + Express</div>
- <div class="session-meta">
- <span class="session-category">Workshop</span>
- <span class="session-capacity">22/25</span>
- </div>
- <div class="session-speaker">👤 Lucas Ferreira</div>
- </div>
- </div>
- <div class="grid-cell"></div>
- </div>
-
- <div class="grid-row">
- <div class="grid-time-slot">15:00</div>
- <div class="grid-cell">
- <div class="session-card">
- <div class="session-title">Painel: IA na Prática</div>
- <div class="session-meta">
- <span class="session-category">Painel</span>
- <span class="session-capacity">250/250</span>
- </div>
- <div class="session-speaker">👤 Carlos Brandão</div>
- </div>
- </div>
- <div class="grid-cell">
- <div class="session-card">
- <div class="session-title">Vue 3 - Reatividade Avançada</div>
- <div class="session-meta">
- <span class="session-category">Workshop</span>
- <span class="session-capacity">18/20</span>
- </div>
- <div class="session-speaker">👤 Sofia Mendez</div>
- </div>
- </div>
- <div class="grid-cell">
- <div class="session-card full">
- <div class="session-title">Cloud Architecture na AWS</div>
- <div class="session-meta">
- <span class="session-category">Palestra</span>
- <span class="session-capacity">100/100</span>
- </div>
- <div class="session-speaker">👤 Rafael Santos</div>
- </div>
- </div>
- </div>
-
- <div class="grid-row">
- <div class="grid-time-slot">16:00</div>
- <div class="grid-cell">
- <div class="session-card">
- <div class="session-title">Masterclass: Escalabilidade</div>
- <div class="session-meta">
- <span class="session-category">Masterclass</span>
- <span class="session-capacity">45/60</span>
- </div>
- <div class="session-speaker">👤 Dra. Juliana Rocha</div>
- </div>
- </div>
- <div class="grid-cell"></div>
- <div class="grid-cell"></div>
- </div>
-
- <div class="grid-row">
- <div class="grid-time-slot">17:00</div>
- <div class="grid-cell"></div>
- <div class="grid-cell"></div>
- <div class="grid-cell">
- <div class="session-card">
- <div class="session-title">Encerramento do Dia</div>
- <div class="session-meta">
- <span class="session-category">Palestra</span>
- <span class="session-capacity">184/200</span>
- </div>
- <div class="session-speaker">👤 Organizadores</div>
- </div>
- </div>
- </div>
- </div>
- </div>
-
- <div class="metrics-footer" data-od-id="schedule-metrics">
- <div class="metric-item"> <strong>18 sessões cadastradas</strong> nesta grade</div>
- <div class="metric-item">🏢 <strong>3 auditórios</strong> em uso simultâneo</div>
- <div class="metric-item"> <strong>100% de palestrantes confirmados</strong> para esta programação</div>
- <div class="metric-item">⏰ Duração: <strong>8h</strong> de programação</div>
- </div>
+  <div class="metrics-footer" data-od-id="schedule-metrics">
+  <div class="metric-item"><strong id="metric-total">0 sessões cadastradas</strong> nesta grade</div>
+  </div>
  </section>
  </section>
  </main>
@@ -328,8 +144,7 @@
  <div id="error-container"></div>
 
  <script>
- document.querySelectorAll('.nav-btn').forEach(function(button){button.addEventListener('click',function(){document.querySelectorAll('.nav-btn').forEach(function(item){item.classList.remove('active')});button.classList.add('active')})});
- document.querySelectorAll('.day-tab').forEach(function(tab){tab.addEventListener('click',function(){document.querySelectorAll('.day-tab').forEach(function(item){item.classList.remove('active')});tab.classList.add('active')})});
+  document.querySelectorAll('.nav-btn').forEach(function(button){button.addEventListener('click',function(){document.querySelectorAll('.nav-btn').forEach(function(item){item.classList.remove('active')});button.classList.add('active')})});
  </script>
 
  <!-- Integração com Backend REST -->
