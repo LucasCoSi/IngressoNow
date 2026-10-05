@@ -1,0 +1,363 @@
+/* IngressoNow — tema desktop (D-01, JavaFX puro, sem FXML).
+ * Mesma identidade do site (System Design v2): navy #1E3A8A,
+ * navy-dark #0F172A, primário #2563EB, fundo #F8FAFC, linha #E2E8F0.
+ * Carregado em todas as cenas via DesktopApp#cena(...). */
+
+.root {
+    -fx-navy: #1E3A8A;
+    -fx-navy-dark: #0F172A;
+    -fx-primary: #2563EB;
+    -fx-primary-dark: #1D4ED8;
+    -fx-cyan-soft: #E0F2FE;
+    -fx-mist: #BAE6FD;
+    -fx-bg: #F8FAFC;
+    -fx-ink: #0F172A;
+    -fx-muted: #64748B;
+    -fx-line: #E2E8F0;
+    -fx-danger: #DC2626;
+    -fx-ok: #047857;
+    -fx-font-family: "Segoe UI", "System";
+    -fx-background-color: -fx-bg;
+}
+
+/* ---------- botões ---------- */
+
+.button {
+    -fx-background-color: #FFFFFF;
+    -fx-text-fill: -fx-navy;
+    -fx-font-weight: 700;
+    -fx-font-size: 12px;
+    -fx-border-color: -fx-line;
+    -fx-border-width: 1;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-padding: 9 14 9 14;
+    -fx-cursor: hand;
+}
+
+.button:hover {
+    -fx-background-color: -fx-cyan-soft;
+    -fx-border-color: #0284C7;
+    -fx-text-fill: #075985;
+}
+
+.button:pressed {
+    -fx-translate-y: 1;
+}
+
+.button.btn-primary {
+    -fx-background-color: -fx-primary;
+    -fx-text-fill: white;
+    -fx-border-color: transparent;
+}
+
+.button.btn-primary:hover {
+    -fx-background-color: -fx-primary-dark;
+    -fx-text-fill: white;
+}
+
+.button.btn-danger {
+    -fx-text-fill: -fx-danger;
+    -fx-border-color: #FECACA;
+}
+
+.button.btn-danger:hover {
+    -fx-background-color: #FEF2F2;
+    -fx-border-color: -fx-danger;
+    -fx-text-fill: #991B1B;
+}
+
+/* navegação lateral (sidebar navy) */
+.button.nav-btn {
+    -fx-background-color: transparent;
+    -fx-text-fill: #D9E4F4;
+    -fx-border-color: transparent;
+    -fx-font-size: 13px;
+    -fx-alignment: BASELINE_LEFT;
+    -fx-padding: 10 12 10 12;
+}
+
+.button.nav-btn:hover {
+    -fx-background-color: #16223A;
+    -fx-text-fill: white;
+}
+
+.button.nav-btn.active {
+    -fx-background-color: #1E293B;
+    -fx-text-fill: -fx-mist;
+    -fx-border-color: transparent transparent transparent #0284C7;
+    -fx-border-width: 0 0 0 3;
+}
+
+/* ---------- campos ---------- */
+
+.text-field, .password-field, .text-area, .combo-box, .choice-box,
+.date-picker, .spinner {
+    -fx-background-color: #FFFFFF;
+    -fx-border-color: -fx-line;
+    -fx-border-width: 1;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-font-size: 13px;
+    -fx-text-fill: -fx-ink;
+    -fx-padding: 8 10 8 10;
+}
+
+.text-field:focused, .password-field:focused, .text-area:focused,
+.combo-box:focused, .choice-box:focused, .date-picker:focused {
+    -fx-border-color: #0284C7;
+    -fx-effect: dropshadow(gaussian, rgba(2, 132, 199, 0.25), 6, 0, 0, 0);
+}
+
+.text-area {
+    -fx-padding: 8 10 8 10;
+}
+
+/* ---------- textos ---------- */
+
+.label.page-title {
+    -fx-text-fill: -fx-navy;
+    -fx-font-size: 24px;
+    -fx-font-weight: 700;
+}
+
+.label.section-title {
+    -fx-text-fill: -fx-navy;
+    -fx-font-size: 15px;
+    -fx-font-weight: 700;
+}
+
+.label.subtitle, .label.hint {
+    -fx-text-fill: -fx-muted;
+    -fx-font-size: 12px;
+}
+
+.label.msg-erro {
+    -fx-text-fill: -fx-danger;
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+}
+
+.label.badge {
+    -fx-background-color: -fx-cyan-soft;
+    -fx-text-fill: #075985;
+    -fx-font-size: 10px;
+    -fx-font-weight: 700;
+    -fx-padding: 3 9 3 9;
+    -fx-background-radius: 999;
+}
+
+/* ---------- painéis ---------- */
+
+.brand-panel {
+    -fx-background-color: -fx-navy-dark;
+    -fx-padding: 36 30 36 30;
+}
+
+.brand-mark {
+    -fx-background-color: -fx-navy;
+    -fx-text-fill: white;
+    -fx-font-size: 13px;
+    -fx-font-weight: 700;
+    -fx-padding: 8 10 8 10;
+    -fx-background-radius: 6;
+    -fx-border-color: #2749A1;
+    -fx-border-width: 1;
+    -fx-border-radius: 6;
+}
+
+.brand-title {
+    -fx-text-fill: white;
+    -fx-font-size: 26px;
+    -fx-font-weight: 700;
+}
+
+.brand-now {
+    -fx-text-fill: #38BDF8;
+    -fx-font-size: 26px;
+    -fx-font-weight: 700;
+}
+
+.brand-sub {
+    -fx-text-fill: #B7C8E0;
+    -fx-font-size: 12px;
+}
+
+.sidebar {
+    -fx-background-color: -fx-navy-dark;
+}
+
+.card {
+    -fx-background-color: white;
+    -fx-border-color: -fx-line;
+    -fx-border-width: 1;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.08), 12, 0, 0, 2);
+}
+
+.topbar {
+    -fx-background-color: white;
+    -fx-border-color: transparent transparent -fx-line transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+/* ---------- listas ---------- */
+
+.list-view {
+    -fx-background-color: white;
+    -fx-border-color: -fx-line;
+    -fx-border-width: 1;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+}
+
+.list-cell {
+    -fx-background-color: white;
+    -fx-text-fill: -fx-ink;
+    -fx-font-size: 12px;
+    -fx-padding: 10 12 10 12;
+    -fx-border-color: transparent transparent -fx-line transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.list-cell:filled:hover {
+    -fx-background-color: #F0F9FF;
+}
+
+.list-cell:filled:selected {
+    -fx-background-color: -fx-cyan-soft;
+    -fx-text-fill: -fx-navy;
+}
+
+/* ---------- tabelas ---------- */
+
+.table-view {
+    -fx-background-color: white;
+    -fx-border-color: -fx-line;
+    -fx-border-width: 1;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+}
+
+.table-view .column-header-background {
+    -fx-background-color: #F1F5F9;
+}
+
+.table-view .column-header {
+    -fx-text-fill: -fx-navy;
+    -fx-font-weight: 700;
+    -fx-font-size: 11px;
+}
+
+/* ---------- abas ---------- */
+
+.tab-pane .tab-header-area .tab-header-background {
+    -fx-background-color: #F1F5F9;
+}
+
+.tab-pane .tab {
+    -fx-background-color: transparent;
+    -fx-padding: 8 16 8 16;
+}
+
+.tab-pane .tab:selected {
+    -fx-background-color: white;
+    -fx-border-color: transparent transparent -fx-primary transparent;
+    -fx-border-width: 0 0 2 0;
+}
+
+.tab-pane .tab-label {
+    -fx-text-fill: -fx-muted;
+    -fx-font-weight: 700;
+    -fx-font-size: 12px;
+}
+
+.tab-pane .tab:selected .tab-label {
+    -fx-text-fill: -fx-navy;
+}
+
+/* ---------- diálogos / alertas ---------- */
+
+.dialog-pane {
+    -fx-background-color: white;
+    -fx-border-color: -fx-line;
+}
+
+.dialog-pane .header-panel {
+    -fx-background-color: #F1F5F9;
+}
+
+.alert.information .content.label, .alert.confirmation .content.label {
+    -fx-text-fill: -fx-ink;
+}
+
+/* ---------- rolagem ---------- */
+
+.scroll-bar {
+    -fx-background-color: transparent;
+}
+
+.scroll-bar .thumb {
+    -fx-background-color: #CBD5E1;
+    -fx-background-radius: 6;
+}
+
+.scroll-bar .thumb:hover {
+    -fx-background-color: #94A3B8;
+}
+
+/* ---------- rolagem (conteúdo do shell) ---------- */
+
+.scroll-pane {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.scroll-pane > .viewport {
+    -fx-background-color: -fx-bg;
+}
+
+/* ---------- diversos ---------- */
+
+.check-box, .radio-button {
+    -fx-text-fill: -fx-ink;
+    -fx-font-size: 12px;
+}
+
+.check-box .box {
+    -fx-background-color: white;
+    -fx-border-color: -fx-line;
+    -fx-border-radius: 4;
+}
+
+.check-box:selected .box {
+    -fx-background-color: -fx-primary;
+    -fx-border-color: -fx-primary;
+}
+
+.check-box:selected .mark {
+    -fx-background-color: white;
+}
+
+.separator .line {
+    -fx-border-color: -fx-line;
+    -fx-border-width: 0 0 1 0;
+}
+
+.tool-bar {
+    -fx-background-color: white;
+    -fx-border-color: transparent transparent -fx-line transparent;
+    -fx-padding: 8 12 8 12;
+}
+
+.titled-pane {
+    -fx-text-fill: -fx-navy;
+    -fx-font-weight: 700;
+}
+
+.titled-pane > .title {
+    -fx-background-color: #F1F5F9;
+    -fx-border-color: -fx-line;
+    -fx-border-radius: 6;
+}

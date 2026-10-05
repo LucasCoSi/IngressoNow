@@ -10,6 +10,7 @@ import br.com.evento.infra.FabricaAplicacao;
 import javafx.application.Application;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
@@ -21,6 +22,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.control.PasswordField;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Spinner;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
@@ -53,6 +55,38 @@ public class DesktopApp extends Application {
         app = fabrica;
     }
 
+    /**
+     * Cria cena já com o tema IngressoNow (D-01: CSS externo em
+     * {@code /desktop/ingressonow.css}, sem FXML — JavaFX puro).
+     */
+    private static Scene cena(Parent raiz, double largura, double altura) {
+        Scene cena = new Scene(raiz, largura, altura);
+        var css = DesktopApp.class.getResource("/desktop/ingressonow.css");
+        if (css != null) {
+            cena.getStylesheets().add(css.toExternalForm());
+        }
+        return cena;
+    }
+
+    private static Button primario(String texto) {
+        var b = new Button(texto);
+        b.getStyleClass().add("btn-primary");
+        return b;
+    }
+
+    private static Label titulo(String texto) {
+        var l = new Label(texto);
+        l.getStyleClass().add("page-title");
+        return l;
+    }
+
+    private static Label subtitulo(String texto) {
+        var l = new Label(texto);
+        l.getStyleClass().add("subtitle");
+        l.setWrapText(true);
+        return l;
+    }
+
     @Override
     public void start(Stage palco) {
         this.palco = palco;
@@ -65,13 +99,43 @@ public class DesktopApp extends Application {
 
     private void mostrarLogin() {
         logado = null;
+        shell = null;
+
+        // Faixa de marca (identidade do site: navy-dark + "IN").
+        var marca = new Label("IN");
+        marca.getStyleClass().add("brand-mark");
+        var nomeMarca = new HBox(0);
+        var ingresso = new Label("Ingresso");
+        ingresso.getStyleClass().add("brand-title");
+        var now = new Label("Now");
+        now.getStyleClass().add("brand-now");
+        nomeMarca.getChildren().addAll(ingresso, now);
+        var slogan = new Label("Gestão de eventos acadêmicos\n"
+                + "Inscrições • frequência • certificados");
+        slogan.getStyleClass().add("brand-sub");
+        slogan.setWrapText(true);
+        var demo = new Label("Demo — organizadora: maria.santos@email.com\n"
+                + "participante: lucas.silva@email.com (senha123)");
+        demo.getStyleClass().add("brand-sub");
+        demo.setWrapText(true);
+        demo.setStyle("-fx-font-size: 11px; -fx-opacity: 0.85;");
+        var marcaBox = new VBox(12, marca, nomeMarca, slogan, demo);
+        marcaBox.getStyleClass().add("brand-panel");
+        marcaBox.setPrefWidth(300);
+
+        // Cartão de acesso.
         var email = new TextField();
-        email.setPromptText("e-mail");
+        email.setPromptText("voce@email.com");
         var senha = new PasswordField();
-        senha.setPromptText("senha");
-        var entrar = new Button("Entrar");
-        var irCadastro = new Button("Cadastrar");
+        senha.setPromptText("sua senha");
+        var entrar = primario("Entrar");
+        entrar.setDefaultButton(true);
+        entrar.setMaxWidth(Double.MAX_VALUE);
+        var irCadastro = new Button("Criar conta");
+        irCadastro.setMaxWidth(Double.MAX_VALUE);
         var msg = new Label();
+        msg.getStyleClass().add("msg-erro");
+        msg.setWrapText(true);
         entrar.setOnAction(e -> {
             try {
                 logado = app.autenticarUsuario.executar(email.getText(), senha.getText());
@@ -81,21 +145,23 @@ public class DesktopApp extends Application {
             }
         });
         irCadastro.setOnAction(e -> mostrarCadastro());
-        var grade = new GridPane();
-        grade.setPadding(new Insets(24));
-        grade.setVgap(8);
-        grade.setHgap(8);
-        grade.add(new Label("E-mail:"), 0, 0);
-        grade.add(email, 1, 0);
-        grade.add(new Label("Senha:"), 0, 1);
-        grade.add(senha, 1, 1);
-        grade.add(entrar, 1, 2);
-        grade.add(irCadastro, 1, 3);
-        grade.add(msg, 1, 4);
-        palco.setScene(new Scene(grade, 380, 260));
+        senha.setOnAction(e -> entrar.fire());
+        var form = new VBox(10,
+                titulo("Entrar"),
+                subtitulo("Acesse com seu e-mail e senha."),
+                new Label("E-mail:"), email,
+                new Label("Senha:"), senha,
+                entrar, irCadastro, msg);
+        form.setPadding(new Insets(36, 36, 36, 36));
+        form.setFillWidth(true);
+        HBox.setHgrow(form, javafx.scene.layout.Priority.ALWAYS);
+
+        var raiz = new HBox(marcaBox, form);
+        palco.setScene(cena(raiz, 760, 470));
     }
 
     private void mostrarCadastro() {
+        shell = null;
         var nome = new TextField();
         nome.setPromptText("nome");
         var email = new TextField();
@@ -132,41 +198,139 @@ public class DesktopApp extends Application {
         grade.add(salvar, 1, 4);
         grade.add(voltar, 1, 5);
         grade.add(msg, 1, 6);
-        palco.setScene(new Scene(grade, 420, 340));
+        palco.setScene(cena(grade, 420, 340));
     }
+
+    // ---------- shell persistente (sidebar + topbar fixas, só o centro troca) ----------
+
+    private BorderPane shell;
+    private Button navInicio, navGestao, navNovo, navProg, navInsc, navExplorar;
 
     private void mostrarPrincipal() {
         if (logado == null) {
             mostrarLogin();
             return;
         }
+        montarShell();
+        navegar(conteudoInicio(), navInicio);
+    }
+
+    private static Button navBotao(String texto) {
+        var b = new Button(texto);
+        b.getStyleClass().add("nav-btn");
+        b.setMaxWidth(Double.MAX_VALUE);
+        return b;
+    }
+
+    private void montarShell() {
         boolean org = isOrganizador();
-        var titulo = new Label("Olá, " + logado.getNome() + " (" + papel() + ")");
-        titulo.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
-        var botoes = new VBox(8);
-        botoes.setPadding(new Insets(16));
-        botoes.getChildren().add(titulo);
+        navInicio = navGestao = navNovo = navProg = navInsc = navExplorar = null;
+
+        // Sidebar navy (espelha o site: marca + navegação + sair).
+        var marca = new Label("IN");
+        marca.getStyleClass().add("brand-mark");
+        var nomeMarca = new HBox(0);
+        var ingresso = new Label("Ingresso");
+        ingresso.getStyleClass().addAll("brand-title");
+        ingresso.setStyle("-fx-font-size: 17px;");
+        var now = new Label("Now");
+        now.getStyleClass().add("brand-now");
+        now.setStyle("-fx-font-size: 17px;");
+        nomeMarca.getChildren().addAll(ingresso, now);
+        var lado = new VBox(6, marca, nomeMarca);
+        lado.getStyleClass().add("sidebar");
+        lado.setPadding(new Insets(20, 14, 20, 14));
+        lado.setPrefWidth(230);
+
+        var nav = new VBox(4);
+        navInicio = navBotao("Início");
+        navInicio.setOnAction(e -> navegar(conteudoInicio(), navInicio));
+        nav.getChildren().add(navInicio);
         if (org) {
-            var gestao = new Button("Meus eventos (gestão)");
-            gestao.setOnAction(e -> mostrarGestao());
-            var novo = new Button("Novo evento (RASCUNHO)");
-            novo.setOnAction(e -> dialogoEvento(null));
-            var prog = new Button("Programação");
-            prog.setOnAction(e -> dialogoProgramacao());
-            var insc = new Button("Inscrições");
-            insc.setOnAction(e -> dialogoInscricoes());
-            botoes.getChildren().addAll(gestao, novo, prog, insc);
+            navGestao = navBotao("Meus eventos");
+            navGestao.setOnAction(e -> mostrarGestao());
+            navNovo = navBotao("Novo evento");
+            navNovo.setOnAction(e -> dialogoEvento(null));
+            navProg = navBotao("Programação");
+            navProg.setOnAction(e -> dialogoProgramacao());
+            navInsc = navBotao("Inscrições");
+            navInsc.setOnAction(e -> dialogoInscricoes());
+            nav.getChildren().addAll(navGestao, navNovo, navProg, navInsc);
         }
-        var explorar = new Button("Explorar publicados");
-        explorar.setOnAction(e -> mostrarExplorar());
-        var sair = new Button("Sair");
-        sair.setOnAction(e -> mostrarLogin());
-        botoes.getChildren().addAll(explorar, sair);
-        var msg = new Label(org
-                ? "Gestão: só os próprios eventos (isolamento por dono, RN-18)."
-                : "Visão do participante: explore e inscreva-se.");
-        botoes.getChildren().add(msg);
-        palco.setScene(new Scene(botoes, 480, 340));
+        navExplorar = navBotao("Explorar publicados");
+        navExplorar.setOnAction(e -> mostrarExplorar());
+        var sair = navBotao("Sair (" + logado.getNome() + ")");
+        sair.setOnAction(e -> {
+            if (confirmar(palco, "Sair da conta de " + logado.getNome() + "?")) mostrarLogin();
+        });
+        nav.getChildren().addAll(navExplorar, sair);
+        lado.getChildren().add(nav);
+
+        // Barra superior branca: identidade de quem está operando (sem CTAs
+        // duplicados — as ações ficam na sidebar).
+        var topo = new HBox(10);
+        topo.getStyleClass().add("topbar");
+        topo.setPadding(new Insets(10, 16, 10, 16));
+        topo.setAlignment(javafx.geometry.Pos.CENTER_RIGHT);
+        var quem = new Label(logado.getNome() + " • " + papel());
+        quem.getStyleClass().add("subtitle");
+        var selo = new Label(org ? "ORGANIZADOR" : "PARTICIPANTE");
+        selo.getStyleClass().add("badge");
+        topo.getChildren().addAll(quem, selo);
+
+        shell = new BorderPane(null, topo, null, null, lado);
+        palco.setScene(cena(shell, 1024, 640));
+    }
+
+    /** Troca só o centro do shell (sidebar/topbar permanecem). */
+    private void navegar(Parent conteudo, Button ativo) {
+        if (logado == null) {
+            mostrarLogin();
+            return;
+        }
+        if (shell == null) montarShell();
+        var rol = new ScrollPane(conteudo);
+        rol.setFitToWidth(true);
+        rol.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        rol.setPannable(true);
+        shell.setCenter(rol);
+        for (var b : new Button[]{navInicio, navGestao, navNovo, navProg, navInsc, navExplorar}) {
+            if (b != null) b.getStyleClass().remove("active");
+        }
+        if (ativo != null && !ativo.getStyleClass().contains("active")) {
+            ativo.getStyleClass().add("active");
+        }
+    }
+
+    private VBox conteudoInicio() {
+        boolean org = isOrganizador();
+        // Conteúdo: boas-vindas + resumo.
+        var papel = new Label(org ? "ORGANIZADOR" : "PARTICIPANTE");
+        papel.getStyleClass().add("badge");
+        var boas = titulo("Olá, " + logado.getNome());
+        String resumo = "Operador IngressoNow — mesmo banco e mesmas regras da API/site (RN-19).";
+        if (org) {
+            try {
+                int meus = app.listarEventosOrganizador.executar(logado.getId()).size();
+                int publ = app.listarEventosPublicados.executar().size();
+                resumo = "Você tem " + meus + " evento(s) • " + publ + " publicado(s) no catálogo.";
+            } catch (Exception ignored) {
+                // mantém texto padrão
+            }
+        } else {
+            try {
+                int publ = app.listarEventosPublicados.executar().size();
+                resumo = publ + " evento(s) publicado(s) — explore e inscreva-se.";
+            } catch (Exception ignored) {
+                resumo = "Explore os publicados e inscreva-se.";
+            }
+        }
+        var centro = new VBox(12, papel, boas, subtitulo(resumo),
+                subtitulo(org
+                        ? "Gestão isolada por dono (RN-18): só os próprios eventos."
+                        : "Visão do participante: explorar e inscrever-se."));
+        centro.setPadding(new Insets(32));
+        return centro;
     }
 
     // ---------- DSK-10: gestão do organizador ----------
@@ -181,7 +345,7 @@ public class DesktopApp extends Application {
         }
         var lista = new ListView<>(FXCollections.observableArrayList(meus));
         estilizarListaEventos(lista);
-        var abrir = new Button("Abrir");
+        var abrir = primario("Abrir");
         abrir.setOnAction(e -> {
             Evento sel = lista.getSelectionModel().getSelectedItem();
             if (sel != null) mostrarDetalhe(sel.getId(), true);
@@ -194,14 +358,12 @@ public class DesktopApp extends Application {
             if (sel != null) dialogoEvento(sel.getId());
         });
         var excluir = new Button("Excluir");
+        excluir.getStyleClass().add("btn-danger");
         excluir.setOnAction(e -> {
             Evento sel = lista.getSelectionModel().getSelectedItem();
             if (sel == null) return;
-            var confirma = new Alert(Alert.AlertType.CONFIRMATION,
-                    "Excluir \"" + sel.getTitulo() + "\"? (bloqueado se houver inscrições)",
-                    ButtonType.YES, ButtonType.NO);
-            confirma.showAndWait();
-            if (confirma.getResult() != ButtonType.YES) return;
+            if (!confirmar(palco,
+                    "Excluir \"" + sel.getTitulo() + "\"? (bloqueado se houver inscrições)")) return;
             try {
                 if (app.inscricoes.contarPorEvento(sel.getId()) > 0) {
                     throw new IllegalStateException(
@@ -219,12 +381,20 @@ public class DesktopApp extends Application {
         encerrar.setOnAction(e -> acaoEstado(lista, "encerrar"));
         var voltar = new Button("Voltar");
         voltar.setOnAction(e -> mostrarPrincipal());
-        var topo = new HBox(8, new Label("Meus eventos — " + logado.getNome()), voltar);
-        topo.setPadding(new Insets(8));
+        var seloQtd = new Label(meus.size() + " evento(s)");
+        seloQtd.getStyleClass().add("badge");
+        var cabec = new HBox(10, titulo("Meus eventos"), seloQtd);
+        cabec.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        var vazio = subtitulo(meus.isEmpty()
+                ? "Nenhum evento ainda — clique em Novo para criar um RASCUNHO."
+                : "Selecione um evento para abrir, editar, publicar ou encerrar.");
         var barra = new HBox(8, abrir, novo, editar, excluir, publicar, encerrar);
-        barra.setPadding(new Insets(8));
-        var raiz = new BorderPane(lista, topo, null, barra, null);
-        palco.setScene(new Scene(raiz, 720, 460));
+        barra.setPadding(new Insets(12, 0, 0, 0));
+        var voltarBox = new HBox(8, voltar);
+        voltarBox.setPadding(new Insets(12, 0, 0, 0));
+        var centro = new VBox(8, cabec, vazio, lista, barra, voltarBox);
+        centro.setPadding(new Insets(16));
+        navegar(centro, navGestao);
     }
 
     private void acaoEstado(ListView<Evento> lista, String acao) {
@@ -279,7 +449,9 @@ public class DesktopApp extends Application {
         var porAtv = new CheckBox("Vagas por atividade");
         porAtv.setSelected(atual != null && atual.isVagasPorAtividade());
         var msg = new Label();
-        var salvar = new Button(atual != null ? "Salvar" : "Criar RASCUNHO");
+        msg.getStyleClass().add("msg-erro");
+        msg.setWrapText(true);
+        var salvar = primario(atual != null ? "Salvar" : "Criar RASCUNHO");
         var voltar = new Button("Voltar");
         Evento editando = atual;
         salvar.setOnAction(e -> {
@@ -309,7 +481,6 @@ public class DesktopApp extends Application {
         });
         voltar.setOnAction(e -> mostrarGestao());
         var grade = new GridPane();
-        grade.setPadding(new Insets(16));
         grade.setVgap(8);
         grade.setHgap(8);
         grade.add(new Label("Título:"), 0, 0);
@@ -331,7 +502,15 @@ public class DesktopApp extends Application {
         grade.add(salvar, 1, 9);
         grade.add(voltar, 1, 10);
         grade.add(msg, 1, 11);
-        palco.setScene(new Scene(grade, 560, 620));
+        boolean editandoModo = editando != null;
+        var corpo = new VBox(12,
+                titulo(editandoModo ? "Editar evento" : "Novo evento"),
+                subtitulo(editandoModo
+                        ? "Atualize os dados e salve."
+                        : "Criado como RASCUNHO — publique após adicionar atividades."),
+                grade);
+        corpo.setPadding(new Insets(20));
+        navegar(corpo, editandoModo ? navGestao : navNovo);
     }
 
     // ---------- Explorar + detalhe (todos os papéis) ----------
@@ -344,18 +523,23 @@ public class DesktopApp extends Application {
         var lista = new ListView<>(FXCollections.observableArrayList(
                 app.listarEventosPublicados.executar()));
         estilizarListaEventos(lista);
-        var abrir = new Button("Abrir");
+        var abrir = primario("Abrir");
         abrir.setOnAction(e -> {
             Evento sel = lista.getSelectionModel().getSelectedItem();
             if (sel != null) mostrarDetalhe(sel.getId(), false);
         });
         var voltar = new Button("Voltar");
         voltar.setOnAction(e -> mostrarPrincipal());
-        var topo = new HBox(8, new Label("Publicados"), voltar);
-        topo.setPadding(new Insets(8));
-        var barra = new HBox(8, abrir);
-        barra.setPadding(new Insets(8));
-        palco.setScene(new Scene(new BorderPane(lista, topo, null, barra, null), 620, 420));
+        var seloQtd = new Label(lista.getItems().size() + " publicado(s)");
+        seloQtd.getStyleClass().add("badge");
+        var cabec = new HBox(10, titulo("Eventos publicados"), seloQtd);
+        cabec.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        var dica = subtitulo("Catálogo público — o mesmo do site (RF-10).");
+        var barra = new HBox(8, abrir, voltar);
+        barra.setPadding(new Insets(12, 0, 0, 0));
+        var centro = new VBox(8, cabec, dica, lista, barra);
+        centro.setPadding(new Insets(16));
+        navegar(centro, navExplorar);
     }
 
     private void mostrarDetalhe(String eventoId, boolean veioDaGestao) {
@@ -446,7 +630,8 @@ public class DesktopApp extends Application {
         });
         var botoes = new HBox(8, inscrever, voltar, msg);
         botoes.setPadding(new Insets(8));
-        palco.setScene(new Scene(new BorderPane(linhas, null, null, botoes, null), 680, 480));
+        navegar(new BorderPane(linhas, null, null, botoes, null),
+                veioDaGestao ? navGestao : navExplorar);
     }
 
     // ---------- DSK-11: atividades (RF-05/06/07/13/19) ----------
@@ -557,7 +742,7 @@ public class DesktopApp extends Application {
         grade.add(salvar, 1, 8);
         grade.add(voltar, 1, 9);
         grade.add(msg, 1, 10);
-        palco.setScene(new Scene(grade, 540, 560));
+        navegar(grade, veioDaGestao ? navGestao : navExplorar);
     }
 
     private void dialogoCriterio(String eventoId, String atividadeId, boolean veioDaGestao) {
@@ -597,7 +782,7 @@ public class DesktopApp extends Application {
         voltar.setOnAction(e -> mostrarDetalhe(eventoId, veioDaGestao));
         var caixa = new VBox(8, new Label("Critério de presença (RF-19):"), criterio, msg, salvar, voltar);
         caixa.setPadding(new Insets(16));
-        palco.setScene(new Scene(caixa, 420, 280));
+        navegar(caixa, veioDaGestao ? navGestao : navExplorar);
     }
 
     // ---------- DSK-12: pessoas (RF-08) ----------
@@ -658,7 +843,7 @@ public class DesktopApp extends Application {
         var form = new HBox(8, nome, papel, vincular, remover);
         var caixa = new VBox(8, new Label("Pessoas da atividade:"), lista, form, msg, voltar);
         caixa.setPadding(new Insets(12));
-        palco.setScene(new Scene(caixa, 640, 480));
+        navegar(caixa, veioDaGestao ? navGestao : navExplorar);
     }
 
     /**
@@ -818,7 +1003,7 @@ public class DesktopApp extends Application {
                 new HBox(8, gerarQr, validarQr),
                 msg, voltar);
         caixa.setPadding(new Insets(12));
-        palco.setScene(new Scene(caixa, 680, 640));
+        navegar(caixa, veioDaGestao ? navGestao : navExplorar);
     }
 
     private String nomeParticipante(String participanteId) {
@@ -888,8 +1073,8 @@ public class DesktopApp extends Application {
                 area.setPrefSize(560, 380);
                 var voltar2 = new Button("Voltar");
                 voltar2.setOnAction(e2 -> dialogoAvaliacoes(eventoId, veioDaGestao));
-                palco.setScene(new Scene(new VBox(8,
-                        new Label("Resultados — " + q.getTitulo()), area, voltar2), 600, 480));
+                navegar(new VBox(8,
+                        new Label("Resultados — " + q.getTitulo()), area, voltar2), null);
             } catch (Exception ex) {
                 msg.setText("Falha: " + mensagem(ex));
             }
@@ -909,7 +1094,7 @@ public class DesktopApp extends Application {
                 new Label("Questionários do evento (RF-24; congela após 1ª resposta, RN-17):"),
                 box, new HBox(8, novo, resultados, responder), msg, voltar);
         caixa.setPadding(new Insets(12));
-        palco.setScene(new Scene(caixa, 640, 320));
+        navegar(caixa, veioDaGestao ? navGestao : navExplorar);
     }
 
     private void dialogoNovoQuestionario(String eventoId, boolean veioDaGestao) {
@@ -1009,7 +1194,7 @@ public class DesktopApp extends Application {
         grade.add(salvar, 1, 7);
         grade.add(voltar, 1, 8);
         grade.add(msg, 1, 9);
-        palco.setScene(new Scene(grade, 680, 640));
+        navegar(grade, veioDaGestao ? navGestao : navExplorar);
     }
 
     private void dialogoResponder(String eventoId, String questionarioId, boolean veioDaGestao) {
@@ -1070,7 +1255,7 @@ public class DesktopApp extends Application {
         var voltar = new Button("Voltar");
         voltar.setOnAction(e -> dialogoAvaliacoes(eventoId, veioDaGestao));
         caixa.getChildren().addAll(enviar, voltar, msg);
-        palco.setScene(new Scene(caixa, 620, 560));
+        navegar(caixa, veioDaGestao ? navGestao : navExplorar);
     }
 
     // ---------- DSK-50/51: relatórios (RF-29/30/31, CA-07) + certificados (RF-32–35, CA-08) ----------
@@ -1239,7 +1424,7 @@ public class DesktopApp extends Application {
                 new HBox(8, baixarPdf, emailDestino, enviar),
                 msg, voltar);
         caixa.setPadding(new Insets(12));
-        palco.setScene(new Scene(caixa, 720, 680));
+        navegar(caixa, veioDaGestao ? navGestao : navExplorar);
     }
 
     private void salvarTexto(String nomeSugerido, String conteudo) throws Exception {
@@ -1297,6 +1482,8 @@ public class DesktopApp extends Application {
             }
         });
         var msg = new Label("Filtros combináveis (RF-09: data, tipo, trilha, local).");
+        msg.getStyleClass().add("subtitle");
+        msg.setWrapText(true);
         Runnable filtrar = () -> {
             try {
                 Evento ev = app.eventos.buscarPorId(eventoBox.getValue().getId()).orElseThrow();
@@ -1324,19 +1511,20 @@ public class DesktopApp extends Application {
                 msg.setText("Falha: " + mensagem(ex));
             }
         };
-        var filtrarBtn = new Button("Filtrar");
+        var filtrarBtn = primario("Filtrar");
         filtrarBtn.setOnAction(e -> filtrar.run());
         eventoBox.setOnAction(e -> filtrar.run());
         filtrar.run();
         var voltar = new Button("Voltar");
         voltar.setOnAction(e -> mostrarPrincipal());
         var caixa = new VBox(8,
-                new Label("Programação:"),
+                titulo("Programação"),
+                subtitulo("Grade do evento com filtros combináveis (RF-09)."),
                 eventoBox,
                 new HBox(8, fData, fTipo, fTrilha, fLocal, filtrarBtn),
                 lista, msg, voltar);
-        caixa.setPadding(new Insets(12));
-        palco.setScene(new Scene(caixa, 760, 560));
+        caixa.setPadding(new Insets(20));
+        navegar(caixa, navProg);
     }
 
     private static boolean casaFiltro(String filtro, String valor) {
@@ -1368,6 +1556,7 @@ public class DesktopApp extends Application {
         });
         eventoBox.setValue(eventos.get(0));
         var vagasInfo = new Label();
+        vagasInfo.getStyleClass().add("badge");
         var lista = new ListView<Inscricao>();
         lista.setPrefHeight(260);
         lista.setCellFactory(v -> new ListCell<>() {
@@ -1394,16 +1583,16 @@ public class DesktopApp extends Application {
         eventoBox.setOnAction(e -> recarregar.run());
         recarregar.run();
         var msg = new Label();
+        msg.getStyleClass().add("msg-erro");
+        msg.setWrapText(true);
         var cancelar = new Button("Cancelar inscrição");
+        cancelar.getStyleClass().add("btn-danger");
         cancelar.setOnAction(e -> {
             Inscricao sel = lista.getSelectionModel().getSelectedItem();
             if (sel == null) return;
-            var confirma = new Alert(Alert.AlertType.CONFIRMATION,
+            if (!confirmar(palco,
                     "Cancelar a inscrição de " + nomeParticipante(sel.getParticipanteId())
-                            + "? A vaga será liberada (RF-15).",
-                    ButtonType.YES, ButtonType.NO);
-            confirma.showAndWait();
-            if (confirma.getResult() != ButtonType.YES) return;
+                            + "? A vaga será liberada (RF-15).")) return;
             try {
                 app.cancelarInscricao.executar(sel.getId());
                 msg.setText("Inscrição cancelada. Vaga liberada.");
@@ -1412,7 +1601,7 @@ public class DesktopApp extends Application {
                 msg.setText("Falha: " + mensagem(ex));
             }
         });
-        var agenda = new Button("Ver agenda");
+        var agenda = primario("Ver agenda");
         agenda.setOnAction(e -> {
             Inscricao sel = lista.getSelectionModel().getSelectedItem();
             if (sel == null) return;
@@ -1420,13 +1609,16 @@ public class DesktopApp extends Application {
         });
         var voltar = new Button("Voltar");
         voltar.setOnAction(e -> mostrarPrincipal());
+        var cabecInsc = new HBox(10, titulo("Inscrições"), vagasInfo);
+        cabecInsc.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
         var caixa = new VBox(8,
-                new Label("Inscrições por evento:"),
-                eventoBox, vagasInfo, lista,
+                cabecInsc,
+                subtitulo("Inscritos por evento com controle de vagas (RF-14)."),
+                eventoBox, lista,
                 new HBox(8, cancelar, agenda),
                 msg, voltar);
-        caixa.setPadding(new Insets(12));
-        palco.setScene(new Scene(caixa, 680, 560));
+        caixa.setPadding(new Insets(20));
+        navegar(caixa, navInsc);
     }
 
     private void dialogoAgenda(String eventoId, String inscricaoId) {
@@ -1452,7 +1644,7 @@ public class DesktopApp extends Application {
                             + (agenda.estaVazia() ? " (vazia)" : "")),
                     lista, voltar);
             caixa.setPadding(new Insets(12));
-            palco.setScene(new Scene(caixa, 620, 440));
+            navegar(caixa, navInsc);
         } catch (Exception ex) {
             alerta("Falha: " + mensagem(ex));
         }
@@ -1566,6 +1758,25 @@ public class DesktopApp extends Application {
 
     private void alerta(String texto) {
         var a = new Alert(Alert.AlertType.INFORMATION, texto);
+        vestirDialogo(a);
         a.showAndWait();
+    }
+
+    /** Aplica o tema IngressoNow no DialogPane (Alert não herda o CSS da cena). */
+    private static void vestirDialogo(Alert dialogo) {
+        var css = DesktopApp.class.getResource("/desktop/ingressonow.css");
+        if (css != null) {
+            dialogo.getDialogPane().getStylesheets().add(css.toExternalForm());
+        }
+    }
+
+    /** Confirmação Sim/Não já tematizada. */
+    private static boolean confirmar(javafx.stage.Window dono, String texto) {
+        var confirma = new Alert(Alert.AlertType.CONFIRMATION, texto,
+                ButtonType.YES, ButtonType.NO);
+        confirma.initOwner(dono);
+        vestirDialogo(confirma);
+        confirma.showAndWait();
+        return confirma.getResult() == ButtonType.YES;
     }
 }
