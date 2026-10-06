@@ -14,7 +14,12 @@ Integração além do literal do §9-Semana-4 ("desktop consumindo a API"):
 o desktop chama os **mesmos use cases/portas via `FabricaAplicacao`
 direta** (hexagonal §8.1 item 3, adaptador de entrada), sem HTTP/JWT —
 mesmas regras e mesmo banco (RN-19/RNF-02), com checagem de dono
-repetida na tela (RN-18).
+repetida na tela (RN-18). Tema `desktop/ingressonow.css` (mesma
+identidade do site: navy `#1E3A8A`/`#0F172A`, primário `#2563EB`),
+aplicado via `DesktopApp#cena(...)` em todas as telas; login em
+coluna dupla (marca + cartão) e principal com sidebar navy. Navegação
+em shell persistente (`montarShell` + `navegar`): sidebar e topbar
+fixas com item ativo destacado, só o centro troca (com rolagem).
 
 ## D-02 API/auth: Java SE + JWT (jjwt)
 
