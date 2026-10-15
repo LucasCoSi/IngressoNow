@@ -969,10 +969,10 @@ public class DesktopApp extends Application {
             Inscricao sel = lista.getSelectionModel().getSelectedItem();
             if (sel == null || atvBox.getValue() == null) return;
             try {
-                // RF-20: token opaco ids+salt Base64, sem PII (RN-10).
+                // RF-20: token opaco ids+instante+salt Base64-URL, sem PII (RN-10); vale 5 min (D-05).
                 tokenArea.setText(app.qrCodeService.gerarTokenParaCheckIn(
                         sel, atvBox.getValue().getId()));
-                msg.setText("QR gerado (sem dados pessoais).");
+                msg.setText("QR gerado (sem dados pessoais, válido por 5 min).");
             } catch (Exception ex) {
                 msg.setText("Falha: " + mensagem(ex));
             }

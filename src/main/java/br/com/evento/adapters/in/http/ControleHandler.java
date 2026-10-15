@@ -50,11 +50,16 @@ public class ControleHandler implements HttpHandler {
             if (partes.length == 1 && "checkin".equals(partes[0]) && "POST".equals(metodo)) {
                 var logadoCheckin = jwt.autenticar(ex)
                         .orElseThrow(() -> new DomainException("Autenticação exigida."));
-                if (!Papeis.exigirOrganizador(logadoCheckin, ex)) return;
                 var req = Json.ler(HttpErrors.corpo(ex), CheckInRequest.class);
                 if (req.qrCodeToken() == null || req.qrCodeToken().isBlank()) {
                     throw new IllegalArgumentException("O token do QR Code é obrigatório");
                 }
+                // CA-04/RF-21: o participante elegível registra a própria presença;
+                // o organizador também pode lançar por este canal (dono OU organizador).
+                var dados = qrCodeService.decodificarToken(req.qrCodeToken());
+                Inscricao dona = inscricoes.buscarPorId(dados.inscricaoId())
+                        .orElseThrow(() -> new DomainException("Inscrição não encontrada."));
+                if (!Papeis.exigirDonoOuOrganizador(logadoCheckin, dona.getParticipanteId(), ex)) return;
                 checkIn.executar(req.qrCodeToken());
                 HttpErrors.json(ex, 200, Map.of("ok", true));
                 return;

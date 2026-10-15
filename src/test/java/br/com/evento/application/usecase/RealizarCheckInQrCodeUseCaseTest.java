@@ -78,4 +78,17 @@ class RealizarCheckInQrCodeUseCaseTest {
         assertThrows(DomainException.class, () -> useCase.executar(token));
         verify(inscricaoRepository, never()).salvar(any());
     }
+
+    @Test
+    void naoDeveDuplicarCheckInUnico() {
+        String token = "token-valido";
+        when(qrCodeService.decodificarToken(token)).thenReturn(new DadosQrCode(inscricao.getId(), atividade.getId()));
+        when(inscricaoRepository.buscarPorId(inscricao.getId())).thenReturn(Optional.of(inscricao));
+        when(eventoRepository.buscarPorId("evt-1")).thenReturn(Optional.of(evento));
+
+        useCase.executar(token);
+
+        DomainException ex = assertThrows(DomainException.class, () -> useCase.executar(token));
+        assertTrue(ex.getMessage().toLowerCase().contains("já registrada"));
+    }
 }

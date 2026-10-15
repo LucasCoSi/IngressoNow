@@ -1,7 +1,9 @@
 # IngressoNow — Refatorações Registradas (ROO-12)
 
-Duas refatorações motivadas, aplicadas na migração Java SE / Task #4.
-Nenhuma muda comportamento observável — só estrutura.
+Quatro refatorações motivadas (R-01/R-02 na migração Java SE/Task #4;
+R-03/R-04 no endurecimento D-05/ROO-02/ROO-05).
+Nenhuma muda comportamento observável além do exigido pelo documento — só estrutura
+(R-04 fecha a validade exigida em D-05/RNF-11).
 
 ## R-01: Extração de `exigirSemConflito` em `Evento`
 
@@ -39,9 +41,46 @@ removida do agregado continua sendo deletada. Validado em Docker
 Arquivos: `adapters/out/jdbc/JdbcQuestionarioRepository.java`,
 `adapters/out/jdbc/JdbcEventoRepository.java`.
 
+## R-03: Validação polimórfica em `TipoPergunta` (ROO-05)
+
+**Motivo:** `Pergunta.validarResposta` usava `switch (tipo)` — variação
+por condicional espalhada, contra §8.5 (questionários: "validação
+polimórfica de respostas") e o comentário que já prometia polimorfismo.
+
+**Mudança:** cada constante de `TipoPergunta` implementa
+`validar(enunciado, obrigatoria, opcoes, escalaMax, valor)`; `Pergunta`
+só delega (`tipo.validar(...)`), mantendo a checagem de obrigatoriedade.
+
+**Efeito:** novo tipo de pergunta = nova constante, sem tocar
+`Pergunta`/use cases; coberto por `PerguntaTest` (escala, escolha,
+texto + obrigatoriedade).
+
+Arquivos: `domain/model/entity/TipoPergunta.java`, `domain/model/entity/Pergunta.java`.
+
+## R-04: QR com validade + anti-duplicidade (D-05/RNF-11)
+
+**Motivo:** token eterno (`ids+salt`) + `registrarCheckIn` sem guarda =
+repetição acidental duplicava presença (viola RNF-11) e vazamento do
+token valia para sempre (viola D-05/RF-20). Além disso o `POST /checkin`
+exigia organizador, bloqueando o CA-04 (participante registra a própria
+presença).
+
+**Mudança:** token `ids:emitidoEm:salt` com `VALIDADE=5min` validada em
+`decodificarToken`; `Inscricao` rejeita 2º check-in na política única
+("Presença já registrada"); `ControleHandler` autoriza dono OU
+organizador no check-in (manual segue só organizador).
+
+**Efeito:** repetição não duplica; expirado/adulterado → 422 com motivo;
+CA-04 demonstrável pelo participante. Cobertura: `SimpleQrCodeServiceTest`,
+`InscricaoTest` (único × entrada/saída), `RealizarCheckInQrCodeUseCaseTest`.
+
+Arquivos: `application/service/SimpleQrCodeService.java`,
+`domain/port/in/DadosQrCode.java`, `domain/model/entity/Inscricao.java`,
+`adapters/in/http/ControleHandler.java`.
+
 ## Cobertura
 
-27 arquivos / 91 métodos JUnit 5 + Mockito (`mvn test`: 0 falhas), incluindo:
+30 arquivos / 102 testes JUnit 5 + Mockito (`mvn test`: 0 falhas), incluindo:
 - `EditarUsuarioUseCaseTest` (RF-03), `RemarcarAtividadeUseCaseTest` (RF-07),
   `VincularPessoaUseCaseTest` (RF-08), `RealizarCheckInManualUseCaseTest` (RF-22),
   `GerarRelatorioInscritosUseCaseTest` (RF-29),

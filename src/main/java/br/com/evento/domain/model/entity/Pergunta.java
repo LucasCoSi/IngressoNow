@@ -64,9 +64,10 @@ public class Pergunta {
     public Integer getEscalaMax() { return escalaMax; }
 
     /**
-     * Valida um valor bruto de resposta contra esta pergunta.
-     * Lança DomainException com mensagem compreensível (RNF-07).
-     */
+      * Valida um valor bruto de resposta contra esta pergunta.
+      * Lança DomainException com mensagem compreensível (RNF-07).
+      * A regra por tipo vive em {@link TipoPergunta} (polimorfismo, ROO-05).
+      */
     public void validarResposta(String valor) {
         if (valor == null || valor.trim().isEmpty()) {
             if (obrigatoria) {
@@ -74,30 +75,7 @@ public class Pergunta {
             }
             return;
         }
-        switch (tipo) {
-            case TEXTO_LIVRE -> {
-                // Qualquer texto não-vazio é válido.
-            }
-            case ESCOLHA_SIMPLES -> {
-                if (!opcoes.contains(valor.trim())) {
-                    throw new DomainException("A pergunta '" + enunciado
-                            + "' exige uma das opções: " + String.join(", ", opcoes) + ".");
-                }
-            }
-            case ESCALA_NUMERICA -> {
-                int numero;
-                try {
-                    numero = Integer.parseInt(valor.trim());
-                } catch (NumberFormatException e) {
-                    throw new DomainException("A pergunta '" + enunciado
-                            + "' exige um número de 1 a " + escalaMax + ".");
-                }
-                if (numero < 1 || numero > escalaMax) {
-                    throw new DomainException("A pergunta '" + enunciado
-                            + "' exige um número de 1 a " + escalaMax + ".");
-                }
-            }
-        }
+        tipo.validar(enunciado, obrigatoria, opcoes, escalaMax, valor);
     }
 
 }

@@ -11,7 +11,143 @@ document.addEventListener('DOMContentLoaded', async function() {
     const eventSelect = document.getElementById('event-select')
         || document.querySelector('[data-od-id="event-dropdown"]');
     const saveBtn = document.querySelector('[data-od-id="save-settings-cta"]');
+    const restoreBtn = document.querySelector('[data-od-id="restore-defaults-btn"]');
     const freqTab = document.querySelector('[data-od-id="tab-content-frequency"]');
+
+    // Preferências locais (MVP): o backend do §11 não tem endpoint de
+    // configurações globais nem upload de imagens (RN-02: foto opcional,
+    // sem bloqueio). Logo/assinatura ficam como preferência deste
+    // navegador com preview; regras de evento vão ao servidor (PUT /api/eventos).
+    const PREFS_KEY = 'cfgPrefs';
+    const LOGO_MAX = 5 * 1024 * 1024;
+    const ASS_MAX = 2 * 1024 * 1024;
+
+    function lerPrefs() {
+        try {
+            return JSON.parse(localStorage.getItem(PREFS_KEY) || '{}');
+        } catch (e) {
+            return {};
+        }
+    }
+
+    function aplicarPreferencias() {
+        const p = lerPrefs();
+        const setVal = (id, v) => { const el = document.getElementById(id); if (el && v != null) el.value = v; };
+        setVal('cfg-org-nome', p.orgNome);
+        setVal('cfg-org-cnpj', p.orgCnpj);
+        setVal('cfg-org-tel', p.orgTel);
+        setVal('cfg-org-email', p.orgEmail);
+        setVal('cfg-reserva', p.reserva);
+        const setToggle = (odId, v) => {
+            const el = document.querySelector(`[data-od-id="${odId}"]`);
+            if (el && v != null) el.classList.toggle('active', !!v);
+        };
+        setToggle('toggle-frequency', p.tglFrequency);
+        setToggle('toggle-manual-checkin', p.tglManual);
+        setToggle('toggle-late-enrollment', p.tglLate);
+        if (p.certTpl) {
+            document.querySelectorAll('.cert-card').forEach(c =>
+                c.classList.toggle('active', c.dataset.tpl === p.certTpl));
+        }
+        if (p.orgNome) {
+            document.querySelectorAll('.org strong').forEach(el => { el.textContent = p.orgNome; });
+        }
+        mostrarPreview('logo-dropzone', p.logo, 'PNG, JPG (máx. 5MB)');
+        mostrarPreview('signature-dropzone', p.assinatura, 'PNG com fundo transparente (máx. 2MB)');
+    }
+
+    function mostrarPreview(odId, dataUrl, hint) {
+        const dz = document.querySelector(`[data-od-id="${odId}"]`);
+        if (!dz) return;
+        let img = dz.querySelector('img.cfg-preview');
+        if (dataUrl) {
+            if (!img) {
+                img = document.createElement('img');
+                img.className = 'cfg-preview';
+                img.style.cssText = 'max-height:120px;max-width:100%;border-radius:4px;margin-bottom:8px';
+                dz.prepend(img);
+            }
+            img.src = dataUrl;
+            const hintEl = dz.querySelector('.dropzone-hint');
+            if (hintEl) hintEl.textContent = 'Imagem carregada (preferência local deste navegador).';
+        } else if (img) {
+            img.remove();
+            const hintEl = dz.querySelector('.dropzone-hint');
+            if (hintEl && hint) hintEl.textContent = hint;
+        }
+    }
+
+    function salvarPreferencias() {
+        const val = (id) => { const el = document.getElementById(id); return el ? el.value : ''; };
+        const tgl = (odId) => {
+            const el = document.querySelector(`[data-od-id="${odId}"]`);
+            return el ? el.classList.contains('active') : null;
+        };
+        const p = lerPrefs();
+        p.orgNome = val('cfg-org-nome');
+        p.orgCnpj = val('cfg-org-cnpj');
+        p.orgTel = val('cfg-org-tel');
+        p.orgEmail = val('cfg-org-email');
+        p.reserva = val('cfg-reserva');
+        p.tglFrequency = tgl('toggle-frequency');
+        p.tglManual = tgl('toggle-manual-checkin');
+        p.tglLate = tgl('toggle-late-enrollment');
+        const ativo = document.querySelector('.cert-card.active');
+        if (ativo) p.certTpl = ativo.dataset.tpl;
+        try {
+            localStorage.setItem(PREFS_KEY, JSON.stringify(p));
+        } catch (e) {
+            window.API.exibirErro(new window.API.APIError(
+                'Não coube no armazenamento local (imagem grande demais?). Preferências de texto foram mantidas.', 400));
+            return false;
+        }
+        if (p.orgNome) {
+            document.querySelectorAll('.org strong').forEach(el => { el.textContent = p.orgNome; });
+        }
+        return true;
+    }
+
+    function configurarDropzone(odId, chave, maxBytes, tipos) {
+        const dz = document.querySelector(`[data-od-id="${odId}"]`);
+        if (!dz || dz.dataset.wired) return;
+        dz.dataset.wired = '1';
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = tipos.join(',');
+        input.style.display = 'none';
+        dz.appendChild(input);
+        const tratar = (file) => {
+            if (!file) return;
+            if (!tipos.some(t => file.type === t || file.name.toLowerCase().endsWith(t.replace('image/', '.')))) {
+                alert('Formato inválido. Use PNG ou JPG.');
+                return;
+            }
+            if (file.size > maxBytes) {
+                alert(`Arquivo maior que ${Math.round(maxBytes / 1024 / 1024)}MB.`);
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = () => {
+                const p = lerPrefs();
+                p[chave] = reader.result;
+                try {
+                    localStorage.setItem(PREFS_KEY, JSON.stringify(p));
+                } catch (e) {
+                    alert('Imagem carregada no preview, mas grande demais para salvar localmente.');
+                    p[chave] = null;
+                }
+                aplicarPreferencias();
+            };
+            reader.readAsDataURL(file);
+        };
+        dz.addEventListener('click', () => input.click());
+        input.addEventListener('change', () => tratar(input.files[0]));
+        ['dragover', 'dragenter'].forEach(ev => dz.addEventListener(ev, (e) => e.preventDefault()));
+        dz.addEventListener('drop', (e) => {
+            e.preventDefault();
+            if (e.dataTransfer.files.length > 0) tratar(e.dataTransfer.files[0]);
+        });
+    }
 
     function escapeHtml(text) {
         const div = document.createElement('div');
@@ -99,7 +235,12 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     async function carregarEventos() {
         try {
-            const eventos = await window.API.Eventos.listar();
+            // Gestão enxerga rascunhos: prefere a lista do organizador logado.
+            const user = window.Auth ? window.Auth.getUser() : null;
+            const eventos = (user && user.usuarioId)
+                ? await window.API.Eventos.listarPorOrganizador(user.usuarioId).catch(
+                    () => window.API.Eventos.listar())
+                : await window.API.Eventos.listar();
             if (eventSelect && eventSelect.tagName === 'SELECT') {
                 eventSelect.innerHTML = eventos.map(e =>
                     `<option value="${e.id}">${escapeHtml(e.titulo)}</option>`).join('');
@@ -114,11 +255,32 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     garantirForm();
+    configurarDropzone('logo-dropzone', 'logo', LOGO_MAX, ['image/png', 'image/jpeg']);
+    configurarDropzone('signature-dropzone', 'assinatura', ASS_MAX, ['image/png']);
+    document.querySelectorAll('.cert-card').forEach(card => {
+        card.addEventListener('click', () => {
+            document.querySelectorAll('.cert-card').forEach(c => c.classList.remove('active'));
+            card.classList.add('active');
+        });
+    });
+    aplicarPreferencias();
     if (saveBtn) {
         saveBtn.addEventListener('click', () => {
+            if (salvarPreferencias()) window.API.exibirSucesso('Preferências salvas neste navegador!');
             const form = document.getElementById('regras-evento-form');
             if (form) form.requestSubmit();
-            else window.API.exibirSucesso('Nada a salvar no MVP.');
+        });
+    }
+    if (restoreBtn) {
+        restoreBtn.addEventListener('click', () => {
+            localStorage.removeItem(PREFS_KEY);
+            ['cfg-org-nome', 'cfg-org-cnpj', 'cfg-org-tel', 'cfg-org-email', 'cfg-reserva']
+                .forEach(id => { const el = document.getElementById(id); if (el) el.value = el.defaultValue; });
+            document.querySelectorAll('.toggle').forEach((t, i) => t.classList.toggle('active', i < 2));
+            document.querySelectorAll('.cert-card').forEach((c, i) => c.classList.toggle('active', i === 0));
+            mostrarPreview('logo-dropzone', null, 'PNG, JPG (máx. 5MB)');
+            mostrarPreview('signature-dropzone', null, 'PNG com fundo transparente (máx. 2MB)');
+            window.API.exibirSucesso('Padrões restaurados.');
         });
     }
     if (eventSelect) {

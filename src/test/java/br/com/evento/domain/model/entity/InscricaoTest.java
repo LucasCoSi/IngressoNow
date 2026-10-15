@@ -61,8 +61,7 @@ class InscricaoTest {
     }
 
     @Test
-    void deveGerarAgendaOrdenadaCronologicamente() {
-        Inscricao inscricao = new Inscricao("part-1", "evt-1");
+    void deveGerarAgendaOrdenadaCronologicamente() {        Inscricao inscricao = new Inscricao("part-1", "evt-1");
         Atividade a1 = new Atividade("a1", "Palestra 1",
                 new Periodo(LocalDateTime.of(2026, 1, 1, 14, 0), LocalDateTime.of(2026, 1, 1, 16, 0)),
                 "Sala 1");
@@ -77,5 +76,37 @@ class InscricaoTest {
         assertEquals(2, agenda.totalAtividades());
         assertEquals("a2", agenda.getAtividades().get(0).getId()); // a2 starts earlier
         assertEquals("a1", agenda.getAtividades().get(1).getId());
+    }
+
+    @Test
+    void naoDeveDuplicarCheckInUnicoPorRepeticaoAcidental() {
+        Inscricao inscricao = new Inscricao("part-1", "evt-1");
+        Atividade atividade = new Atividade("a1", "Palestra",
+                new Periodo(LocalDateTime.of(2026, 1, 1, 10, 0), LocalDateTime.of(2026, 1, 1, 12, 0)),
+                "Sala 1");
+
+        inscricao.selecionarAtividade(atividade);
+        inscricao.registrarCheckIn(atividade, LocalDateTime.of(2026, 1, 1, 10, 5));
+
+        DomainException ex = assertThrows(DomainException.class,
+                () -> inscricao.registrarCheckIn(atividade, LocalDateTime.of(2026, 1, 1, 10, 6)));
+        assertTrue(ex.getMessage().toLowerCase().contains("já registrada"));
+        assertEquals(1, inscricao.getCheckIns("a1").size());
+    }
+
+    @Test
+    void devePermitirParEntradaSaida() {
+        Inscricao inscricao = new Inscricao("part-1", "evt-1");
+        Atividade atividade = new Atividade("a1", "Oficina",
+                new Periodo(LocalDateTime.of(2026, 1, 1, 10, 0), LocalDateTime.of(2026, 1, 1, 12, 0)),
+                "Lab 1");
+        atividade.definirPoliticaFrequencia("ENTRADA_SAIDA");
+
+        inscricao.selecionarAtividade(atividade);
+        inscricao.registrarCheckIn(atividade, LocalDateTime.of(2026, 1, 1, 10, 5));
+        inscricao.registrarCheckIn(atividade, LocalDateTime.of(2026, 1, 1, 11, 55));
+
+        assertEquals(2, inscricao.getCheckIns("a1").size());
+        assertEquals(StatusPresenca.PRESENTE, inscricao.calcularPresenca(atividade));
     }
 }

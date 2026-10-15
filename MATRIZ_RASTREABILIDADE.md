@@ -28,8 +28,8 @@
 | RF-17 | Agenda cronológica | ✅ | `AgendaDoParticipante` ordena por `periodo.inicio`; `GET /api/inscricoes/{id}/agenda` | `ConsultarAgendaUseCase` (sem teste dedicado — gap menor) | DSK-21 |
 | RF-18 | Conflito de agenda alertado/impedido | ✅ | `Inscricao.selecionarAtividade` lança `DomainException` (RN-07); `programacao.js` exibe motivo em destaque no card (sem auto-dismiss) | `InscricaoTest` + frontend | DSK-21 |
 | RF-19 | Critério de presença por atividade | ✅ | `Atividade.politicaFrequencia` (default `FrequenciaUnicaStrategy`; `setPoliticaFrequencia`); existe `FrequenciaEntradaSaidaStrategy` | Testes de check-in | DSK-30 |
-| RF-20 | QR Code sem dado sensível (RN-10) | ✅ | `QrCodeService`/`SimpleQrCodeService` + `GET /api/controle/qrcode/{insc}/{at}` (token `ids+salt` Base64, sem PII) | Payload verificado em Docker | DSK-31 |
-| RF-21 | Frequência por QR | ✅ | `POST /api/controle/checkin` → `RealizarCheckInQrCodeUseCase` → `Inscricao.registrarCheckIn` (RN-11: guarda data/hora) | `RealizarCheckInQrCodeUseCaseTest` + Docker | DSK-31 |
+| RF-20 | QR Code sem dado sensível (RN-10) | ✅ | `QrCodeService`/`SimpleQrCodeService` (`VALIDADE=5min`, token `ids+emitidoEm+salt` Base64-URL, sem PII) + `GET /api/controle/qrcode/{insc}/{at}` | `SimpleQrCodeServiceTest` (decodifica, expira, rejeita adulterado) + payload verificado em Docker | DSK-31 |
+| RF-21 | Frequência por QR | ✅ | `POST /api/controle/checkin` (dono OU organizador, CA-04) → `RealizarCheckInQrCodeUseCase` → `Inscricao.registrarCheckIn` (RN-11: data/hora; RNF-11: repetição no check-in único → 422 sem duplicar; token expirado → 422) | `RealizarCheckInQrCodeUseCaseTest` (sucesso + inválido + anti-duplicidade) + `InscricaoTest` (único bloqueia, entrada/saída admite par) + Docker | DSK-31 |
 | RF-22 | Lançamento manual alternativo com autoria | ✅ | `CheckIn.Origem` (QR_CODE/MANUAL) + `responsavelId`; `RealizarCheckInManualUseCase`; `POST /api/controle/manual` (responsável = JWT); V7; form na página de frequência | Validado em Docker 2026-09-06 (audit `MANUAL/maria`) | DSK-32 |
 | RF-23 | Situação de presença calculada/reproduzível | ✅ | `Inscricao.calcularPresenca` delega à `PoliticaFrequencia` | Coberto indiretamente | DSK-30 |
 | RF-24 | Questionários configuráveis | ✅ | `Questionario/Pergunta/TipoPergunta` + `JdbcQuestionarioRepository` (V4) + `AvaliacaoHandler` (`POST/GET /eventos/{id}/questionarios`, congela após 1ª resposta RN-17) | Validado em Docker (201 + CASCADE fix) | DSK-40 |
@@ -59,17 +59,17 @@
 | ROO | Evidência atual | Arquivo(s) |
 |-----|-----------------|------------|
 | ROO-01 modelo rico | `Evento`, `Inscricao`, `Atividade`, `Questionario`, `Pessoa` concentram regras | `entity/Evento.java`, `entity/Inscricao.java`, `entity/Atividade.java`, `entity/Pessoa.java` |
-| ROO-02 encapsulamento | Validações em construtores; listas expostas como unmodifiable; **porém** `Atividade.setPoliticaFrequencia` é setter público e `Pergunta/Resposta/Avaliacao` quase sem validação | idem + `Pergunta.java`, `Resposta.java` |
+| ROO-02 encapsulamento | Validações em construtores; listas expostas como unmodifiable; mutação de `Atividade` só via `definirPoliticaFrequencia`/`configurarLimiteDeVagas`/`remarcar` (sem setter público da estratégia); `Pergunta/Resposta` validam no construtor + `validarResposta` | idem + `Pergunta.java`, `Resposta.java`, `TipoPergunta.java` |
 | ROO-03 objetos de valor | `Email`, `Periodo`, `SenhaHash`, `Horario` imutáveis com validação | `model/vo/*` |
 | ROO-04 composição | `Evento` compõe `Atividade`; `Inscricao` compõe seleção + check-ins; `AgendaDoParticipante` deriva de `Inscricao` | `Evento.java:131`, `Inscricao.java:111` |
-| ROO-05 polimorfismo | `PoliticaInscricao` (SemLimite/ComLimite) e `PoliticaFrequencia` (Unica/EntradaSaida) — reais, selecionadas por configuração | `Politica*.java`, `Frequencia*Strategy.java` |
+| ROO-05 polimorfismo | `PoliticaInscricao` (SemLimite/ComLimite), `PoliticaFrequencia` (Unica/EntradaSaida) e `TipoPergunta` (validação por constante: texto/escolha/escala) — reais, sem switch espalhado | `Politica*.java`, `Frequencia*Strategy.java`, `TipoPergunta.java` |
 | ROO-06 herança | `Usuario` ← `Participante`/`Organizador`; relação substituível justificável | `Usuario.java`, `Participante.java`, `Organizador.java` |
 | ROO-07 interfaces | Portas `EventoRepository`, `InscricaoRepository`, `UsuarioRepository`, `QrCodeService` — contratos pequenos | `port/out/*`, `port/in/*` |
 | ROO-08 SOLID | Inversão de dependência (use cases dependem de portas); SRP por use case; falta registrar 1 refatoração motivada | `application/usecase/*` |
 | ROO-09 hexagonal | `domain/` sem imports de framework; `application/` sem anotações (fiação manual em `FabricaAplicacao`); JDBC isolado em `adapters/out`; HTTP e desktop em `adapters/in` | `Poo2Application.java`, `infra/FabricaAplicacao.java`, adapters |
 | ROO-10 padrões | ① Strategy (inscrição + frequência) com efeito real; ② Ports & Adapters; candidato a 3º: Builder/Factory p/ `Questionario` ou Specification p/ elegibilidade — Task #2/#4 | — |
 | ROO-11 erros de domínio | `DomainException` + `GlobalExceptionHandler` (400/404/422/500) + `StandardError` | `exception/*` |
-| ROO-12 testes/refatoração | 28 arquivos / 93 métodos JUnit 5 + Mockito (`mvn test`: 0 falhas); 2 refatorações registradas em `REFATORACOES.md` (R-01 `exigirSemConflito`, R-02 upsert + DELETE de órfãs) | `src/test/**`, `REFATORACOES.md` |
+| ROO-12 testes/refatoração | 30 arquivos / 102 testes JUnit 5 + Mockito (`mvn test`: 0 falhas); 4 refatorações registradas em `REFATORACOES.md` (R-01 `exigirSemConflito`, R-02 upsert + DELETE de órfãs, R-03 validação polimórfica em `TipoPergunta`, R-04 QR com validade + anti-duplicidade) | `src/test/**`, `REFATORACOES.md` |
 
 **Dívida de modelagem (resolvida na migração Java SE):** pacotes legados
 duplicados foram excluídos — `domain/` contém só `entity/`, `vo/`,

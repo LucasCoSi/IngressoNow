@@ -120,27 +120,27 @@
  <h2>Identidade da Organização</h2>
  <p>Informações básicas que identificam sua instituição no sistema.</p>
 
- <div class="form-group">
- <label class="form-label">Nome da Instituição / Empresa</label>
- <input type="text" class="form-input" value="Centro de Eventos Sul" placeholder="Ex: Universidade Federal do Sul">
- </div>
+  <div class="form-group">
+  <label class="form-label">Nome da Instituição / Empresa</label>
+  <input type="text" class="form-input" id="cfg-org-nome" value="Centro de Eventos Sul" placeholder="Ex: Universidade Federal do Sul">
+  </div>
 
- <div class="form-row">
- <div class="form-group">
- <label class="form-label">CNPJ</label>
- <input type="text" class="form-input" value="12.345.678/0001-90" placeholder="00.000.000/0000-00">
- </div>
- <div class="form-group">
- <label class="form-label">Telefone de Suporte</label>
- <input type="tel" class="form-input" value="(11) 9999-8888" placeholder="(00) 00000-0000">
- </div>
- </div>
+  <div class="form-row">
+  <div class="form-group">
+  <label class="form-label">CNPJ</label>
+  <input type="text" class="form-input" id="cfg-org-cnpj" value="12.345.678/0001-90" placeholder="00.000.000/0000-00">
+  </div>
+  <div class="form-group">
+  <label class="form-label">Telefone de Suporte</label>
+  <input type="tel" class="form-input" id="cfg-org-tel" value="(11) 9999-8888" placeholder="(00) 00000-0000">
+  </div>
+  </div>
 
- <div class="form-group">
- <label class="form-label">E-mail de Contato Principal</label>
- <input type="email" class="form-input" value="contato@centroeven tos.com.br" placeholder="contato@empresa.com">
- <p class="form-hint">Este e-mail será usado para comunicações oficiais do sistema.</p>
- </div>
+  <div class="form-group">
+  <label class="form-label">E-mail de Contato Principal</label>
+  <input type="email" class="form-input" id="cfg-org-email" value="contato@centroeven tos.com.br" placeholder="contato@empresa.com">
+  <p class="form-hint">Este e-mail será usado para comunicações oficiais do sistema.</p>
+  </div>
  </div>
 
  <div class="settings-section" data-od-id="section-globals">
@@ -169,8 +169,8 @@
  </div>
 
  <div class="form-group" style="margin-top:20px">
- <label class="form-label">Tempo limite para reserva de vaga sem pagamento (em minutos)</label>
- <input type="number" class="form-input" value="30" min="1" max="1440" placeholder="30">
+  <label class="form-label">Tempo limite para reserva de vaga sem pagamento (em minutos)</label>
+  <input type="number" class="form-input" id="cfg-reserva" value="30" min="1" max="1440" placeholder="30">
  <p class="form-hint">Se a vaga não for confirmada com pagamento neste tempo, voltará disponível.</p>
  </div>
  </div>
@@ -193,20 +193,20 @@
 
  <div class="form-group">
  <label class="form-label">Template de Certificado Padrão</label>
- <div class="certificate-selector">
- <div class="cert-card active">
- <div class="cert-preview">Certificado Padrão</div>
- <div class="cert-name">Modelo Clássico</div>
- </div>
- <div class="cert-card">
- <div class="cert-preview">Certificado Premium</div>
- <div class="cert-name">Modelo Premium</div>
- </div>
- <div class="cert-card">
- <div class="cert-preview">Certificado Moderno</div>
- <div class="cert-name">Modelo Moderno</div>
- </div>
- </div>
+  <div class="certificate-selector">
+  <div class="cert-card active" data-tpl="classico">
+  <div class="cert-preview">Certificado Padrão</div>
+  <div class="cert-name">Modelo Clássico</div>
+  </div>
+  <div class="cert-card" data-tpl="premium">
+  <div class="cert-preview">Certificado Premium</div>
+  <div class="cert-name">Modelo Premium</div>
+  </div>
+  <div class="cert-card" data-tpl="moderno">
+  <div class="cert-preview">Certificado Moderno</div>
+  <div class="cert-name">Modelo Moderno</div>
+  </div>
+  </div>
  </div>
  </div>
 

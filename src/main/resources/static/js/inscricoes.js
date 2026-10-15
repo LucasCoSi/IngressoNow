@@ -7,8 +7,10 @@ document.addEventListener('DOMContentLoaded', async function() {
     console.log('[Inscrições] Inicializando página...');
 
     const tbody = document.querySelector('.enrollments-table tbody');
-    const eventDropdown = document.getElementById('event-selector');
+    const eventDropdown = document.getElementById('event-select');
     const searchInput = document.querySelector('.search-box.full .search');
+    const btnNova = document.querySelector('[data-od-id="new-enrollment-cta"]');
+    const btnExportar = document.querySelector('[data-od-id="export-list-btn"]');
 
     if (!tbody) {
         console.warn('[Inscrições] Tabela não encontrada no DOM');
@@ -17,6 +19,45 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     // Estado da aplicação
     let inscricoesCache = [];
+    let eventosCache = [];
+
+    function authHeaders() {
+        const headers = { 'Accept': 'application/json' };
+        const token = window.Auth ? window.Auth.getToken() : null;
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+        return headers;
+    }
+
+    function usuarioLogado() {
+        try {
+            const u = window.Auth ? window.Auth.getUser() : null;
+            if (!u) return {};
+            return { id: u.usuarioId || u.id || u.usuarioID || '', nome: u.nome || '', email: u.email || '' };
+        } catch (e) {
+            return {};
+        }
+    }
+
+    /**
+     * Carrega eventos do organizador no seletor (troca o mock fixo do HTML).
+     * Sem isso o filtro por evento nunca funciona (options sem value real).
+     */
+    async function carregarEventos() {
+        if (!eventDropdown) return;
+        try {
+            const eu = usuarioLogado();
+            const query = eu.id ? `?organizadorId=${encodeURIComponent(eu.id)}` : '';
+            const resposta = await fetch(`/api/eventos${query}`, { headers: authHeaders() });
+            if (!resposta.ok) throw new Error(`Falha ao carregar eventos (HTTP ${resposta.status})`);
+            eventosCache = await resposta.json();
+            eventDropdown.innerHTML = eventosCache.length === 0
+                ? '<option value="">Nenhum evento encontrado</option>'
+                : eventosCache.map(ev =>
+                    `<option value="${ev.id}">${escapeHtml(ev.titulo || ev.id)}</option>`).join('');
+        } catch (error) {
+            console.error('[Inscrições] Erro ao carregar eventos:', error);
+        }
+    }
 
     /**
      * Carrega inscrições via GET /api/inscricoes.
@@ -176,6 +217,73 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     /**
+     * Modal no padrão visual do site (substitui prompt/alert nativos).
+     * abrirModal({titulo, corpoHTML, botoes:[{rotulo, primario}], comInput})
+     * resolve com {botao, valor} ou null ao fechar/cancelar.
+     */
+    function garantirModalCss() {
+        if (document.getElementById('ingw-modal-css')) return;
+        const css = document.createElement('style');
+        css.id = 'ingw-modal-css';
+        css.textContent = `
+.ingw-overlay{position:fixed;inset:0;background:rgba(15,23,42,.55);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
+.ingw-card{background:#fff;border-radius:8px;max-width:440px;width:100%;box-shadow:0 18px 48px rgba(2,32,71,.35);overflow:hidden}
+.ingw-head{background:#1E3A8A;color:#fff;padding:14px 18px;font-size:15px;font-weight:700}
+.ingw-body{padding:18px;font-size:13px;color:#0F172A}
+.ingw-body ul{margin:8px 0 0;padding-left:18px}
+.ingw-input{width:100%;border:1px solid #E2E8F0;border-radius:6px;padding:10px 12px;margin-top:8px;font-size:13px}
+.ingw-input:focus{border-color:#0284C7;outline:0}
+.ingw-foot{display:flex;justify-content:flex-end;gap:10px;padding:0 18px 18px}
+.ingw-ok{border:0;border-radius:6px;background:#2563EB;color:#fff;padding:10px 16px;font-size:13px;font-weight:700}
+.ingw-cancel{border:1px solid #E2E8F0;border-radius:6px;background:#fff;color:#1E3A8A;padding:10px 16px;font-size:13px;font-weight:700}`;
+        document.head.appendChild(css);
+    }
+
+    function abrirModal({ titulo, corpoHTML, botoes = [{ rotulo: 'OK', primario: true }], comInput = null }) {
+        garantirModalCss();
+        return new Promise((resolve) => {
+            const overlay = document.createElement('div');
+            overlay.className = 'ingw-overlay';
+            overlay.innerHTML = `
+                <div class="ingw-card" role="dialog" aria-modal="true">
+                    <div class="ingw-head">${titulo}</div>
+                    <div class="ingw-body">${corpoHTML}
+                        ${comInput ? `<input class="ingw-input" placeholder="${comInput.placeholder || ''}" value="${comInput.valor || ''}">` : ''}
+                    </div>
+                    <div class="ingw-foot"></div>
+                </div>`;
+            const foot = overlay.querySelector('.ingw-foot');
+            const fechar = (ret) => { overlay.remove(); document.removeEventListener('keydown', noTeclado); resolve(ret); };
+            botoes.forEach((b, i) => {
+                const btn = document.createElement('button');
+                btn.textContent = b.rotulo;
+                btn.className = b.primario ? 'ingw-ok' : 'ingw-cancel';
+                btn.addEventListener('click', () => {
+                    const input = overlay.querySelector('.ingw-input');
+                    fechar({ botao: i, valor: input ? input.value : null });
+                });
+                foot.appendChild(btn);
+            });
+            overlay.addEventListener('mousedown', (e) => { if (e.target === overlay) fechar(null); });
+            const noTeclado = (e) => {
+                if (e.key === 'Escape') fechar(null);
+                if (e.key === 'Enter') {
+                    const ok = foot.querySelector('.ingw-ok');
+                    if (ok) ok.click();
+                }
+            };
+            document.addEventListener('keydown', noTeclado);
+            document.body.appendChild(overlay);
+            const input = overlay.querySelector('.ingw-input');
+            if (input) input.focus();
+        });
+    }
+
+    function avisar(titulo, texto) {
+        return abrirModal({ titulo, corpoHTML: `<p style="margin:0">${texto}</p>` });
+    }
+
+    /**
      * Handler de ações
      */
     async function handleAction(e) {
@@ -189,10 +297,10 @@ document.addEventListener('DOMContentLoaded', async function() {
                 await visualizarAgenda(inscricaoId);
                 break;
             case 'email':
-                alert(`Enviar e-mail para inscrição ${inscricaoId} (funcionalidade a ser implementada)`);
+                await avisar('Enviar e-mail', `Envio para a inscrição ${inscricaoId} ainda não está disponível nesta versão.`);
                 break;
             case 'view':
-                alert(`Ver detalhes da inscrição ${inscricaoId} (funcionalidade a ser implementada)`);
+                await avisar('Detalhes', `Detalhes da inscrição ${inscricaoId} ainda não estão disponíveis nesta versão.`);
                 break;
         }
     }
@@ -206,18 +314,97 @@ document.addEventListener('DOMContentLoaded', async function() {
 
             const agenda = await window.API.Inscricoes.consultarAgenda(inscricaoId);
 
-            console.log('[Inscrições] Agenda carregada:', agenda);
-
-            // Exibir modal ou redirecionar
-            const atividadesTexto = agenda.atividades.map(a =>
-                `- ${a.titulo} (${a.inicio} - ${a.fim}) em ${a.local}`
-            ).join('\n');
-
-            alert(`Agenda do Participante:\n\n${atividadesTexto || 'Nenhuma atividade selecionada'}`);
+            const itens = (agenda.atividades || []).map(a =>
+                `<li><strong>${escapeHtml(a.titulo)}</strong> (${escapeHtml(a.inicio)} – ${escapeHtml(a.fim)}) em ${escapeHtml(a.local)}</li>`
+            ).join('');
+            await abrirModal({
+                titulo: 'Agenda do Participante',
+                corpoHTML: itens ? `<ul>${itens}</ul>` : '<p style="margin:0">Nenhuma atividade selecionada.</p>'
+            });
 
         } catch (error) {
             console.error('[Inscrições] Erro ao consultar agenda:', error);
             window.API.exibirErro(error);
+        }
+    }
+
+    /**
+     * RF-13 (organizador): inscreve manualmente um participante pelo e-mail.
+     * Resolve o usuário via GET /api/usuarios e cria via POST /api/inscricoes.
+     */
+    async function novaInscricaoManual() {
+        try {
+            const eventoId = eventDropdown ? eventDropdown.value : '';
+            if (!eventoId) {
+                await avisar('Nova inscrição', 'Selecione um evento no filtro antes de inscrever.');
+                return;
+            }
+            const escolha = await abrirModal({
+                titulo: 'Nova inscrição manual',
+                corpoHTML: `<p style="margin:0 0 4px">E-mail do participante a inscrever:</p>`,
+                botoes: [{ rotulo: 'Inscrever', primario: true }, { rotulo: 'Cancelar', primario: false }],
+                comInput: { placeholder: 'participante@email.com' }
+            });
+            if (!escolha || escolha.botao !== 0) return;
+            const email = (escolha.valor || '').trim();
+            if (!email) return;
+
+            const respUsuarios = await fetch('/api/usuarios', { headers: authHeaders() });
+            if (!respUsuarios.ok) throw new Error(`Falha ao listar usuários (HTTP ${respUsuarios.status})`);
+            const usuarios = await respUsuarios.json();
+            const alvo = usuarios.find(u =>
+                ((u.email || '').toLowerCase() === email.toLowerCase()));
+            if (!alvo) {
+                await avisar('Nova inscrição', `Nenhum usuário com o e-mail ${escapeHtml(email)}. Peça para ele se cadastrar em /cadastro primeiro.`);
+                return;
+            }
+            const participanteId = alvo.id || alvo.usuarioId;
+            const resp = await fetch('/api/inscricoes', {
+                method: 'POST',
+                headers: { ...authHeaders(), 'Content-Type': 'application/json' },
+                body: JSON.stringify({ participanteId, eventoId })
+            });
+            if (!resp.ok) {
+                const detalhe = await resp.text();
+                throw new Error(`Inscrição recusada (HTTP ${resp.status}): ${detalhe}`);
+            }
+            await avisar('Nova inscrição', `Inscrição de ${escapeHtml(alvo.nome || email)} criada com sucesso.`);
+            await carregarInscricoes();
+        } catch (error) {
+            console.error('[Inscrições] Erro na inscrição manual:', error);
+            if (window.API) window.API.exibirErro(error);
+            else alert(error.message);
+        }
+    }
+
+    /**
+     * RF-29/RF-31: exporta a lista de inscritos do evento em CSV
+     * (GET /api/controle/relatorio/inscritos/{eventoId}, com JWT).
+     */
+    async function exportarLista() {
+        try {
+            const eventoId = eventDropdown ? eventDropdown.value : '';
+            if (!eventoId) {
+                await avisar('Exportar lista', 'Selecione um evento no filtro antes de exportar.');
+                return;
+            }
+            const resposta = await fetch(
+                `/api/controle/relatorio/inscritos/${encodeURIComponent(eventoId)}`,
+                { headers: authHeaders() });
+            if (!resposta.ok) throw new Error(`Falha ao exportar (HTTP ${resposta.status})`);
+            const blob = await resposta.blob();
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `inscritos-${eventoId.substring(0, 8)}.csv`;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('[Inscrições] Erro ao exportar:', error);
+            if (window.API) window.API.exibirErro(error);
+            else alert(error.message);
         }
     }
 
@@ -239,6 +426,13 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
     }
 
-    // Carregar inscrições ao iniciar
+    if (eventDropdown) {
+        eventDropdown.addEventListener('change', carregarInscricoes);
+    }
+    if (btnNova) btnNova.addEventListener('click', novaInscricaoManual);
+    if (btnExportar) btnExportar.addEventListener('click', exportarLista);
+
+    // Carregar eventos (filtro) e inscrições ao iniciar
+    await carregarEventos();
     await carregarInscricoes();
 });

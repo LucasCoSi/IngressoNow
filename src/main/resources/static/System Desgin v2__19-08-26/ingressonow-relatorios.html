@@ -117,67 +117,28 @@
  <option value="architecture">Jornada de Arquitetura de Software</option>
  </select>
  </div>
- <div class="event-selector">
- <label class="event-label" for="period-select">Período:</label>
- <select class="period-select" id="period-select" data-od-id="period-select">
- <option value="30days">Últimos 30 dias</option>
- <option value="full">Todo o período do evento</option>
- <option value="custom">Personalizado</option>
- </select>
- </div>
- <div class="event-selector">
- <label class="event-label" for="category-select">Categoria:</label>
- <select class="category-select" id="category-select" data-od-id="category-select">
- <option value="">Todos os Públicos</option>
- <option value="students">Estudantes</option>
- <option value="professionals">Profissionais</option>
- <option value="free">Isentos / Convidados</option>
- </select>
- </div>
- </div>
- </div>
+  <div class="event-selector">
+  <label class="event-label" for="period-select">Período:</label>
+  <select class="period-select" id="period-select" data-od-id="period-select">
+  <option value="30days">Últimos 30 dias</option>
+  <option value="full">Todo o período do evento</option>
+  </select>
+  </div>
+  </div>
+  </div>
 
- <section class="charts-section" data-od-id="charts-area">
- <div class="chart-card" data-od-id="chart-inscriptions">
- <div class="chart-title">📈 Evolução do Volume de Inscrições por Semana</div>
- <svg viewBox="0 0 400 300" width="100%" height="300" style="display:block">
- <defs>
- <linearGradient id="grad1" x1="0%" y1="0%" x2="0%" y2="100%">
- <stop offset="0%" style="stop-color:rgba(2, 132, 199, 0.3);stop-opacity:1" />
- <stop offset="100%" style="stop-color:rgba(2, 132, 199, 0);stop-opacity:1" />
- </linearGradient>
- </defs>
- <polyline points="20,250 80,180 140,140 200,100 260,120 320,60 380,40" fill="none" stroke="#0284C7" stroke-width="3" stroke-linejoin="round"/>
- <polygon points="20,250 80,180 140,140 200,100 260,120 320,60 380,40 380,290 20,290" fill="url(#grad1)"/>
- <circle cx="20" cy="250" r="4" fill="#0284C7"/>
- <circle cx="80" cy="180" r="4" fill="#0284C7"/>
- <circle cx="140" cy="140" r="4" fill="#0284C7"/>
- <circle cx="200" cy="100" r="4" fill="#0284C7"/>
- <circle cx="260" cy="120" r="4" fill="#0284C7"/>
- <circle cx="320" cy="60" r="4" fill="#0284C7"/>
- <circle cx="380" cy="40" r="4" fill="#0284C7"/>
- </svg>
- </div>
+  <section class="charts-section" data-od-id="charts-area">
+  <div class="chart-card" data-od-id="chart-inscriptions">
+  <div class="chart-title">📈 Evolução do Volume de Inscrições por Semana</div>
+  <div id="graf-inscricoes" class="chart-placeholder">Carregando...</div>
+  </div>
 
- <div class="chart-card" data-od-id="chart-distribution">
- <div class="chart-title">🥧 Distribuição do Público por Categoria</div>
- <svg viewBox="0 0 300 300" width="100%" height="300" style="display:block;max-width:250px;margin:0 auto">
- <defs>
- <style>
- .donut-path { fill: none; stroke-width: 60; stroke-linecap: round; }
- .donut-1 { stroke: #0284C7; stroke-dasharray: 340 360; }
- .donut-2 { stroke: #38BDF8; stroke-dasharray: 252 360; stroke-dashoffset: -340; }
- .donut-3 { stroke: #BAE6FD; stroke-dasharray: 36 360; stroke-dashoffset: -592; }
- </style>
- </defs>
- <circle cx="150" cy="150" r="90" class="donut-path donut-1"/>
- <circle cx="150" cy="150" r="90" class="donut-path donut-2"/>
- <circle cx="150" cy="150" r="90" class="donut-path donut-3"/>
- <text x="150" y="160" text-anchor="middle" font-size="32" font-weight="700" fill="#0F172A">55%</text>
- </svg>
- <div style="font-size:11px;color:var(--muted);text-align:center;margin-top:12px">Estudantes 55% • Profissionais 35% • Convidados 10%</div>
- </div>
- </section>
+  <div class="chart-card" data-od-id="chart-distribution">
+  <div class="chart-title" id="titulo-presenca">🥧 Distribuição de Presença por Situação</div>
+  <div id="graf-presenca" class="chart-placeholder">Carregando...</div>
+  <div id="legenda-presenca" style="font-size:11px;color:var(--muted);text-align:center;margin-top:12px"></div>
+  </div>
+  </section>
 
  <section class="reports-section" data-od-id="reports-downloads">
  <div class="reports-title"> Modelos de Relatórios Prontos para Exportação</div>
@@ -194,17 +155,17 @@
  </div>
  </div>
 
- <div class="report-card" data-od-id="report-2">
- <div class="report-info">
- <div class="report-name">Relatório Financeiro / Vendas</div>
- <div class="report-desc">Ingressos vendidos e receita por categoria</div>
- </div>
- <div class="report-actions">
- <button class="export-btn csv" data-od-id="export-2-csv">CSV</button>
- <button class="export-btn pdf" data-od-id="export-2-pdf">PDF</button>
- <button class="export-btn xlsx" data-od-id="export-2-xlsx">XLSX</button>
- </div>
- </div>
+  <div class="report-card" data-od-id="report-2">
+  <div class="report-info">
+  <div class="report-name">Relatório Financeiro / Vendas</div>
+  <div class="report-desc">Indisponível no MVP — sem pagamentos no escopo (§2.3)</div>
+  </div>
+  <div class="report-actions">
+  <button class="export-btn csv" data-od-id="export-2-csv" disabled title="Sem fonte no MVP">CSV</button>
+  <button class="export-btn pdf" data-od-id="export-2-pdf" disabled title="Sem fonte no MVP">PDF</button>
+  <button class="export-btn xlsx" data-od-id="export-2-xlsx" disabled title="Sem fonte no MVP">XLSX</button>
+  </div>
+  </div>
 
  <div class="report-card" data-od-id="report-3">
  <div class="report-info">

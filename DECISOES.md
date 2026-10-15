@@ -43,11 +43,19 @@ Mesma API/banco (RN-19, RNF-02). `api-client.js` centraliza JWT
 (401/403 → login). Filtros de programação client-side no MVP;
 server-side em `GET /programacao` (RF-09).
 
-## D-05 QR: token opaco sem PII (RN-10)
+## D-05 QR: token opaco com validade curta + anti-duplicidade (RN-10/RN-11/RNF-11)
 
-`inscricaoId:atividadeId:salt` em Base64. Sem nome/e-mail/documento.
-`POST /checkin` decodifica, valida seleção e registra com data/hora
-(RN-11). Manual alternativo com `origem` + `responsavelId` (RN-12).
+`SimpleQrCodeService` gera `inscricaoId:atividadeId:emitidoEm:salt` em
+Base64-URL (`VALIDADE = 5 min`); `decodificarToken` rejeita adulterado
+("inválido ou corrompido") e expirado ("Código expirado. Solicite a
+chamada atual."). Sem nome/e-mail/documento no payload (RN-10).
+`POST /api/controle/checkin` aceita dono da inscrição OU organizador
+(CA-04: participante registra a própria presença; manual continua só
+organizador com `origem` + `responsavelId` = JWT, RN-12). Repetição no
+check-in único não duplica: `Inscricao.registrarCheckIn` lança
+"Presença já registrada" (RNF-11); `ENTRADA_SAIDA` admite o par.
+Alternativa descartada: token eterno sem instante (vazou uma vez =
+check-in eterno) e JWT como QR (misturaria credencial com chamada).
 
 ## D-06 políticas: Strategy p/ inscrição e frequência
 

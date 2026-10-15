@@ -118,15 +118,19 @@ curl /api/inscricoes/{id}/agenda -H "Authorization: Bearer $T"
 curl -X DELETE /api/inscricoes/{id} -H "Authorization: Bearer $T"  # → 204
 ```
 
-## Frequência — RF-20/21/22, RN-11/12 (JWT)
+## Frequência — RF-20/21/22/23, RN-09/10/11/12, RNF-11 (JWT; check-in = dono OU organizador)
 
 ```bash
 curl /api/controle/qrcode/{inscId}/{atId} -H "Authorization: Bearer $T"
-# → text/plain token opaco (ids + salt, sem PII — RN-10)
+# → text/plain token opaco Base64-URL (ids + emitidoEm + salt, sem PII — RN-10).
+# Validade: 5 min (D-05). Expirado → 422 "Código expirado. Solicite a chamada atual."
 curl -X POST /api/controle/checkin -H "Authorization: Bearer $T" \
   -d '{"qrCodeToken":"..."}'                      # → 200 {ok:true}
+# CA-04: participante registra a PRÓPRIA presença (dono da inscrição);
+# organizador também pode lançar por este canal. Repetição no check-in
+# único → 422 "Presença já registrada" (RNF-11, sem duplicar).
 curl -X POST /api/controle/manual -H "Authorization: Bearer $T" \
-  -d '{"inscricaoId":"...","atividadeId":"..."}'  # → 200 {ok:true} (responsável = JWT)
+  -d '{"inscricaoId":"...","atividadeId":"..."}'  # → 200 {ok:true} (só organizador; responsável = JWT, RN-12)
 ```
 
 ## Avaliações — RF-24–28 (JWT)

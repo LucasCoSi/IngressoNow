@@ -131,6 +131,11 @@ public class Inscricao {
         if (!selecionada) {
             throw new DomainException("Participante não selecionou esta atividade em sua inscrição.");
         }
+        // RNF-11: repetição acidental não pode duplicar presença no check-in único.
+        if (atividade.getPoliticaFrequencia() instanceof FrequenciaUnicaStrategy
+                && checkIns.stream().anyMatch(c -> c.getAtividadeId().equals(atividade.getId()))) {
+            throw new DomainException("Presença já registrada para esta atividade.");
+        }
         this.checkIns.add(new CheckIn(atividade.getId(), momento, origem, responsavelId));
     }
 

@@ -1,91 +1,386 @@
 # IngressoNow — Plataforma de Gestão de Eventos (POO2)
 
-Projeto da disciplina Programação Orientada a Objetos II: gestão de eventos
-com inscrições, agenda, frequência por QR Code, avaliações e relatórios.
+Plataforma de gestão de eventos acadêmicos e profissionais em **Java SE puro**,
+com foco em **Programação Orientada a Objetos, arquitetura hexagonal, SOLID,
+padrões de projeto, persistência, testes e integração entre aplicações**.
+
+Organizadores cadastram eventos, atividades, locais, horários, trilhas e pessoas
+vinculadas, publicam a programação e gerenciam inscrições, frequência, avaliações,
+relatórios e certificados. Participantes criam conta, inscrevem-se, montam a
+agenda, registram presença por QR Code (com alternativa manual) e avaliam
+atividades quando elegíveis. Desktop (JavaFX), API e site compartilham o mesmo
+banco PostgreSQL (RN-19).
+
+Projeto da disciplina **Programação Orientada a Objetos II**, baseado em
+`especificacao_requisitos_projeto_poo2_gestao_eventos_revisado_poo.pdf` v1.1.
+
+---
+
+## Objetivos
+
+- aplicar conceitos de Programação Orientada a Objetos no núcleo avaliado em Java;
+- representar o domínio com objetos de responsabilidades bem definidas;
+- proteger invariantes por encapsulamento e validar com objetos de valor imutáveis;
+- usar composição e polimorfismo nos pontos reais de variação (inscrição, frequência, perguntas);
+- aplicar princípios SOLID e ao menos dois padrões com efeito demonstrável;
+- separar domínio, aplicação, entrada e persistência por arquitetura hexagonal;
+- expor uma API consumida pelo site e pelo desktop, com o mesmo banco de dados;
+- persistir em banco relacional com esquema reproduzível e dados de demonstração;
+- autenticar por JWT com senhas em hash apropriado e autorização no servidor;
+- cobrir regras centrais com testes automatizados independentes da interface;
+- documentar decisões (D-01–D-08), refatorações e rastreabilidade (RF × ROO).
+
+---
+
+## Funcionalidades
+
+### Usuários e autenticação (RF-01/02/03)
+
+- cadastro com nome, e-mail e senha; e-mail duplicado rejeitado (RN-01);
+- login com JWT (`userId`), perfis PARTICIPANTE/ORGANIZADOR;
+- participante consulta e atualiza os próprios dados (403 em perfil alheio).
+
+### Eventos, atividades e programação (RF-04–09)
+
+- CRUD de eventos com ciclo RASCUNHO → PUBLICADO → ENCERRADO (RN-04);
+- atividades de tipo livre (palestra, oficina, pôster...) com trilha, local e período (RF-05/06);
+- conflito mesmo local + período sobreposto bloqueado com 422 e motivo (RF-07, RN-07);
+- pessoas vinculadas com papel livre (palestrante/apresentador/responsável), foto opcional (RF-08, RN-02);
+- programação filtrável por data, tipo, trilha e local — server-side (RF-09);
+- site público com catálogo, detalhe, grade e elenco reais (RF-10/11/12).
+
+### Inscrições e agenda (RF-13–18)
+
+- regra configurável por evento e por atividade (`maxVagas`, flags);
+- controle de vagas com 422 ao esgotar (RN-06); cancelamento libera vaga (RF-15);
+- seleção de atividades com agenda cronológica (RN-08) e conflito explicado (RN-07).
+
+### Frequência (RF-19–23)
+
+- critério por atividade: check-in único ou entrada+saída (Strategy, RN-09);
+- QR opaco `ids+instante+salt` em Base64-URL, validade de **5 min**, sem PII (RN-10);
+- `POST /checkin` aceita dono da inscrição OU organizador (CA-04);
+- repetição no check-in único não duplica: 422 "Presença já registrada" (RNF-11);
+- manual alternativo com `origem` + `responsavelId` = JWT (RN-11/12, CA-05);
+- situação reproduzível a partir dos registros e da política (RF-23).
+
+### Avaliações e relatórios (RF-24–31)
+
+- questionários configuráveis (texto, escolha única, escala) com validação polimórfica;
+- elegibilidade: inscrito + presença validada (RN-13); anti-duplicidade (RN-14);
+- consolidação com média, distribuição e comentários (RF-28);
+- relatórios de inscritos e frequência em CSV; XLSX/PDF gerados no navegador (RF-31);
+- gráficos SVG reais (inscrições/semana, presença por situação); sem fonte = "—" honesto.
+
+### Certificados — desejável (RF-32–35)
+
+- critério configurável (% mínima + obrigatórias, RN-16);
+- PDF baixável para elegíveis (inelegível vê justificativa, CA-08);
+- envio por SMTP registrado; sem SMTP → 422 claro, download preservado;
+- declaração para palestrante/apresentador refletindo o papel (RF-35).
+
+---
+
+## Tecnologias utilizadas
+
+### Backend e desktop
+
+- **Java 25** (núcleo avaliado de POO — RNF-03), **Maven**
+- **JDK HttpServer** (`com.sun.net.httpserver`, sem Spring)
+- **JDBC puro** + **PostgreSQL 16**
+- **JJWT** (JWT), **jBCrypt** (hash de senha — RNF-05)
+- **JavaFX** (desktop, código puro sem FXML — D-01)
+- **PDFBox** (certificados RF-33), **Jakarta Mail SMTP** (envio RF-34)
+- **JUnit 5 + Mockito** (testes — RNF-12)
+
+### Site
+
+- **HTML/JS/CSS estáticos** servidos pelo próprio jar (System Design v2)
+- `api-client.js` centraliza JWT (401/403 → login); sem acesso direto ao banco (RNF-02)
+
+### Infraestrutura
+
+- Docker e Docker Compose, `rodar.ps1` (sobe banco + app em um comando)
+- `MigradorSql` + `migrations.txt` (V1–V12), seeds V3
+
+---
 
 ## Arquitetura
 
-Java SE puro (sem Spring), hexagonal:
+Hexagonal (Ports and Adapters) — referência §8.1 do documento:
 
 ```
-domain/          entidades ricas, VOs, portas (sem imports de framework)
-application/     use cases + services (fiação manual, sem DI container)
-adapters/in/http API REST sobre com.sun.net.httpserver (JDK)
-adapters/in/desktop  app JavaFX (Fase 4, D-01)
-adapters/out/jdbc    persistência JDBC pura (Postgres)
-adapters/out/security BCrypt via jBCrypt
-infra/           AppConfig, ConnectionFactory, FabricaAplicacao, MigradorSql
+                ┌───────────────────────────────┐
+                │        Adaptadores IN         │
+                │  HTTP (JDK) │ JavaFX desktop  │  Site ──HTTP──▶ /api/*
+                └──────────────┬────────────────┘
+                               │ usa
+                ┌──────────────▼────────────────┐
+                │          APPLICATION          │
+                │  21 use cases (orquestram o   │
+                │  domínio exclusivamente       │
+                │  através de portas)           │
+                └──────────────┬────────────────┘
+                               │ depende de
+                ┌──────────────▼────────────────┐
+                │         DOMAIN (puro)         │
+                │  entity/  vo/  port/in|out    │
+                │  exception/  (sem framework)  │
+                └──────────────┬────────────────┘
+                               │ implementado por
+                ┌──────────────▼────────────────┐
+                │         ADAPTERS OUT          │
+                │  jdbc/ (7 repos)  security/  │
+                │  pdf/ (PDFBox)  email/ (SMTP) │
+                └──────────────┬────────────────┘
+                               │ via
+                ┌──────────────▼────────────────┐
+                │  INFRA (AppConfig,            │
+                │  ConnectionFactory,          │
+                │  FabricaAplicacao, MigradorSql│
+                └──────────────┬────────────────┘
+                               ▼
+                          PostgreSQL (único — RN-19)
 ```
 
-Mesmo banco (Postgres) para desktop, API e site (RN-19). Domínio sem
-dependência de framework (ROO-09); use cases dependem só de portas (ROO-08).
+Estrutura:
 
-## Subindo com Docker
-
-```bash
-docker-compose up -d --build
-docker logs poo2-app   # [Migrador] V1..Vn + [API] ouvindo em :8080/api
+```
+src/main/java/br/com/evento/
+├── domain/model/entity/   Evento, Atividade, Inscricao, CheckIn, Pessoa,
+│                          Questionario, Pergunta, Avaliacao, Politica*Strategy
+├── domain/model/vo/       Email, Periodo, SenhaHash (imutáveis)
+├── domain/port/           in/ (QrCodeService)  out/ (repositories, Email, Pdf)
+├── application/usecase/   21 casos de uso (falam só com portas)
+├── application/service/   SimpleQrCodeService (QR opaco, validade 5 min)
+├── adapters/in/http/      handlers /api/*, JwtAuth, HttpErrors
+├── adapters/in/desktop/   JavaFX (mesmos use cases, sem HTTP)
+├── adapters/out/          jdbc/, security/ (BCrypt), pdf/, email/
+└── infra/                 fiação manual (sem container DI)
+src/main/resources/static/ site (HTML/JS por página) + db/migration/ (V1–V12)
 ```
 
-Variáveis (compose já define): `DB_URL`, `DB_USER`, `DB_PASS`,
-`JWT_SECRET`, `PORT`. Sem Docker: `java -jar target/*.jar --headless`
-(só API) ou sem flag (API + desktop JavaFX).
+Regra: `domain/` não importa framework; `application/` não importa adapter;
+adapters convertem (DTO/record ↔ entidade) e delegam.
 
-## Desktop JavaFX (DSK-00–DSK-51, operador ORGANIZADOR)
+---
 
-```bash
-# Requer JDK 25 (natives Windows *-win já embutidos no shade, ~22 MB)
-java --enable-native-access=ALL-UNNAMED -jar target/plataforma-eventos-0.0.1-SNAPSHOT.jar
-# Só API (Docker/CI sem display):
-java -jar target/*.jar --headless
-# Sem Maven instalado: build via imagem Docker
-docker run --rm -v "%cd%:/app" -w /app maven:3.9.6-eclipse-temurin-17 mvn package -DskipTests
+## Principais conceitos de POO aplicados
+
+### Encapsulamento (ROO-02)
+
+Validações nos construtores; listas expostas como imutáveis; mutação de
+`Atividade` só por `definirPoliticaFrequencia`/`configurarLimiteDeVagas`/`remarcar`
+(sem setter público da estratégia); `Questionario` congela após a 1ª resposta (RN-17).
+
+### Composição (ROO-04)
+
+`Evento` compõe `Atividade[]`; `Inscricao` compõe seleção + check-ins;
+`AgendaDoParticipante` deriva de `Inscricao`. Herança só onde há relação
+substituível: `Usuario` ← `Participante`/`Organizador` (ROO-06).
+
+### Polimorfismo (ROO-05)
+
+- `PoliticaInscricao`: `SemLimite` / `ComLimite` (derivada de `maxVagas`);
+- `PoliticaFrequencia`: `Unica` / `EntradaSaida` (selecionada por configuração);
+- `TipoPergunta`: cada constante valida seu tipo (texto/escolha/escala).
+- Variação sem `if/switch` espalhado nos use cases.
+
+### Interfaces e inversão de dependência (ROO-07/08)
+
+Portas pequenas orientadas ao cliente (`EventoRepository`, `InscricaoRepository`,
+`UsuarioRepository`, `QrCodeService`, `EmailService`, `PdfCertificadoService`);
+use cases dependem das portas, JDBC/SMTP/PDFBox as implementam; um use case por
+responsabilidade (SRP).
+
+---
+
+## Padrões e princípios
+
+- **Strategy** — políticas de inscrição e frequência intercambiáveis com efeito
+  real (troca por configuração, sem condicionais espalhadas);
+- **Ports & Adapters (Hexagonal)** — domínio sem framework, substituição de
+  infraestrutura por adaptadores (ex.: stub de e-mail nos testes);
+- **SOLID** — coesão por use case, inversão de dependência nas fronteiras,
+  extensível sem modificar regra existente (ex.: novo `TipoPergunta` = nova
+  constante). Refatorações motivadas em `REFATORACOES.md` (R-01–R-04).
+
+---
+
+## Persistência
+
+PostgreSQL com `MigradorSql` + manifesto `migrations.txt` (funciona no jar
+sombreado), ordem garantida V1–V12:
+
+```
+V1  esquema inicial (usuários, eventos, atividades)
+V2  inscrições            V3  seeds (Maria/Lucas, 2 eventos, 5 atividades)
+V4  avaliações            V5  check-ins (RN-11)
+V6  tipo/trilha           V7  origem/responsável do check-in (RN-12)
+V8  pessoas (RF-08)       V9  detalhes do evento, fuso (RN-20), flags RF-13
+V10 certificados (D)      V11 maxVagas por atividade      V12 índices (RNF-10)
 ```
 
-Mesmos use cases via `FabricaAplicacao` direta (sem HTTP, RN-19/RNF-02);
-mesmo Postgres da API/site. Telas: login/cadastro, Meus eventos
-(Novo/Editar/Excluir/Publicar/Encerrar), atividades (Nova/Remarcar/
-critério/pessoas), programação com filtros, inscrições/agenda,
-frequência + QR + manual, avaliações, relatórios CSV, certificados
-PDF/e-mail. Detalhe em `BACKLOG_DESKTOP.md`.
+Upsert por ID + DELETE só de órfãs (DELETE geral acionava `ON DELETE CASCADE`
+e apagava respostas — bug real corrigido, R-02). Seeds em `SEEDS_DADOS_INICIAIS.md`.
 
-## Credenciais seed (V3)
+---
 
-- Organizadora: `maria.santos@email.com` / `senha123`
-- Participante: `lucas.silva@email.com` / `senha123`
+## Segurança
 
-## Endpoints
+- JWT com `userId`, expiração e segredo ≥ 256 bits; BCrypt com seeds compatíveis;
+- autorização verificada **no servidor** (401 sem JWT, 403 em recurso alheio — RNF-06);
+- SQL 100% parametrizado; entradas inválidas rejeitadas com mensagens claras (RNF-07);
+- QR sem senha ou dado sensível; falhas internas retornam mensagem genérica
+  sem expor SQL ou credenciais (RNF-14); coleta mínima de dados (RNF-08).
 
-Ver `ENDPOINTS.md` (contratos, auth, exemplos curl).
+---
+
+## Desktop e site
+
+- **Desktop JavaFX** (D-01, operador ORGANIZADOR): login, gestão de eventos/
+  atividades/pessoas, programação com filtros, inscrições/agenda, frequência
+  (QR com validade visível + manual com autoria), avaliações, relatórios CSV,
+  certificados PDF/e-mail — mesmos use cases via `FabricaAplicacao` (RN-19).
+- **Site**: catálogo público, programação, área do participante, gestão
+  (`/inscricoes` com inscrição manual e exportação), `/configuracoes`
+  (preferências locais + regras do evento no servidor) e `/relatorios`
+  (gráficos SVG + CSV/XLSX/PDF). Detalhes em `BACKLOG_DESKTOP.md`.
+
+---
 
 ## Testes
 
+30 arquivos / **102 testes, 0 falhas** (`mvn test`), independentes da interface
+(RNF-12, ROO-12). Cobrem:
+
+```
+Domínio: Evento, Atividade, Inscricao (seleção, conflito, agenda, anti-duplicidade),
+  Avaliacao (elegibilidade), Pergunta (validação por tipo), CheckIn (origem/autoria),
+  Pessoa, CriterioCertificado, VOs (Email, Periodo, SenhaHash)
+Use cases (Mockito): inscrever/selecionar/cancelar, remarcar, vincular pessoa,
+  check-in QR/manual (sucesso, inválido, duplicado), QR com validade e adulteração,
+  submeter/consolidar avaliações, relatórios, certificados, PDF real (%PDF)
+```
+
+Refatorações R-01–R-04 registradas em `REFATORACOES.md` (problema → alternativa → efeito).
+
+---
+
+## Documentação
+
+```
+ARQUITETURA.md              diagrama, modelo de domínio e mapa classe → RF/ROO
+DECISOES.md                 D-01 desktop · D-02 API/auth · D-03 banco · D-04 site ·
+                            D-05 QR/validade/duplicidade · D-06 políticas ·
+                            D-07 padrões · D-08 testes/seeds
+ENDPOINTS.md                contratos /api/*, auth, papéis e exemplos curl
+MATRIZ_RASTREABILIDADE.md   RF × ROO × implementação × teste, CA-01–CA-08, coluna desktop
+BACKLOG_DESKTOP.md          DSK-00–DSK-62 (operador organizador)
+REFATORACOES.md             R-01–R-04 com evidência de melhoria
+SEEDS_DADOS_INICIAIS.md     massa de demonstração + SQLs de verificação
+HISTORICO_EVIDENCIAS_S1_S7.md  incrementos semanais S1–S8 (§9)
+```
+
+---
+
+## Como executar
+
+### Pré-requisitos
+
+JDK 25, Docker + Docker Compose (banco), PowerShell. Maven só para build/teste
+(há distribuição local ou imagem Docker — ver abaixo).
+
+### Via script (recomendado)
+
+```powershell
+.\rodar.ps1             # API + desktop
+.\rodar.ps1 --headless  # só API (CI/sem display)
+```
+
+O script abre o Docker Desktop se preciso, sobe só o `postgres`, para o container
+`poo2-app` (conflita na porta 8080 com o jar), aguarda o `pg_isready` e executa:
+
+```powershell
+java --enable-native-access=ALL-UNNAMED -jar target\plataforma-eventos-0.0.1-SNAPSHOT.jar
+```
+
+Se o PowerShell bloquear: `powershell -ExecutionPolicy Bypass -File .\rodar.ps1`.
+
+### Via Docker (app + banco em containers)
+
 ```bash
-# Local (requer Maven + Postgres em localhost:5432)
-mvn test   # 28 arquivos / 93 métodos, 0 falhas
+docker-compose up -d --build
+docker logs poo2-app   # [Migrador] V1..V12 + [API] ouvindo em :8080/api
+```
+
+Variáveis (o compose já define): `DB_URL`, `DB_USER`, `DB_PASS`,
+`JWT_SECRET`, `PORT`; SMTP (`SMTP_*`) vazio = envio desligado, download segue.
+
+### Build e testes
+
+```bash
+# Com Maven local (ou a distribuição em ~/.m2/wrapper/dists):
+mvn test      # 102 testes, 0 falhas (usa Postgres em localhost:5432)
+mvn package   # shade ~22 MB com natives Windows do JavaFX
 
 # Sem Maven: via imagem Docker (na raiz do projeto)
 docker run --rm -v "%cd%:/app" -w /app maven:3.9.6-eclipse-temurin-17 mvn test
 ```
 
-Regras centrais cobertas sem depender da interface (ROO-12);
-refatorações registradas em `REFATORACOES.md`.
+> `mvn package` com JDK 25 pode falhar no plugin `jar` antigo; nesse caso o
+> jar sombreado é atualizado via `jar uf` com as classes de `target/classes`.
 
-## Frontend
+### Credenciais seed (V3)
 
-Páginas estáticas em `src/main/resources/static/` (System Design v2):
-catálogo público em `/` + detalhe `/evento-publico?id=` (grade e elenco
-reais, sem mock), programação com filtros + Adicionar à Grade/Exportar
-Agenda/Grade-Lista, área do participante (perfil, ingressos, avaliações,
-certificados PDF), frequência (check-in manual), avaliações (Criar
-Pesquisa/Exportar NPS), relatórios (presença + inscritos). Sem fonte no
-MVP = "—"/"a definir" honesto (ex.: métricas da frequência).
+- Organizadora: `maria.santos@email.com` / `senha123`
+- Participante: `lucas.silva@email.com` / `senha123`
 
-## Decisões de projeto (D-01–D-08)
+API em `http://localhost:8080/api` (contratos em `ENDPOINTS.md`).
 
-Ver `DECISOES.md`.
+---
 
-## Rastreabilidade
+## Cenários principais (demonstração §7/§11)
 
-`MATRIZ_RASTREABILIDADE.md` (RF × ROO, RNs, cenários CA-01–CA-08,
-coluna Desktop DSK-00–DSK-51).
+| Cenário | Fluxo demonstrado |
+|---|---|
+| CA-01 Publicação | Organizadora cria evento/atividades/pessoas, publica, aparece no site |
+| CA-02 Inscrição | Visitante cadastra conta, inscreve-se, confirmação consultável |
+| CA-03 Agenda | Participante escolhe atividades, conflito explicado, agenda cronológica |
+| CA-04 Frequência QR | Elegível registra presença por QR válido; situação calculada pela política |
+| CA-05 Manual | Organizador lança/corrige com autoria e horário preservados |
+| CA-06 Avaliação | Inscrito+presente avalia; inelegível/duplicada bloqueados com motivo |
+| CA-07 Relatório | Organizador consulta e exporta CSV/XLSX/PDF coerentes com os registros |
+| CA-08 Certificado (D) | Elegível baixa PDF; inelegível vê justificativa |
+
+Aceitação do núcleo: CA-01–CA-07 integrados no mesmo banco; desktop ↔ site com
+a mesma massa de demonstração; caminho feliz + um erro relevante por cenário.
+
+---
+
+## Requisitos de qualidade (ROO-01–ROO-12)
+
+| ROO | Evidência |
+|---|---|
+| ROO-01 Modelo rico | `Evento`, `Inscricao`, `Atividade`, `Questionario`, `Pessoa` concentram regras |
+| ROO-02 Encapsulamento | construtores validam; coleções imutáveis; mutação por métodos nomeados |
+| ROO-03 Objetos de valor | `Email`, `Periodo`, `SenhaHash` imutáveis com validação |
+| ROO-04 Composição | agregados compõem; herança só em `Usuario` (ROO-06) |
+| ROO-05 Polimorfismo | políticas de inscrição/frequência + validação por `TipoPergunta` |
+| ROO-07 Interfaces | portas pequenas nas fronteiras e integrações |
+| ROO-08 SOLID | DI manual por portas; SRP por use case; R-01–R-04 motivadas |
+| ROO-09 Hexagonal | domínio sem framework; JDBC/HTTP/JavaFX isolados em adapters |
+| ROO-10 Padrões | Strategy + Ports & Adapters (efeito real, sem ornamento) |
+| ROO-11 Erros do domínio | `DomainException` → 400/404/422 + `StandardError`, sem vazar dados |
+| ROO-12 Testes/refatoração | 102 testes sem interface + 4 refatorações registradas |
+
+Rastreabilidade completa em `MATRIZ_RASTREABILIDADE.md`.
+
+---
+
+## Status do projeto
+
+Núcleo obrigatório (RF-01–RF-31, CA-01–CA-07) implementado e integrado; desejáveis
+(RF-32–35, CA-08) também entregues; social (RF-36, P) fora de escopo por decisão
+(§2.3). Dívidas declaradas: checagem de dono no handler (mover ao use case),
+`/configuracoes` com trechos locais, DSK-60/62 como polimento. Nada trava o núcleo.

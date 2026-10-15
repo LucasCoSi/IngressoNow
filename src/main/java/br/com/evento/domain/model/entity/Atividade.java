@@ -104,16 +104,10 @@ public class Atividade {
         return politicaFrequencia;
     }
 
-    public void setPoliticaFrequencia(PoliticaFrequencia politicaFrequencia) {
-        if (politicaFrequencia == null) {
-            throw new IllegalArgumentException("Política de frequência não pode ser nula");
-        }
-        this.politicaFrequencia = politicaFrequencia;
-    }
-
     /**
      * RF-19: critério de presença configurável por nome
      * ("UNICA" = check-in único; "ENTRADA_SAIDA" = pares entrada/saída).
+     * Ponto único de mutação (ROO-02): sem setter público da estratégia.
      */
     public void definirPoliticaFrequencia(String nome) {
         if (nome == null || nome.isBlank()) {
