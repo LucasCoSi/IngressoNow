@@ -12,40 +12,63 @@ Base: `http://localhost:8080`. Auth: `Authorization: Bearer <JWT>`
 > DSK-50/51 relatórios/certificados. Checagem de dono (RN-18) hoje no
 > handler (403) + repetida na tela do desktop.
 
-## Papéis (§3) — PARTICIPANTE vs ORGANIZADOR
+## Papéis (§3) — PARTICIPANTE vs ORGANIZADOR vs ADMINISTRADOR
 
 - **Público (sem login):** `/`, `/evento-publico`, `/programacao`,
   `GET /api/eventos`, `GET /api/eventos/{id}`, `GET .../programacao`.
 - **Participante:** área do participante + próprios recursos
   (`?participanteId=` próprio, agenda própria, inscrever-se,
   certificados próprios, submeter avaliação). Gestão → 403.
-- **Organizador:** gestão (eventos/atividades/check-in/relatórios/
-  questionários+resultados/critérios/emissão/usuários). Frontend redireciona
-  participante em página admin → `/area-participante` (sem login → `/login`).
+- **Organizador:** só os **próprios** eventos e seus inscritos
+  (atividades, check-in manual, relatórios, questionários+resultados,
+  critérios/emissão). Evento alheio ou `?organizadorId=` alheio → 403.
+  Não lista usuários (`GET /api/usuarios` → 403); localiza um usuário
+  por e-mail em `GET /api/usuarios/buscar?email=` (inscrição manual).
+- **Administrador:** tudo — qualquer evento, `?organizadorId=` qualquer,
+  `GET /api/usuarios` e `DELETE /api/usuarios/{id}` (com travas).
+  Contas de organizador e administrador só nascem de outra conta admin
+  (`POST /api/auth/cadastro` com `"tipo":"ORGANIZADOR"|"ADMINISTRADOR"` +
+  JWT de admin, senão 403). A interface não oferece criação de administrador.
+- Frontend redireciona participante em página de gestão →
+  `/area-participante` (sem login → `/login`); o atalho `/usuarios`
+  some para não-admin (a API também barra com 403).
 
-## Auth (público)
+## Auth (público, com rate limit)
 
 ```bash
-# Cadastro
+# Cadastro de participante (público). Senha mínima: 8 caracteres.
 curl -X POST /api/auth/cadastro -H 'Content-Type: application/json' \
   -d '{"nome":"Ana","email":"ana@email.com","senha":"senha123","tipo":"PARTICIPANTE"}'
-# → 201 {token, usuarioId, nome, email}
+# → 201 {token, usuarioId, nome, email, tipo}
+
+# Cadastro de organizador/administrador: exige JWT de administrador.
+curl -X POST /api/auth/cadastro -H "Authorization: Bearer $T_ADMIN" \
+  -H 'Content-Type: application/json' \
+  -d '{"nome":"Bia","email":"bia@email.com","senha":"senha123","tipo":"ORGANIZADOR"}'
+# → 201; sem JWT de admin → 403
 
 # Login
 curl -X POST /api/auth/login -H 'Content-Type: application/json' \
   -d '{"email":"lucas.silva@email.com","senha":"senha123"}'
-# → 200 {token, usuarioId, nome, email}
+# → 200 {token, usuarioId, nome, email, tipo}; falha → 401 "Credenciais inválidas."
+# Muitas tentativas → 429 + Retry-After (login 10/min; cadastro 5/10 min por IP)
 ```
 
-## Usuários — RF-03 (JWT, só próprio perfil)
+## Usuários — RF-03 (JWT: próprio perfil ou admin)
 
 ```bash
 curl /api/usuarios/{id} -H "Authorization: Bearer $T"
-# → 200 {id, nome, email, tipo}
+# → 200 {id, nome, email, tipo} (dono ou administrador)
 
 curl -X PUT /api/usuarios/{id} -H "Authorization: Bearer $T" \
   -H 'Content-Type: application/json' -d '{"nome":"Novo Nome","senha":"nova123"}'
-# → 200 perfil atualizado (campos opcionais; 403 em perfil alheio)
+# → 200 perfil atualizado (senha ≥ 8; 403 em perfil alheio sem ser admin)
+# O admin usa este PUT para redefinir a senha de quem esqueceu (/recuperar-senha).
+
+curl /api/usuarios -H "Authorization: Bearer $T_ADMIN"          # lista todos (só admin)
+curl "/api/usuarios/buscar?email=x@y.com" -H "Authorization: Bearer $T"  # gestor
+curl -X DELETE /api/usuarios/{id} -H "Authorization: Bearer $T_ADMIN"
+# → 204 (422 se organiza eventos ou tem inscrições; 409/403 conforme regra)
 ```
 
 ## Eventos — RF-04

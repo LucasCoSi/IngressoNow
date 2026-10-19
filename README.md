@@ -36,9 +36,17 @@ Projeto da disciplina **Programação Orientada a Objetos II**, baseado em
 
 ### Usuários e autenticação (RF-01/02/03)
 
-- cadastro com nome, e-mail e senha; e-mail duplicado rejeitado (RN-01);
-- login com JWT (`userId`), perfis PARTICIPANTE/ORGANIZADOR;
-- participante consulta e atualiza os próprios dados (403 em perfil alheio).
+- cadastro público de participante com nome, e-mail e senha (mínimo de 8 caracteres);
+  e-mail duplicado rejeitado (RN-01), inclusive em condição de corrida;
+- três perfis (§3): PARTICIPANTE, ORGANIZADOR (só os próprios eventos e
+  inscritos) e ADMINISTRADOR (tudo); organizador e administrador **só nascem de
+  uma conta administradora** (regra no núcleo, não só na tela) — o cadastro
+  público não oferece perfil de gestão;
+- login com JWT (`userId`) e mensagem genérica de credencial inválida (sem
+  enumerar e-mails); rate limit em memória em login/cadastro (429 + `Retry-After`);
+- participante consulta e atualiza os próprios dados; administrador redefine a
+  senha de qualquer usuário (fluxo assistido do “Esqueceu a senha?”);
+- páginas de Termos de Uso (`/termos`) e Política de Privacidade (`/privacidade`).
 
 ### Eventos, atividades e programação (RF-04–09)
 
@@ -101,7 +109,7 @@ Projeto da disciplina **Programação Orientada a Objetos II**, baseado em
 ### Infraestrutura
 
 - Docker e Docker Compose, `rodar.ps1` (sobe banco + app em um comando)
-- `MigradorSql` + `migrations.txt` (V1–V12), seeds V3
+- `MigradorSql` + `migrations.txt` (V1–V13), seeds V3
 
 ---
 
@@ -157,7 +165,7 @@ src/main/java/br/com/evento/
 ├── adapters/in/desktop/   JavaFX (mesmos use cases, sem HTTP)
 ├── adapters/out/          jdbc/, security/ (BCrypt), pdf/, email/
 └── infra/                 fiação manual (sem container DI)
-src/main/resources/static/ site (HTML/JS por página) + db/migration/ (V1–V12)
+src/main/resources/static/ site (HTML/JS por página) + db/migration/ (V1–V13)
 ```
 
 Regra: `domain/` não importa framework; `application/` não importa adapter;
@@ -210,7 +218,7 @@ responsabilidade (SRP).
 ## Persistência
 
 PostgreSQL com `MigradorSql` + manifesto `migrations.txt` (funciona no jar
-sombreado), ordem garantida V1–V12:
+sombreado), ordem garantida V1–V13:
 
 ```
 V1  esquema inicial (usuários, eventos, atividades)
@@ -219,6 +227,7 @@ V4  avaliações            V5  check-ins (RN-11)
 V6  tipo/trilha           V7  origem/responsável do check-in (RN-12)
 V8  pessoas (RF-08)       V9  detalhes do evento, fuso (RN-20), flags RF-13
 V10 certificados (D)      V11 maxVagas por atividade      V12 índices (RNF-10)
+V13 terceiro perfil: Maria → administradora + organizadora seed (Ana)
 ```
 
 Upsert por ID + DELETE só de órfãs (DELETE geral acionava `ON DELETE CASCADE`
@@ -230,9 +239,16 @@ e apagava respostas — bug real corrigido, R-02). Seeds em `SEEDS_DADOS_INICIAI
 
 - JWT com `userId`, expiração e segredo ≥ 256 bits; BCrypt com seeds compatíveis;
 - autorização verificada **no servidor** (401 sem JWT, 403 em recurso alheio — RNF-06);
+  criar organizador/administrador exige JWT de administrador, inclusive fora da tela;
+- política única de senha (mínimo 8) no site, no desktop e na API;
+- rate limit em memória no login (10/min) e no cadastro (5/10 min) → 429 + `Retry-After`;
+- login responde sempre “Credenciais inválidas” (não revela se o e-mail existe) e
+  e-mail duplicado em corrida vira 400 (UNIQUE do banco, não 500);
 - SQL 100% parametrizado; entradas inválidas rejeitadas com mensagens claras (RNF-07);
 - QR sem senha ou dado sensível; falhas internas retornam mensagem genérica
-  sem expor SQL ou credenciais (RNF-14); coleta mínima de dados (RNF-08).
+  sem expor SQL ou credenciais (RNF-14); coleta mínima de dados (RNF-08);
+- “Esqueceu a senha?” → `/recuperar-senha`; redefinição assistida pelo admin em
+  `/usuarios` (SMTP desligado no MVP, então não há e-mail automático).
 
 ---
 
@@ -245,13 +261,14 @@ e apagava respostas — bug real corrigido, R-02). Seeds em `SEEDS_DADOS_INICIAI
 - **Site**: catálogo público, programação, área do participante, gestão
   (`/inscricoes` com inscrição manual e exportação), `/configuracoes`
   (preferências locais + regras do evento no servidor) e `/relatorios`
-  (gráficos SVG + CSV/XLSX/PDF). Detalhes em `BACKLOG_DESKTOP.md`.
+  (gráficos SVG + CSV/XLSX/PDF). Páginas de apoio: `/termos`, `/privacidade`,
+  `/recuperar-senha`. Detalhes em `BACKLOG_DESKTOP.md`.
 
 ---
 
 ## Testes
 
-30 arquivos / **102 testes, 0 falhas** (`mvn test`), independentes da interface
+34 arquivos / **122 testes, 0 falhas** (`mvn test`), independentes da interface
 (RNF-12, ROO-12). Cobrem:
 
 ```
@@ -311,7 +328,7 @@ Se o PowerShell bloquear: `powershell -ExecutionPolicy Bypass -File .\rodar.ps1`
 
 ```bash
 docker-compose up -d --build
-docker logs poo2-app   # [Migrador] V1..V12 + [API] ouvindo em :8080/api
+docker logs poo2-app   # [Migrador] V1..V13 + [API] ouvindo em :8080/api
 ```
 
 Variáveis (o compose já define): `DB_URL`, `DB_USER`, `DB_PASS`,
@@ -321,7 +338,7 @@ Variáveis (o compose já define): `DB_URL`, `DB_USER`, `DB_PASS`,
 
 ```bash
 # Com Maven local (ou a distribuição em ~/.m2/wrapper/dists):
-mvn test      # 102 testes, 0 falhas (usa Postgres em localhost:5432)
+mvn test      # 122 testes, 0 falhas (usa Postgres em localhost:5432)
 mvn package   # shade ~22 MB com natives Windows do JavaFX
 
 # Sem Maven: via imagem Docker (na raiz do projeto)
@@ -331,9 +348,10 @@ docker run --rm -v "%cd%:/app" -w /app maven:3.9.6-eclipse-temurin-17 mvn test
 > `mvn package` com JDK 25 pode falhar no plugin `jar` antigo; nesse caso o
 > jar sombreado é atualizado via `jar uf` com as classes de `target/classes`.
 
-### Credenciais seed (V3)
+### Credenciais seed (V3 + V13)
 
-- Organizadora: `maria.santos@email.com` / `senha123`
+- Administradora: `maria.santos@email.com` / `senha123`
+- Organizadora: `ana.organizadora@email.com` / `senha123`
 - Participante: `lucas.silva@email.com` / `senha123`
 
 API em `http://localhost:8080/api` (contratos em `ENDPOINTS.md`).

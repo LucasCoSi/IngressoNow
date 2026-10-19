@@ -1,9 +1,11 @@
 package br.com.evento.adapters.out.jdbc;
 
+import br.com.evento.domain.model.entity.Administrador;
 import br.com.evento.domain.model.entity.Atividade;
 import br.com.evento.domain.model.entity.Evento;
 import br.com.evento.domain.model.entity.Organizador;
 import br.com.evento.domain.model.entity.StatusEvento;
+import br.com.evento.domain.model.entity.Usuario;
 import br.com.evento.domain.model.vo.Email;
 import br.com.evento.domain.model.vo.Periodo;
 import br.com.evento.domain.model.vo.SenhaHash;
@@ -166,7 +168,7 @@ public class JdbcEventoRepository implements EventoRepository {
     }
 
     private static final String COLS_BASE = "e.id, e.titulo, e.descricao, e.status,"
-            + " e.organizador_id, e.max_vagas, u.nome, u.email, u.senha_hash";
+            + " e.organizador_id, e.max_vagas, u.nome, u.email, u.senha_hash, u.tipo_usuario";
     private static final String COLS_V9 = ", e.periodo_inicio, e.periodo_fim, e.local,"
             + " e.fuso, e.exige_escolha_atividades, e.vagas_por_atividade";
 
@@ -185,13 +187,28 @@ public class JdbcEventoRepository implements EventoRepository {
     }
 
     private static Evento mapearEvento(ResultSet rs, boolean temV9) throws Exception {
-        Organizador org = new Organizador(
-                rs.getString("organizador_id"),
-                rs.getString("nome"),
-                new Email(rs.getString("email")),
-                new SenhaHash(rs.getString("senha_hash")));
+        String tipoDono = null;
+        try {
+            tipoDono = rs.getString("tipo_usuario");
+        } catch (Exception ignored) {
+            // Bancos sem a coluna (pré-V13): o dono segue como organizador.
+        }
+        Usuario dono;
+        if ("ADMINISTRADOR".equalsIgnoreCase(tipoDono)) {
+            dono = new Administrador(
+                    rs.getString("organizador_id"),
+                    rs.getString("nome"),
+                    new Email(rs.getString("email")),
+                    new SenhaHash(rs.getString("senha_hash")));
+        } else {
+            dono = new Organizador(
+                    rs.getString("organizador_id"),
+                    rs.getString("nome"),
+                    new Email(rs.getString("email")),
+                    new SenhaHash(rs.getString("senha_hash")));
+        }
         Evento evento = new Evento(rs.getString("id"), rs.getString("titulo"),
-                rs.getString("descricao"), org);
+                rs.getString("descricao"), dono);
         evento.restaurarEstado(StatusEvento.valueOf(rs.getString("status")));
         Object maxVagas = rs.getObject("max_vagas");
         if (maxVagas != null) evento.configurarLimiteDeVagas(((Number) maxVagas).intValue());

@@ -1,4 +1,4 @@
-# IngressoNow — Decisões de Projeto (D-01–D-08)
+# IngressoNow — Decisões de Projeto (D-01–D-10)
 
 ## D-01 desktop: JavaFX (código puro, sem FXML)
 
@@ -78,3 +78,49 @@ CA-08). Seeds V3: Maria (ORGANIZADOR) / Lucas (PARTICIPANTE),
 registradas em `REFATORACOES.md` (R-01 `exigirSemConflito`, R-02 upsert
 + DELETE de órfãs). Desktop validado em banco real (login Maria,
 DSK-00/10; jar DSK-11–51 rebuildado 2026-09-16).
+
+## D-09 cadastro/perfis: participante self-service, gestão criada por admin
+
+O cadastro público (`POST /api/auth/cadastro` e telas de cadastro) cria **apenas
+PARTICIPANTE**. Organizador e administrador exigem JWT de administrador — regra
+no núcleo (`CadastrarUsuarioUseCase` recebe o solicitante), não só escondida na
+tela; a interface de `/usuarios` **não oferece criar administrador**. Motivo:
+auto-cadastro de organizador permitia a qualquer visitante publicar eventos.
+O primeiro admin vem das seeds (V13). Alternativa descartada: aprovação de
+organizador pendente (exigiria migration V14 + tela), adiada por custo/benefício.
+
+Decisões associadas: política única de senha (mínimo 8 no site, desktop e API);
+mensagem genérica de login ("Credenciais inválidas") para não enumerar e-mails;
+e-mail duplicado em corrida → 400 via SQLState 23505 (antes 500); rate limit em
+memória (login 10/min, cadastro 5/10 min → 429 + `Retry-After`); recuperação de
+senha **assistida pelo admin** em `/usuarios` (página `/recuperar-senha`), porque
+o SMTP está desligado no MVP — verificação de e-mail e auto-recuperação por link
+ficam como trabalho futuro condicionado ao SMTP. Páginas legais `/termos` e
+`/privacidade` publicadas.
+
+## D-10 navegação: sessão preserva o papel e a sidebar de gestão não some
+
+**Causa raiz do bug “sai da área do participante e vai para o index”:** em
+`area-participante.js`, ao carregar/editar o perfil, a sessão era regravada com
+`Auth.setUser({ usuarioId, nome, email })` — um objeto **sem `tipo`**. Na página
+seguinte o `nav.js` lia `tipo` vazio e tratava organizador/admin como
+**PARTICIPANTE**: o logo passava a apontar para `/` (index), a sidebar virava a
+de participante e as páginas de gestão redirecionavam para `/area-participante`
+(ou seja, não havia como voltar ao painel). Correção: `Auth.updateUser(patch)`
+mescla os campos no usuário salvo (`...getUser(), ...patch`), preservando
+`tipo`; os dois `setUser` de `area-participante.js` passaram a usar
+`updateUser`. `evento-publico.js` já fazia `{ ...user, tipo }`.
+
+**Sidebar:** nas páginas de participante (`/`, `/evento-publico`,
+`/area-participante`) a sidebar do HTML é a do participante. Para organizador/
+admin ela é **trocada** pela navegação de gestão reconstruída **idêntica à do
+painel** — mesmos itens de `ITENS_GESTAO` (ícones via `<symbol>` injetados por
+`garantirIcones`, já que essas páginas não têm `<defs>`), grupo
+“Administração” e o mesmo rodapé. Assim existe **uma única barra** em todas as
+telas, sem duplicar itens. Páginas de gestão não mudam (já têm `nav-dashboard`);
+participante não muda. O menu de conta oferece “Painel de gestão”.
+
+**Links corrigidos:** o estado vazio de `/area-participante` (“Ver eventos”) e o
+pós-cadastro apontavam para `/eventos` (gestão); como o cadastro público só cria
+PARTICIPANTE, o guard rebatia de volta e o clique parecia “não fazer nada”.
+Agora apontam para `/` (catálogo público).

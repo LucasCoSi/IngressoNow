@@ -49,9 +49,10 @@ adapter; adapters convertem (DTO/record ↔ entidade) e delegam.
 ## 2. Modelo de domínio (vocabulário dos requisitos)
 
 ```
-Usuario (abstrata) ◀── Participante | Organizador
+Usuario (abstrata) ◀── Participante | Organizador | Administrador
   - id, nome, email(Email VO), senha(SenhaHash VO)
   - alterarNome / alterarSenha (RF-03)
+  - Organizador: só próprios eventos; Administrador (§3): tudo
 
 Evento ──<> compõe Atividade[] (1..*)
   - status: RASCUNHO → PUBLICADO → INSCRICOES_ABERTAS → ENCERRADO (RN-04)

@@ -10,7 +10,7 @@
 | RF | Requisito (resumo) | Status | Implementação (classe/endpoint) | Teste / demonstração | Desktop |
 |----|--------------------|--------|---------------------------------|----------------------|---------|
 | RF-01 | Cadastro usuário (nome, e-mail, senha; e-mail único) | ✅ | `CadastrarUsuarioUseCase`, `POST /api/auth/cadastro`, RN-01 via `existePorEmail` + UNIQUE | Manual via `/cadastro`; validado em Docker | DSK-00 |
-| RF-02 | Autenticação + permissões por perfil | ✅ | `AutenticarUsuarioUseCase`, `POST /api/auth/login`, JWT (`JwtAuth`, claim `userId`); `GET /api/eventos/**` e `/programacao` públicos, resto autenticado | Manual via `/login`; validado em Docker 2026-09-05/06 | DSK-00 |
+| RF-02 | Autenticação + permissões por perfil (§3: participante, organizador restrito, admin total) | ✅ | `AutenticarUsuarioUseCase`, `POST /api/auth/login`, JWT (`JwtAuth`, claim `userId`); `Papeis` (gestor/dono/admin); admin só nasce de outra admin (403); `GET /api/eventos/**` e `/programacao` públicos, resto autenticado | Manual via `/login` (Maria admin, Ana organizadora, Lucas participante); 403 organizador em evento alheio e em `/api/usuarios` | DSK-00 |
 | RF-03 | Participante consulta/atualiza dados básicos | ✅ | `EditarUsuarioUseCase` + `UsuarioHandler` (`GET/PUT /api/usuarios/{id}`, só próprio perfil, 403 alheio); form no perfil da área do participante | Validado em Docker 2026-09-06 (PUT nome + 403) | DSK-00 (demo) |
 | RF-04 | CRUD + encerrar eventos | ✅ | `Evento` (publicar/encerrar/atualizar), `EventoHandler` (`GET`, `GET/{id}`, `POST`, `PUT/{id}`, `DELETE/{id}` 422 se há inscrições, `POST/{id}/publicar`, `POST/{id}/encerrar`) | Testes `EventoTest`, `CadastrarEventoUseCaseTest`; demo Docker | DSK-10 |
 | RF-05 | Atividades de tipos variados, sem categoria fixa | ✅ | `Atividade.tipo` (texto livre, V6); `POST /atividades` aceita `tipo`; grade exibe badge | Validado em Docker 2026-09-06 | DSK-11 |
@@ -63,13 +63,13 @@
 | ROO-03 objetos de valor | `Email`, `Periodo`, `SenhaHash`, `Horario` imutáveis com validação | `model/vo/*` |
 | ROO-04 composição | `Evento` compõe `Atividade`; `Inscricao` compõe seleção + check-ins; `AgendaDoParticipante` deriva de `Inscricao` | `Evento.java:131`, `Inscricao.java:111` |
 | ROO-05 polimorfismo | `PoliticaInscricao` (SemLimite/ComLimite), `PoliticaFrequencia` (Unica/EntradaSaida) e `TipoPergunta` (validação por constante: texto/escolha/escala) — reais, sem switch espalhado | `Politica*.java`, `Frequencia*Strategy.java`, `TipoPergunta.java` |
-| ROO-06 herança | `Usuario` ← `Participante`/`Organizador`; relação substituível justificável | `Usuario.java`, `Participante.java`, `Organizador.java` |
+| ROO-06 herança | `Usuario` ← `Participante`/`Organizador`/`Administrador`; relação substituível justificável | `Usuario.java`, `Participante.java`, `Organizador.java`, `Administrador.java` |
 | ROO-07 interfaces | Portas `EventoRepository`, `InscricaoRepository`, `UsuarioRepository`, `QrCodeService` — contratos pequenos | `port/out/*`, `port/in/*` |
 | ROO-08 SOLID | Inversão de dependência (use cases dependem de portas); SRP por use case; falta registrar 1 refatoração motivada | `application/usecase/*` |
 | ROO-09 hexagonal | `domain/` sem imports de framework; `application/` sem anotações (fiação manual em `FabricaAplicacao`); JDBC isolado em `adapters/out`; HTTP e desktop em `adapters/in` | `Poo2Application.java`, `infra/FabricaAplicacao.java`, adapters |
 | ROO-10 padrões | ① Strategy (inscrição + frequência) com efeito real; ② Ports & Adapters; candidato a 3º: Builder/Factory p/ `Questionario` ou Specification p/ elegibilidade — Task #2/#4 | — |
 | ROO-11 erros de domínio | `DomainException` + `GlobalExceptionHandler` (400/404/422/500) + `StandardError` | `exception/*` |
-| ROO-12 testes/refatoração | 30 arquivos / 102 testes JUnit 5 + Mockito (`mvn test`: 0 falhas); 4 refatorações registradas em `REFATORACOES.md` (R-01 `exigirSemConflito`, R-02 upsert + DELETE de órfãs, R-03 validação polimórfica em `TipoPergunta`, R-04 QR com validade + anti-duplicidade) | `src/test/**`, `REFATORACOES.md` |
+| ROO-12 testes/refatoração | 32 arquivos / 109 testes JUnit 5 + Mockito (`mvn test`: 0 falhas); 4 refatorações registradas em `REFATORACOES.md` (R-01 `exigirSemConflito`, R-02 upsert + DELETE de órfãs, R-03 validação polimórfica em `TipoPergunta`, R-04 QR com validade + anti-duplicidade) + 3 perfis com testes de tipo e criação | `src/test/**`, `REFATORACOES.md` |
 
 **Dívida de modelagem (resolvida na migração Java SE):** pacotes legados
 duplicados foram excluídos — `domain/` contém só `entity/`, `vo/`,

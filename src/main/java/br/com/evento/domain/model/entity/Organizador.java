@@ -3,6 +3,11 @@ package br.com.evento.domain.model.entity;
 import br.com.evento.domain.model.vo.Email;
 import br.com.evento.domain.model.vo.SenhaHash;
 
+/**
+ * Ator Organizador (§3): cria e opera apenas os próprios eventos e seus
+ * inscritos. Não lista usuários nem toca em evento alheio (RN-18) — isso
+ * é prerrogativa do {@link Administrador}.
+ */
 public class Organizador extends Usuario {
 
     public Organizador(String id, String nome, Email email, SenhaHash senha) {

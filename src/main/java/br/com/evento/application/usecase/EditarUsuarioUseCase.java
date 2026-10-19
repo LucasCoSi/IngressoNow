@@ -27,8 +27,9 @@ public class EditarUsuarioUseCase {
             usuario.alterarNome(novoNome.trim());
         }
         if (novaSenhaTexto != null && !novaSenhaTexto.isBlank()) {
-            if (novaSenhaTexto.length() < 6) {
-                throw new DomainException("A nova senha deve ter ao menos 6 caracteres.");
+            if (novaSenhaTexto.length() < CadastrarUsuarioUseCase.SENHA_MINIMA) {
+                throw new DomainException("A nova senha deve ter ao menos "
+                        + CadastrarUsuarioUseCase.SENHA_MINIMA + " caracteres.");
             }
             usuario.alterarSenha(new SenhaHash(passwordHasher.hash(novaSenhaTexto)));
         }

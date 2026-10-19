@@ -1,8 +1,10 @@
 /**
- * usuarios.js - Gestão de Usuários (organizador/admin, §3).
+ * usuarios.js - Gestão de Usuários (somente administrador, §3).
  * Integracao da pagina ingressonow-usuarios.html com:
- * GET /api/usuarios (listar), DELETE /api/usuarios/{id} (remover com travas).
- * Convite = cadastro via /api/auth/cadastro (tipo ORGANIZADOR/PARTICIPANTE).
+ * GET /api/usuarios (listar), PUT /api/usuarios/{id} (redefinir senha),
+ * DELETE /api/usuarios/{id} (remover com travas).
+ * Convite = cadastro via /api/auth/cadastro (tipo ORGANIZADOR ou PARTICIPANTE).
+ * Não há opção de criar administrador pela interface.
  */
 
 document.addEventListener('DOMContentLoaded', async function() {
@@ -66,11 +68,34 @@ document.addEventListener('DOMContentLoaded', async function() {
                 <td>${escapeHtml(u.tipo || '')}</td>
                 <td><span class="badge badge-confirmed">Ativo</span></td>
                 <td style="text-align:right">
+                    <button class="secondary" data-action="senha" data-id="${u.id}">Redefinir senha</button>
                     <button class="secondary" data-action="remover" data-id="${u.id}">Remover</button>
                 </td>
             </tr>`).join('');
         tbody.querySelectorAll('[data-action="remover"]').forEach(b =>
             b.addEventListener('click', () => remover(b.dataset.id)));
+        tbody.querySelectorAll('[data-action="senha"]').forEach(b =>
+            b.addEventListener('click', () => redefinirSenha(b.dataset.id)));
+    }
+
+    // Esqueceu a senha? O admin define uma nova (sem SMTP no MVP).
+    async function redefinirSenha(id) {
+        const alvo = cache.find(u => u.id === id);
+        const nova = prompt(`Nova senha para ${alvo ? alvo.nome : id} (mínimo 8 caracteres):`);
+        if (nova === null) return;
+        if (nova.length < 8) {
+            window.API.exibirErro({ message: 'A senha deve ter ao menos 8 caracteres.' });
+            return;
+        }
+        try {
+            await api(`/api/usuarios/${encodeURIComponent(id)}`, {
+                method: 'PUT',
+                body: JSON.stringify({ senha: nova })
+            });
+            window.API.exibirSucesso('Senha redefinida. Informe o novo valor ao usuário.');
+        } catch (error) {
+            window.API.exibirErro(error);
+        }
     }
 
     async function remover(id) {
@@ -85,16 +110,28 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
 
-    // Convidar = cadastrar com tipo (o convidado define a senha no cadastro)
+    // Convidar = cadastrar organizador ou participante. Perfis de gestão
+    // exigem admin no servidor; aqui a interface não oferece administrador.
     if (inviteBtn) {
         inviteBtn.addEventListener('click', async () => {
             const nome = prompt('Nome do usuário:');
             if (!nome) return;
             const email = prompt('E-mail:');
             if (!email) return;
-            const tipo = (prompt('Tipo (ORGANIZADOR ou PARTICIPANTE):', 'PARTICIPANTE') || 'PARTICIPANTE').toUpperCase();
-            const senha = prompt('Senha inicial (o usuário pode trocar no perfil):');
+            const tipo = (prompt('Tipo (ORGANIZADOR ou PARTICIPANTE):', 'PARTICIPANTE') || '').toUpperCase();
+            if (tipo !== 'ORGANIZADOR' && tipo !== 'PARTICIPANTE') {
+                window.API.exibirErro({
+                    message: 'Tipo inválido. Use ORGANIZADOR ou PARTICIPANTE. '
+                        + 'Contas de administrador não são criadas por aqui.'
+                });
+                return;
+            }
+            const senha = prompt('Senha inicial (mínimo 8 caracteres):');
             if (!senha) return;
+            if (senha.length < 8) {
+                window.API.exibirErro({ message: 'A senha deve ter ao menos 8 caracteres.' });
+                return;
+            }
             try {
                 await window.API.Auth.cadastro(nome, email, senha, tipo);
                 window.API.exibirSucesso('Usuário cadastrado!');

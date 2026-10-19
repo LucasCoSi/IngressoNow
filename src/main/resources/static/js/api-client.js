@@ -29,6 +29,13 @@ const Auth = {
         localStorage.setItem(this.USER_KEY, JSON.stringify(userData));
     },
 
+    // Mescla campos no usuário salvo. Use quando a tela atualiza nome/e-mail:
+    // substituir o objeto inteiro apagaria o "tipo" (papel) e o nav.js
+    // passaria a tratar organizador/admin como participante.
+    updateUser(patch) {
+        this.setUser({ ...(this.getUser() || {}), ...(patch || {}) });
+    },
+
     getUser() {
         const userData = localStorage.getItem(this.USER_KEY);
         return userData ? JSON.parse(userData) : null;
@@ -74,36 +81,42 @@ class APIError extends Error {
 }
 
 /**
- * Handler centralizado de erros da API
+ * Handler centralizado de erros da API.
+ * Lê o corpo primeiro para preservar a mensagem do servidor (ex.: credenciais
+ * inválidas) e só redireciona no 401 quando a chamada não é de autenticação.
  */
-async function handleAPIError(response) {
-    // Se status 401, redireciona para login
-    if (response.status === 401) {
-        Auth.logout();
-        throw new APIError('Sessao expirada. Faca login novamente.', 401);
-    }
-
-    // 403 quase sempre = sem token ou token invalido no MVP
-    if (response.status === 403) {
-        throw new APIError('Acesso negado. Faca login para continuar.', 403);
-    }
-
-    let errorData;
+async function handleAPIError(response, options = {}) {
+    let errorData = {};
     try {
         const text = await response.text();
         errorData = text ? JSON.parse(text) : {};
     } catch (e) {
-        throw new APIError(
-            'Erro ao processar resposta do servidor',
-            response.status
-        );
+        errorData = {};
     }
 
-    // Busca mensagem de erro nos diferentes formatos
-    const message = errorData.erro || errorData.message || 'Erro desconhecido';
-    const fieldErrors = errorData.detalhes || errorData.fieldErrors || null;
+    const message = errorData.message || errorData.erro || null;
+    const fieldErrors = errorData.fieldErrors || errorData.detalhes || null;
 
-    throw new APIError(message, response.status, fieldErrors);
+    if (response.status === 401) {
+        if (options.redirecionar401 !== false) {
+            Auth.logout();
+            throw new APIError('Sessao expirada. Faca login novamente.', 401);
+        }
+        throw new APIError(message || 'E-mail ou senha inválidos.', 401, fieldErrors);
+    }
+
+    if (response.status === 429) {
+        throw new APIError(
+            message || 'Muitas tentativas. Aguarde e tente novamente.', 429, fieldErrors);
+    }
+
+    // 403 pode ser falta de permissão (mensagem real do servidor) ou token
+    // inválido; prioriza a mensagem do servidor quando existir.
+    if (response.status === 403) {
+        throw new APIError(message || 'Acesso negado. Faça login para continuar.', 403, fieldErrors);
+    }
+
+    throw new APIError(message || 'Erro desconhecido', response.status, fieldErrors);
 }
 
 /**
@@ -132,7 +145,7 @@ async function get(endpoint) {
 /**
  * Wrapper para requisições POST
  */
-async function post(endpoint, data) {
+async function post(endpoint, data, options = {}) {
     try {
         const response = await fetch(`${API_BASE_URL}${endpoint}`, {
             method: 'POST',
@@ -141,7 +154,7 @@ async function post(endpoint, data) {
         });
 
         if (!response.ok) {
-            await handleAPIError(response);
+            await handleAPIError(response, options);
         }
 
         // Retorna vazio se status 204 (No Content)
@@ -214,7 +227,7 @@ async function del(endpoint) {
  */
 const AuthAPI = {
     login: async (email, senha) => {
-        const response = await post('/auth/login', { email, senha });
+        const response = await post('/auth/login', { email, senha }, { redirecionar401: false });
         if (response.token) {
             Auth.setToken(response.token);
             Auth.setUser({
@@ -228,7 +241,7 @@ const AuthAPI = {
     },
 
     cadastro: async (nome, email, senha, tipo) => {
-        const response = await post('/auth/cadastro', { nome, email, senha, tipo });
+        const response = await post('/auth/cadastro', { nome, email, senha, tipo }, { redirecionar401: false });
         if (response.token) {
             Auth.setToken(response.token);
             Auth.setUser({
@@ -314,7 +327,7 @@ function exibirErro(error, containerId = 'error-container') {
 
     let html = `
         <div class="alert alert-error" role="alert">
-            <strong>Erro ${error.status || ''}:</strong> ${error.message}
+            <strong>${error.status ? 'Erro ' + error.status + ':' : 'Atenção:'}</strong> ${error.message}
     `;
 
     // Exibir erros de campo específicos

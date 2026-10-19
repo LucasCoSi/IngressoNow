@@ -1,6 +1,7 @@
 package br.com.evento.application.usecase;
 
 import br.com.evento.domain.exception.DomainException;
+import br.com.evento.domain.model.entity.Administrador;
 import br.com.evento.domain.model.entity.Evento;
 import br.com.evento.domain.model.entity.Organizador;
 import br.com.evento.domain.model.entity.Usuario;
@@ -25,11 +26,11 @@ public class CadastrarEventoUseCase {
         Usuario usuario = usuarioRepository.buscarPorId(organizadorId)
                 .orElseThrow(() -> new DomainException("Organizador não encontrado com id: " + organizadorId));
 
-        if (!(usuario instanceof Organizador organizador)) {
-            throw new DomainException("Apenas organizadores podem criar eventos.");
+        if (!(usuario instanceof Organizador) && !(usuario instanceof Administrador)) {
+            throw new DomainException("Apenas organizadores ou administradores podem criar eventos.");
         }
 
-        Evento evento = new Evento(titulo, descricao, organizador);
+        Evento evento = new Evento(titulo, descricao, usuario);
         return eventoRepository.salvar(evento);
     }
 }

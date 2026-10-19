@@ -1,5 +1,6 @@
 package br.com.evento.adapters.out.jdbc;
 
+import br.com.evento.domain.model.entity.Administrador;
 import br.com.evento.domain.model.entity.Organizador;
 import br.com.evento.domain.model.entity.Participante;
 import br.com.evento.domain.model.entity.Usuario;
@@ -32,12 +33,20 @@ public class JdbcUsuarioRepository implements UsuarioRepository {
         try (Connection c = factory.open();
              PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setString(1, usuario.getId());
-            ps.setString(2, usuario instanceof Organizador ? "ORGANIZADOR" : "PARTICIPANTE");
+            ps.setString(2, tipoUsuario(usuario));
             ps.setString(3, usuario.getNome());
             ps.setString(4, usuario.getEmail().getEndereco());
             ps.setString(5, usuario.getSenha().getHash());
             ps.executeUpdate();
             return usuario;
+        } catch (java.sql.SQLException e) {
+            // Corrida entre existePorEmail e INSERT: a UNIQUE do banco é a
+            // última linha de defesa. Vira erro de negócio (400), não 500.
+            if ("23505".equals(e.getSQLState())) {
+                throw new br.com.evento.domain.exception.DomainException(
+                        "Já existe um usuário cadastrado com este e-mail.");
+            }
+            throw new IllegalStateException("Falha ao salvar usuário", e);
         } catch (Exception e) {
             throw new IllegalStateException("Falha ao salvar usuário", e);
         }
@@ -110,9 +119,18 @@ public class JdbcUsuarioRepository implements UsuarioRepository {
         String nome = rs.getString("nome");
         Email email = new Email(rs.getString("email"));
         SenhaHash senha = new SenhaHash(rs.getString("senha_hash"));
+        if ("ADMINISTRADOR".equalsIgnoreCase(tipo)) {
+            return new Administrador(id, nome, email, senha);
+        }
         if ("ORGANIZADOR".equalsIgnoreCase(tipo)) {
             return new Organizador(id, nome, email, senha);
         }
         return new Participante(id, nome, email, senha);
+    }
+
+    static String tipoUsuario(Usuario usuario) {
+        if (usuario instanceof Administrador) return "ADMINISTRADOR";
+        if (usuario instanceof Organizador) return "ORGANIZADOR";
+        return "PARTICIPANTE";
     }
 }

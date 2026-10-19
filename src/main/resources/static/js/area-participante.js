@@ -53,7 +53,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         const badge = document.querySelector('[data-od-id="tab-active"] .tab-badge');
         if (badge) badge.textContent = String(inscricoes.length);
         if (inscricoes.length === 0) {
-            activeTab.innerHTML = '<p style="padding:32px;text-align:center">Voce ainda nao possui inscricoes. <a href="/eventos">Ver eventos</a></p>';
+            activeTab.innerHTML = '<p style="padding:32px;text-align:center">Voce ainda nao possui inscricoes. <a href="/">Ver eventos</a></p>';
             return;
         }
         // Monta o card do ingresso do zero (o HTML só tem o placeholder
@@ -231,7 +231,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         let perfil = { nome: sessao.nome, email: sessao.email };
         try {
             perfil = await window.API.Usuarios.buscarPerfil(usuarioId);
-            window.Auth.setUser({ usuarioId, nome: perfil.nome, email: perfil.email });
+            window.Auth.updateUser({ usuarioId, nome: perfil.nome, email: perfil.email });
         } catch (e) {
             console.warn('[Area Participante] Perfil do backend indisponivel, usando sessao');
         }
@@ -264,7 +264,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                     nome: nome || null,
                     senha: senha || null
                 });
-                window.Auth.setUser({ usuarioId, nome: atualizado.nome, email: atualizado.email });
+                window.Auth.updateUser({ usuarioId, nome: atualizado.nome, email: atualizado.email });
                 if (profileValues && profileValues.length >= 2) {
                     profileValues[0].textContent = atualizado.nome || '-';
                     profileValues[1].textContent = atualizado.email || '-';

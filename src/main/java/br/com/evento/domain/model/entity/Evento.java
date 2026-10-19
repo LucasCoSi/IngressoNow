@@ -14,7 +14,7 @@ public class Evento {
     private String descricao;
     private StatusEvento status;
     private final List<Atividade> atividades;
-    private final Organizador organizador;
+    private final Usuario organizador;
     private Integer maxVagas;
     /** RF-04: período do evento (início/fim geral, opcional no rascunho). */
     private br.com.evento.domain.model.vo.Periodo periodo;
@@ -27,7 +27,7 @@ public class Evento {
     /** RF-13: vagas controladas por atividade (além do limite do evento). */
     private boolean vagasPorAtividade;
 
-    public Evento(String id, String titulo, String descricao, Organizador organizador) {
+    public Evento(String id, String titulo, String descricao, Usuario organizador) {
         if (id == null || id.trim().isEmpty()) {
             this.id = UUID.randomUUID().toString();
         } else {
@@ -54,7 +54,7 @@ public class Evento {
         this.vagasPorAtividade = false;
     }
 
-    public Evento(String titulo, String descricao, Organizador organizador) {
+    public Evento(String titulo, String descricao, Usuario organizador) {
         this(null, titulo, descricao, organizador);
     }
 
@@ -74,7 +74,7 @@ public class Evento {
         return status;
     }
 
-    public Organizador getOrganizador() {
+    public Usuario getOrganizador() {
         return organizador;
     }
 

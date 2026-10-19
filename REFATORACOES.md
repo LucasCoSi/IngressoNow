@@ -80,7 +80,7 @@ Arquivos: `application/service/SimpleQrCodeService.java`,
 
 ## Cobertura
 
-30 arquivos / 102 testes JUnit 5 + Mockito (`mvn test`: 0 falhas), incluindo:
+32 arquivos / 109 testes JUnit 5 + Mockito (`mvn test`: 0 falhas), incluindo:
 - `EditarUsuarioUseCaseTest` (RF-03), `RemarcarAtividadeUseCaseTest` (RF-07),
   `VincularPessoaUseCaseTest` (RF-08), `RealizarCheckInManualUseCaseTest` (RF-22),
   `GerarRelatorioInscritosUseCaseTest` (RF-29),

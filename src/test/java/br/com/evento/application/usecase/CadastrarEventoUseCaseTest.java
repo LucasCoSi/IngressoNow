@@ -1,8 +1,10 @@
 package br.com.evento.application.usecase;
 
 import br.com.evento.domain.exception.DomainException;
+import br.com.evento.domain.model.entity.Administrador;
 import br.com.evento.domain.model.entity.Evento;
 import br.com.evento.domain.model.entity.Organizador;
+import br.com.evento.domain.model.entity.Participante;
 import br.com.evento.domain.model.entity.StatusEvento;
 import br.com.evento.domain.model.vo.Email;
 import br.com.evento.domain.model.vo.SenhaHash;
@@ -63,6 +65,30 @@ class CadastrarEventoUseCaseTest {
                 () -> useCase.executar("Evento", "Desc", "inexistente"));
 
         assertTrue(ex.getMessage().contains("Organizador não encontrado"));
+        verify(eventoRepository, never()).salvar(any());
+    }
+
+    @Test
+    void devePermitirAdministradorCriarEvento() {
+        var admin = new Administrador("adm-1", "Ada",
+                new Email("ada@teste.com"), new SenhaHash("hash"));
+        when(usuarioRepository.buscarPorId("adm-1")).thenReturn(Optional.of(admin));
+        when(eventoRepository.salvar(any(Evento.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Evento evento = useCase.executar("Congresso", "Descrição do congresso", "adm-1");
+
+        assertEquals(admin, evento.getOrganizador());
+        verify(eventoRepository).salvar(any(Evento.class));
+    }
+
+    @Test
+    void naoDevePermitirParticipanteCriarEvento() {
+        var part = new Participante("p-1", "Lucas",
+                new Email("lucas@teste.com"), new SenhaHash("hash"));
+        when(usuarioRepository.buscarPorId("p-1")).thenReturn(Optional.of(part));
+
+        assertThrows(DomainException.class,
+                () -> useCase.executar("Evento", "Descricao", "p-1"));
         verify(eventoRepository, never()).salvar(any());
     }
 }

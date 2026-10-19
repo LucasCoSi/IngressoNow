@@ -4,6 +4,7 @@ import br.com.evento.application.usecase.GerenciarCertificadosUseCase;
 import br.com.evento.domain.exception.DomainException;
 import br.com.evento.domain.model.entity.Certificado;
 import br.com.evento.domain.model.entity.CriterioCertificado;
+import br.com.evento.domain.port.out.EventoRepository;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
@@ -24,10 +25,12 @@ import java.util.List;
 public class CertificadoHandler implements HttpHandler {
 
     private final GerenciarCertificadosUseCase gerenciar;
+    private final EventoRepository eventos;
     private final JwtAuth jwt;
 
-    public CertificadoHandler(GerenciarCertificadosUseCase gerenciar, JwtAuth jwt) {
+    public CertificadoHandler(GerenciarCertificadosUseCase gerenciar, EventoRepository eventos, JwtAuth jwt) {
         this.gerenciar = gerenciar;
+        this.eventos = eventos;
         this.jwt = jwt;
     }
 
@@ -45,8 +48,15 @@ public class CertificadoHandler implements HttpHandler {
                         path.indexOf("/certificados")).replace("/", "");
                 String sufixo = path.substring(path.indexOf("/certificados")
                         + "/certificados".length());
+                // Gestão do evento: dono (organizador) ou admin (RN-18).
+                // O download do PDF por código verificável segue público.
+                if (!sufixo.endsWith("/pdf")) {
+                    var evento = eventos.buscarPorId(eventoId)
+                            .orElseThrow(() -> new DomainException("Evento não encontrado."));
+                    if (!Papeis.exigirGestor(logado, ex)) return;
+                    if (!Papeis.exigirDonoEventoOuAdmin(logado, evento, ex)) return;
+                }
                 if ("/criterio".equals(sufixo) && "POST".equals(metodo)) {
-                    if (!Papeis.exigirOrganizador(logado, ex)) return;
                     var req = Json.ler(HttpErrors.corpo(ex), CriterioRequest.class);
                     CriterioCertificado c = gerenciar.definirCriterio(eventoId,
                             req.percentualMinimo(), req.obrigatorias());
@@ -54,7 +64,6 @@ public class CertificadoHandler implements HttpHandler {
                     return;
                 }
                 if ("/participante".equals(sufixo) && "POST".equals(metodo)) {
-                    if (!Papeis.exigirOrganizador(logado, ex)) return;
                     var req = Json.ler(HttpErrors.corpo(ex), EmitirRequest.class);
                     exigir(req.inscricaoId(), "A inscrição é obrigatória");
                     HttpErrors.json(ex, 201, CertificadoDTO.from(
@@ -62,7 +71,6 @@ public class CertificadoHandler implements HttpHandler {
                     return;
                 }
                 if ("/palestrante".equals(sufixo) && "POST".equals(metodo)) {
-                    if (!Papeis.exigirOrganizador(logado, ex)) return;
                     var req = Json.ler(HttpErrors.corpo(ex), EmitirPalestranteRequest.class);
                     exigir(req.pessoaId(), "A pessoa é obrigatória");
                     HttpErrors.json(ex, 201, CertificadoDTO.from(
@@ -70,7 +78,6 @@ public class CertificadoHandler implements HttpHandler {
                     return;
                 }
                 if ((sufixo.isEmpty() || sufixo.equals("/")) && "GET".equals(metodo)) {
-                    if (!Papeis.exigirOrganizador(logado, ex)) return;
                     HttpErrors.json(ex, 200, gerenciar.listarPorEvento(eventoId).stream()
                             .map(CertificadoDTO::from).toList());
                     return;
@@ -85,7 +92,6 @@ public class CertificadoHandler implements HttpHandler {
                 }
                 // RF-34: POST .../certificados/enviar {certificadoId, email}
                 if ("/enviar".equals(sufixo) && "POST".equals(metodo)) {
-                    if (!Papeis.exigirOrganizador(logado, ex)) return;
                     var req = Json.ler(HttpErrors.corpo(ex), EnviarRequest.class);
                     HttpErrors.json(ex, 200, gerenciar.enviarPorEmail(
                             req.certificadoId(), req.email()));
@@ -105,7 +111,7 @@ public class CertificadoHandler implements HttpHandler {
                     throw new IllegalArgumentException(
                             "Informe participanteId ou codigo.");
                 }
-                if (!Papeis.exigirDonoOuOrganizador(logado, participanteId, ex)) return;
+                if (!Papeis.exigirDonoOuAdmin(logado, participanteId, ex)) return;
                 HttpErrors.json(ex, 200, gerenciar.listarPorParticipante(participanteId)
                         .stream().map(CertificadoDTO::from).toList());
                 return;

@@ -26,9 +26,9 @@ public class ServidorApi {
                 app.adicionarAtividade, app.remarcarAtividade, app.vincularPessoa,
                 app.eventos, app.inscricoes, app.pessoas, jwt);
         AvaliacaoHandler avaliacaoHandler = new AvaliacaoHandler(app.criarQuestionario,
-                app.submeterAvaliacao, app.consolidarAvaliacoes, app.questionarios, jwt);
+                app.submeterAvaliacao, app.consolidarAvaliacoes, app.questionarios, app.eventos, jwt);
         CertificadoHandler certificadoHandler =
-                new CertificadoHandler(app.gerenciarCertificados, jwt);
+                new CertificadoHandler(app.gerenciarCertificados, app.eventos, jwt);
         server = HttpServer.create(new InetSocketAddress(porta), 0);
         server.createContext("/api/auth", envolver(new AuthHandler(app.autenticarUsuario, app.cadastrarUsuario, jwt)));
         server.createContext("/api/eventos", envolver(exchange -> {
@@ -47,7 +47,7 @@ public class ServidorApi {
                 app.inscricoes, app.usuarios, app.eventos, jwt)));
         server.createContext("/api/controle", envolver(new ControleHandler(app.realizarCheckIn,
                 app.realizarCheckInManual, app.relatorioPresenca, app.relatorioInscritos,
-                app.qrCodeService, app.inscricoes, jwt)));
+                app.qrCodeService, app.inscricoes, app.eventos, jwt)));
         server.createContext("/api/avaliacoes", envolver(avaliacaoHandler));
         server.createContext("/api/questionarios", envolver(avaliacaoHandler));
         server.createContext("/api/certificados", envolver(certificadoHandler));

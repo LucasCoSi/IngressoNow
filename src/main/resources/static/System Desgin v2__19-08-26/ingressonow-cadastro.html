@@ -53,6 +53,11 @@
  .auth-footer-link:hover{color:var(--navy);text-decoration:underline}
 
  .password-hint{font-size:12px;color:var(--muted);margin-top:4px}
+ .password-hint b{font-variant-numeric:tabular-nums}
+ .password-hint.ok{color:#059669}
+ .password-hint.bad{color:#DC2626}
+
+ .auth-feedback .alert{margin-bottom:16px}
 
  @media(max-width:480px){
   body{padding:16px}
@@ -76,6 +81,8 @@
 
  <h1 class="auth-title">Criar nova conta</h1>
  <p class="auth-subtitle">Preencha os dados abaixo para começar</p>
+
+ <div id="form-feedback" class="auth-feedback" aria-live="polite"></div>
 
  <form data-od-id="signup-form">
  <div class="form-group">
@@ -109,8 +116,9 @@
  placeholder="Crie uma senha segura"
  required
  minlength="8"
+ maxlength="72"
  data-od-id="password-input">
- <div class="password-hint">Mínimo de 8 caracteres</div>
+ <div class="password-hint" id="password-hint">Mínimo de 8 caracteres — <b id="password-counter">0/8</b></div>
  </div>
 
  <div class="form-group">
@@ -121,21 +129,23 @@
  class="form-input"
  placeholder="Digite a senha novamente"
  required
+ maxlength="72"
  data-od-id="confirm-password-input">
+ <div class="password-hint" id="confirm-hint">Repita a senha para confirmar.</div>
  </div>
 
  <div class="form-group">
- <label class="form-label" for="user-type">Tipo de usuário</label>
- <select id="user-type" class="form-input" required data-od-id="user-type-select">
- <option value="PARTICIPANTE">Participante</option>
- <option value="ORGANIZADOR">Organizador</option>
- </select>
+ <label class="form-label">Tipo de conta</label>
+ <div class="password-hint" style="margin-top:0">
+ Conta de <b>participante</b>. Contas de organizador são criadas por um
+ administrador na área de gestão.
+ </div>
  </div>
 
  <label class="form-checkbox-wrapper">
  <input type="checkbox" class="form-checkbox" id="terms" required data-od-id="terms-checkbox">
  <span class="form-checkbox-label">
- Li e aceito os <a href="#" data-od-id="terms-link">Termos de Uso</a> e a <a href="#" data-od-id="privacy-link">Política de Privacidade</a>
+ Li e aceito os <a href="/termos" target="_blank" rel="noopener" data-od-id="terms-link">Termos de Uso</a> e a <a href="/privacidade" target="_blank" rel="noopener" data-od-id="privacy-link">Política de Privacidade</a>
  </span>
  </label>
 
@@ -158,43 +168,84 @@
  <script src="/js/api-client.js"></script>
 
  <script>
- document.querySelector('[data-od-id="signup-form"]').addEventListener('submit', async function(e) {
+ (function () {
+ const SENHA_MINIMA = 8;
+ const form = document.querySelector('[data-od-id="signup-form"]');
+ const senha = document.getElementById('password');
+ const confirma = document.getElementById('confirm-password');
+ const contador = document.getElementById('password-counter');
+ const dicaSenha = document.getElementById('password-hint');
+ const dicaConfirma = document.getElementById('confirm-hint');
+ const botao = form.querySelector('[data-od-id="signup-button"]');
+
+ function feedback(mensagem) {
+     window.API.exibirErro({ message: mensagem }, 'form-feedback');
+ }
+
+ // Requisito 2: contador e validação em tempo real de senha e confirmação.
+ function atualizarConfirma() {
+     const n = confirma.value.length;
+     const igual = n > 0 && confirma.value === senha.value;
+     if (n === 0) dicaConfirma.textContent = 'Repita a senha para confirmar.';
+     else if (igual) dicaConfirma.textContent = 'As senhas coincidem.';
+     else dicaConfirma.textContent = 'As senhas ainda não coincidem.';
+     dicaConfirma.classList.toggle('ok', igual);
+     dicaConfirma.classList.toggle('bad', n > 0 && !igual);
+ }
+
+ function atualizarSenha() {
+     const n = senha.value.length;
+     contador.textContent = n + '/' + SENHA_MINIMA;
+     dicaSenha.classList.toggle('ok', n >= SENHA_MINIMA);
+     dicaSenha.classList.toggle('bad', n > 0 && n < SENHA_MINIMA);
+     atualizarConfirma();
+ }
+
+ senha.addEventListener('input', atualizarSenha);
+ confirma.addEventListener('input', atualizarConfirma);
+ atualizarSenha();
+
+ // Requisito 1: feedback claro quando o cadastro falha (sem alert() nativo).
+ form.addEventListener('submit', async function (e) {
  e.preventDefault();
+ const nome = document.getElementById('fullname').value.trim();
+ const email = document.getElementById('email').value.trim();
+ const senhaTexto = senha.value;
+ const confirmacao = confirma.value;
+ const termos = document.getElementById('terms').checked;
 
- const fullname = document.getElementById('fullname').value;
- const email = document.getElementById('email').value;
- const password = document.getElementById('password').value;
- const confirmPassword = document.getElementById('confirm-password').value;
- const tipo = document.getElementById('user-type').value;
- const terms = document.getElementById('terms').checked;
-
- if (!fullname || !email || !password || !confirmPassword) {
- alert('Por favor, preencha todos os campos.');
- return;
+ if (!nome || !email || !senhaTexto || !confirmacao) {
+     feedback('Preencha todos os campos.');
+     return;
+ }
+ if (senhaTexto.length < SENHA_MINIMA) {
+     feedback('A senha deve ter ao menos ' + SENHA_MINIMA + ' caracteres.');
+     senha.focus();
+     return;
+ }
+ if (senhaTexto !== confirmacao) {
+     feedback('As senhas não coincidem.');
+     confirma.focus();
+     return;
+ }
+ if (!termos) {
+     feedback('Você precisa aceitar os Termos de Uso e a Política de Privacidade.');
+     return;
  }
 
- if (password.length < 8) {
- alert('A senha deve ter no mínimo 8 caracteres.');
- return;
- }
-
- if (password !== confirmPassword) {
- alert('As senhas não coincidem. Por favor, verifique e tente novamente.');
- return;
- }
-
- if (!terms) {
- alert('Você precisa aceitar os Termos de Uso e Política de Privacidade.');
- return;
- }
-
+ const textoOriginal = botao.textContent;
+ botao.disabled = true;
+ botao.textContent = 'Criando conta...';
  try {
-     await window.API.Auth.cadastro(fullname, email, password, tipo);
-     window.location.href = '/eventos';
+     await window.API.Auth.cadastro(nome, email, senhaTexto, 'PARTICIPANTE');
+     window.location.href = '/';
  } catch (error) {
-     window.API.exibirErro(error);
+     window.API.exibirErro(error, 'form-feedback');
+     botao.disabled = false;
+     botao.textContent = textoOriginal;
  }
  });
+ })();
  </script>
 </body>
 </html>

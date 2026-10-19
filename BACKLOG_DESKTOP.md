@@ -10,7 +10,7 @@
 - **D-01:** JavaFX código puro, sem FXML. Mesmo processo: `Poo2Application` sobe API + desktop; `--headless` = só API (Docker).
 - **RN-19 / RNF-02 / §8.1:** desktop é **adaptador de entrada** — usa os **mesmos use cases via `FabricaAplicacao`** e o **mesmo Postgres** que a API/site. Não acessar JDBC direto, não duplicar regra no controller.
 - **RNF-06:** autorização no use case/servidor, não só escondendo botão. Reusar `Papeis` / validações de dono.
-- **Divisão de papéis (decisão):** desktop = **operador (ORGANIZADOR/ADMIN)**; site = visitante/participante. Participante no desktop só para demonstração de paridade.
+- **Divisão de papéis (decisão):** desktop = **operador gestor (ORGANIZADOR restrito aos próprios eventos, ADMIN com todos)**; site = visitante/participante. Participante no desktop só para demonstração de paridade.
 - **DoD por história (§10.2):** Implementado + Integrado (banco real) + Validado (caminho feliz + 1 erro) + Demonstrável (CA) + Sustentado por POO (regra no domínio, sem `if/switch` espalhado). Teste automatizado só quando há regra de domínio nova (regra já coberta no backend não precisa de reteste).
 
 ## E1 — Fundação (Sem 6, antes de tudo)

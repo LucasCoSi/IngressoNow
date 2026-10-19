@@ -1,6 +1,7 @@
-# Seeds de Dados Iniciais - Migration V3
+# Seeds de Dados Iniciais - Migration V3 (+ V13: terceiro perfil)
 
 ## 📅 Data: 01 de Setembro de 2026 — revisado em 06/09/2026 (base zerada V1–V8 OK)
+— V13 em 15/10/2026: Maria promovida a ADMINISTRADORA + Ana organizadora seed.
 
 > Validação 2026-09-06 (`docker-compose down -v && up --build`): V1–V8
 > aplicadas em ordem, login Maria/Lucas OK, `GET /api/eventos` retorna
@@ -18,12 +19,13 @@
 
 ## 📊 Dados Inseridos
 
-### 1️⃣ Usuários (2)
+### 1️⃣ Usuários (2 na V3 + 1 na V13)
 
 | ID | Tipo | Nome | Email | Senha |
 |---|---|---|---|---|
 | `550e8400-e29b-41d4-a716-446655440001` | PARTICIPANTE | Lucas Silva | lucas.silva@email.com | senha123 |
-| `550e8400-e29b-41d4-a716-446655440002` | ORGANIZADOR | Maria Santos | maria.santos@email.com | senha123 |
+| `550e8400-e29b-41d4-a716-446655440002` | ADMINISTRADOR (era ORGANIZADOR na V3, promovido na V13) | Maria Santos | maria.santos@email.com | senha123 |
+| `550e8400-e29b-41d4-a716-446655440003` | ORGANIZADOR (seed V13) | Ana Organizadora | ana.organizadora@email.com | senha123 |
 
 **Hash BCrypt** (`senha123`): `$2a$10$TW7F2EXj42YabuptHEuSi.hj1KR.J/TrRz0WtjO6yE0UUhlgPKUMO`
 

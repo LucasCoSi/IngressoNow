@@ -3,7 +3,7 @@ package br.com.evento.adapters.in.http;
 import br.com.evento.application.usecase.EditarUsuarioUseCase;
 import br.com.evento.application.usecase.GerenciarUsuariosUseCase;
 import br.com.evento.domain.exception.DomainException;
-import br.com.evento.domain.model.entity.Organizador;
+import br.com.evento.domain.model.entity.Administrador;
 import br.com.evento.domain.model.entity.Usuario;
 import br.com.evento.domain.port.out.UsuarioRepository;
 import com.sun.net.httpserver.HttpExchange;
@@ -14,9 +14,10 @@ import java.util.Map;
 
 /**
  * RF-03 — /api/usuarios/{id}: GET (próprio perfil) e PUT (nome/senha).
- * Admin (§3): GET /api/usuarios (listar, só ORGANIZADOR) e
- * DELETE /api/usuarios/{id} (só ORGANIZADOR, com travas do use case).
- * Exige JWT em tudo.
+ * Admin (§3): GET /api/usuarios (listar, só ADMINISTRADOR),
+ * GET /api/usuarios/buscar?email= (gestor localiza um usuário p/ inscrição
+ * manual, sem despejar a base) e DELETE /api/usuarios/{id} (só ADMINISTRADOR,
+ * com travas do use case). Exige JWT em tudo.
  */
 public class UsuarioHandler implements HttpHandler {
 
@@ -46,9 +47,32 @@ public class UsuarioHandler implements HttpHandler {
             String resto = ex.getRequestURI().getPath().substring("/api/usuarios".length());
             // GET /api/usuarios — admin lista todos
             if ((resto.isEmpty() || resto.equals("/")) && "GET".equals(metodo)) {
-                exigirOrganizador(logado.get(), ex);
+                exigirAdministrador(logado.get(), ex);
                 HttpErrors.json(ex, 200, gerenciar.listarTodos().stream()
                         .map(UsuarioHandler::perfil).toList());
+                return;
+            }
+            // GET /api/usuarios/buscar?email= — gestor resolve um usuário
+            // (inscrição manual) sem listar a base inteira.
+            if (resto.startsWith("/buscar") && "GET".equals(metodo)) {
+                if (!Papeis.exigirGestor(logado.get(), ex)) return;
+                String email = InscricaoHandler.query(
+                        ex.getRequestURI().getRawQuery()).getOrDefault("email", "");
+                if (email.isBlank()) {
+                    throw new IllegalArgumentException("Informe o e-mail a buscar.");
+                }
+                try {
+                    var achado = usuarios.buscarPorEmail(
+                            new br.com.evento.domain.model.vo.Email(email.trim()));
+                    if (achado.isEmpty()) {
+                        HttpErrors.json(ex, 404, StandardError.de(404, "Not Found",
+                                "Nenhum usuário com este e-mail.", ex.getRequestURI().getPath()));
+                        return;
+                    }
+                    HttpErrors.json(ex, 200, perfil(achado.get()));
+                } catch (br.com.evento.domain.exception.DomainException e) {
+                    throw new IllegalArgumentException("E-mail inválido.");
+                }
                 return;
             }
             String[] partes = resto.substring(1).split("/");
@@ -59,17 +83,15 @@ public class UsuarioHandler implements HttpHandler {
             }
             // DELETE /api/usuarios/{id} — admin remove (com travas)
             if ("DELETE".equals(metodo)) {
-                exigirOrganizador(logado.get(), ex);
+                exigirAdministrador(logado.get(), ex);
                 gerenciar.remover(logado.get().getId(), partes[0]);
                 HttpErrors.semConteudo(ex);
                 return;
             }
             String id = partes[0];
-            if (!logado.get().getId().equals(id)) {
-                HttpErrors.json(ex, 403, StandardError.de(403, "Forbidden",
-                        "Você só pode acessar o próprio perfil.", ex.getRequestURI().getPath()));
-                return;
-            }
+            // Dono do perfil ou administrador (o admin usa isto para
+            // redefinir a senha de quem esqueceu — ver /recuperar-senha).
+            if (!Papeis.exigirDonoOuAdmin(logado.get(), id, ex)) return;
             if ("GET".equals(metodo)) {
                 Usuario u = usuarios.buscarPorId(id)
                         .orElseThrow(() -> new DomainException("Usuário não encontrado."));
@@ -89,21 +111,21 @@ public class UsuarioHandler implements HttpHandler {
             HttpErrors.json(ex, 405, StandardError.de(405, "Method Not Allowed",
                     "Método não permitido.", ex.getRequestURI().getPath()));
         } catch (AcessoNegado ignored) {
-            // Resposta 403 já enviada por exigirOrganizador
+            // Resposta 403 já enviada por exigirAdministrador
         } catch (Exception e) {
             HttpErrors.tratar(ex, e);
         }
     }
 
-    private static void exigirOrganizador(Usuario logado, HttpExchange ex) throws IOException {
-        if (!(logado instanceof Organizador)) {
+    private static void exigirAdministrador(Usuario logado, HttpExchange ex) throws IOException {
+        if (!(logado instanceof Administrador)) {
             HttpErrors.json(ex, 403, StandardError.de(403, "Forbidden",
-                    "Apenas organizadores.", ex.getRequestURI().getPath()));
+                    "Apenas administradores.", ex.getRequestURI().getPath()));
             throw new AcessoNegado();
         }
     }
 
-    /** Controle de fluxo interno: exigirOrganizador já respondeu 403. */
+    /** Controle de fluxo interno: exigirAdministrador já respondeu 403. */
     private static final class AcessoNegado extends RuntimeException {
     }
 

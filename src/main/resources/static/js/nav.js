@@ -18,10 +18,15 @@
         'nav-settings': '/configuracoes',
         'nav-eventos-disponiveis': '/',
         'nav-programacao-part': '/programacao',
-        'nav-area-participante': '/area-participante'
+        'nav-area-participante': '/area-participante',
+        // Atalho injetado nas páginas de participante quando quem navega é
+        // organizador/admin (senão a gestão ficaria inacessível dali).
+        'nav-voltar-gestao': '/dashboard'
     };
 
     // Ícones que faltam em algumas páginas (botões invisíveis sem o symbol).
+    // Inclui os ícones da navegação de gestão: as páginas de participante não
+    // têm <defs>/<symbol>, e a sidebar de gestão é reconstruída nelas.
     const ICONES_EXTRAS = {
         'i-eye': '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/>',
         'i-check': '<polyline points="20 6 9 17 4 12"/>',
@@ -29,23 +34,43 @@
         'i-plus': '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
         'i-mail': '<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/>',
         'i-download': '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>',
-        'i-camera': '<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2Z"/><circle cx="12" cy="13" r="4"/>'
+        'i-camera': '<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2Z"/><circle cx="12" cy="13" r="4"/>',
+        // Navegação de gestão (mesmos ids/símbolos das páginas administrativas).
+        'i-home': '<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1Z"/><path d="M9 21v-7h6v7"/>',
+        'i-calendar': '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/>',
+        'i-grid': '<rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/>',
+        'i-schedule': '<circle cx="12" cy="12" r="8"/><path d="M12 8v5l3 2"/>',
+        'i-inscrição': '<path d="M4 7a2 2 0 0 0 0 4v2a2 2 0 0 0 0 4v1h16v-1a2 2 0 0 0 0-4v-2a2 2 0 0 0 0-4V6H4Z"/><path d="M13 7v10"/>',
+        'i-scan': '<path d="M5 9V5h4M15 5h4v4M19 15v4h-4M9 19H5v-4"/><path d="M8 11h3v3H8zM14 10h2v2h-2zM14 14h2v2h-2z"/>',
+        'i-star': '<path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.8-5.4 2.8 1-6.1-4.4-4.3 6.1-.9Z"/>',
+        'i-chart': '<path d="M4 19V5M4 19h16"/><path d="M8 16v-4M12 16V8M16 16v-7"/>',
+        'i-users': '<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M16 5.3a3 3 0 0 1 0 5.4M18 14c1.8.8 3 2.6 3 4.7"/>',
+        'i-settings': '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.1 2.1-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5v.2h-3v-.2a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1-2.1-2.1.1-.1A1.7 1.7 0 0 0 7 15a1.7 1.7 0 0 0-1.5-1H5.3v-3h.2A1.7 1.7 0 0 0 7 10a1.7 1.7 0 0 0-.3-1.9l-.1-.1 2.1-2.1.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.5v-.2h3v.2a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1 2.1 2.1-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.5 1h.2v3h-.2a1.7 1.7 0 0 0-1.4 1Z"/>'
     };
+
+    const SVGNS = 'http://www.w3.org/2000/svg';
 
     function garantirIcones() {
         let defs = document.querySelector('svg defs');
-        if (!defs) return;
-        const svg = defs.closest('svg');
+        if (!defs) {
+            // Páginas de participante não trazem <svg><defs>: cria um oculto
+            // (senão os botões de gestão ficam sem ícone).
+            const svg = document.createElementNS(SVGNS, 'svg');
+            svg.setAttribute('aria-hidden', 'true');
+            svg.style.cssText = 'position:absolute;width:0;height:0;overflow:hidden';
+            defs = document.createElementNS(SVGNS, 'defs');
+            svg.appendChild(defs);
+            document.body.appendChild(svg);
+        }
         for (const [id, conteudo] of Object.entries(ICONES_EXTRAS)) {
             if (!document.getElementById(id)) {
-                const sym = document.createElementNS('http://www.w3.org/2000/svg', 'symbol');
+                const sym = document.createElementNS(SVGNS, 'symbol');
                 sym.setAttribute('id', id);
                 sym.setAttribute('viewBox', '0 0 24 24');
                 sym.innerHTML = conteudo;
                 defs.appendChild(sym);
             }
         }
-        void svg;
     }
 
     // Links textuais do header do participante / evento público (href="#"
@@ -204,6 +229,10 @@
             infoEmail.textContent = usuario.email || rotuloTipo(usuario.tipo);
             info.append(infoNome, infoEmail);
             menu.append(info);
+            // Organizador/admin: atalho de volta ao painel em qualquer página.
+            if (papelUsuario() === 'ORGANIZADOR') {
+                menu.append(itemMenu('Painel de gestão', '/dashboard'));
+            }
             menu.append(itemMenu('Meus dados', '/area-participante#perfil'));
             menu.append(itemMenu('Sair', null, () => auth.logout()));
         } else {
@@ -266,6 +295,12 @@
         return 'PARTICIPANTE';
     }
 
+    function isAdmin() {
+        const auth = window.Auth || null;
+        const u = auth && auth.getUser ? auth.getUser() : null;
+        return String((u && u.tipo) || '').toUpperCase() === 'ADMINISTRADOR';
+    }
+
     function aplicarControleAcesso() {
         const path = window.location.pathname;
         const papel = papelUsuario();
@@ -284,6 +319,20 @@
         // Reconstrói qualquer sidebar (ex.: a admin da programação) quando
         // quem vê não é organizador. O organizador mantém a dele.
         if (papel !== 'ORGANIZADOR') padronizarSidebarParticipante();
+        // Organizador/admin em página de participante: mantém a navegação de
+        // gestão (uma única barra, a mesma do painel).
+        else padronizarSidebarGestao();
+        // /usuarios é só do admin (§3): esconde o atalho dos organizadores
+        // (a API também barra com 403).
+        if (!isAdmin()) {
+            document.querySelectorAll('[data-od-id="nav-users"]').forEach(b => {
+                b.style.display = 'none';
+            });
+            if (path === '/usuarios') {
+                window.location.href = '/eventos';
+                return;
+            }
+        }
     }
 
     function padronizarSidebarParticipante() {
@@ -311,6 +360,83 @@
             const forte = document.createElement('strong');
             forte.textContent = 'Portal do participante';
             rodape.append(nome, forte);
+        }
+    }
+
+    const CSS_RETORNO_GESTAO = [
+        '.sidebar .nav .nav-group{margin:19px 10px 7px;color:#93A7C6;font:600 10px var(--font-mono, Consolas, monospace);letter-spacing:.08em;text-transform:uppercase}'
+    ].join('\n');
+
+    function garantirCssRetornoGestao() {
+        if (document.getElementById('nav-gestao-css')) return;
+        const style = document.createElement('style');
+        style.id = 'nav-gestao-css';
+        style.textContent = CSS_RETORNO_GESTAO;
+        document.head.appendChild(style);
+    }
+
+    // Botão idêntico ao da sidebar do painel: ícone (<use>) + rótulo.
+    function botaoNav(odId, rotulo, icone) {
+        const btn = document.createElement('button');
+        btn.className = 'nav-btn';
+        btn.setAttribute('data-od-id', odId);
+        if (icone) {
+            const svg = document.createElementNS(SVGNS, 'svg');
+            svg.setAttribute('class', 'icon');
+            svg.setAttribute('aria-hidden', 'true');
+            const use = document.createElementNS(SVGNS, 'use');
+            use.setAttribute('href', '#' + icone);
+            svg.appendChild(use);
+            btn.appendChild(svg);
+        }
+        btn.appendChild(document.createTextNode(rotulo));
+        return btn;
+    }
+
+    // Itens da navegação de gestão (espelham as páginas administrativas).
+    const ITENS_GESTAO = [
+        ['nav-dashboard', 'Dashboard', 'i-home'],
+        ['nav-events', 'Eventos', 'i-calendar'],
+        ['nav-activities', 'Atividades', 'i-grid'],
+        ['nav-schedule', 'Programação', 'i-schedule'],
+        ['nav-enrollments', 'Inscrições', 'i-inscrição'],
+        ['nav-attendance', 'Frequência', 'i-scan'],
+        ['nav-evaluations', 'Avaliações', 'i-star'],
+        ['nav-reports', 'Relatórios', 'i-chart'],
+        ['nav-users', 'Usuários', 'i-users'],
+        ['nav-settings', 'Configurações', 'i-settings']
+    ];
+
+    // Organizador/admin em páginas de participante (/, /evento-publico,
+    // /area-participante): a sidebar ali é a do participante. Reconstrói com a
+    // MESMA navegação de gestão do painel (ícones + grupo "Administração"),
+    // para haver uma única barra — sem duplicar itens de participante.
+    function padronizarSidebarGestao() {
+        const nav = document.querySelector('.sidebar .nav');
+        if (!nav || nav.dataset.gestao === 'ok') return;
+        // Já é uma página de gestão (a sidebar real): nada a fazer.
+        if (nav.querySelector('[data-od-id="nav-dashboard"]')) return;
+        nav.dataset.gestao = 'ok';
+        garantirCssRetornoGestao();
+        garantirIcones();
+        nav.innerHTML = '';
+        ITENS_GESTAO.forEach(([odId, rotulo, icone]) => {
+            if (odId === 'nav-users') {
+                const grupo = document.createElement('p');
+                grupo.className = 'nav-group';
+                grupo.textContent = 'Administração';
+                nav.appendChild(grupo);
+            }
+            nav.appendChild(botaoNav(odId, rotulo, icone));
+        });
+        // Rodapé igual ao do painel (a página de participante traz outro).
+        const rodape = document.querySelector('.sidebar .org, .sidebar .part-org');
+        if (rodape) {
+            rodape.innerHTML = '';
+            rodape.appendChild(document.createTextNode('Organização acadêmica'));
+            const forte = document.createElement('strong');
+            forte.textContent = 'Centro de Eventos Sul';
+            rodape.appendChild(forte);
         }
     }
 

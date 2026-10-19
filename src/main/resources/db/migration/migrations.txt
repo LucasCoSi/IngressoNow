@@ -13,3 +13,4 @@ V9__evento_detalhes_questionario_politica.sql
 V10__create_certificados_schema.sql
 V11__atividade_max_vagas.sql
 V12__idx_inscricao_atividades.sql
+V13__perfil_administrador.sql

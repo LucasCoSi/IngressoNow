@@ -36,6 +36,9 @@
  .form-input:hover{border-color:var(--cyan)}
  .form-input:focus{outline:0;border-color:var(--cyan);box-shadow:0 0 0 3px rgba(2, 132, 199, 0.1)}
 
+ .auth-feedback .alert{margin-bottom:16px}
+ .btn-primary:disabled{opacity:.7;cursor:progress}
+
  .form-footer{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
  .form-checkbox-wrapper{display:flex;align-items:center;gap:8px}
  .form-checkbox{width:16px;height:16px;cursor:pointer;accent-color:var(--cyan)}
@@ -103,8 +106,10 @@
  <input type="checkbox" class="form-checkbox" id="remember" data-od-id="remember-checkbox">
  <span class="form-checkbox-label">Lembrar de mim</span>
  </label>
- <a href="#" class="form-link" data-od-id="forgot-password-link">Esqueceu a senha?</a>
+ <a href="/recuperar-senha" class="form-link" data-od-id="forgot-password-link">Esqueceu a senha?</a>
  </div>
+
+ <div id="login-feedback" class="auth-feedback" aria-live="polite"></div>
 
  <button type="submit" class="btn-primary" data-od-id="login-button">Entrar no Sistema</button>
  </form>
@@ -137,14 +142,25 @@
  }
  document.querySelector('[data-od-id="login-form"]').addEventListener('submit', async function(e) {
  e.preventDefault();
- const email = document.getElementById('email').value;
+ const email = document.getElementById('email').value.trim();
  const password = document.getElementById('password').value;
- if (!email || !password) return;
+ const botao = e.currentTarget.querySelector('[data-od-id="login-button"]');
+ const textoOriginal = botao.textContent;
+ if (!email || !password) {
+     window.API.exibirErro({ message: 'Informe e-mail e senha para entrar.' }, 'login-feedback');
+     return;
+ }
+ botao.disabled = true;
+ botao.textContent = 'Entrando...';
  try {
      await window.API.Auth.login(email, password);
      window.location.href = destinoPosLogin();
  } catch (error) {
-     window.API.exibirErro(error);
+     window.API.exibirErro(error, 'login-feedback');
+     botao.disabled = false;
+     botao.textContent = textoOriginal;
+     document.getElementById('password').value = '';
+     document.getElementById('password').focus();
  }
  });
  </script>

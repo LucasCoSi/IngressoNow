@@ -1,6 +1,7 @@
 package br.com.evento.application.usecase;
 
 import br.com.evento.domain.exception.DomainException;
+import br.com.evento.domain.model.entity.Administrador;
 import br.com.evento.domain.model.entity.Organizador;
 import br.com.evento.domain.model.entity.Participante;
 import br.com.evento.domain.model.entity.Usuario;
@@ -11,6 +12,9 @@ import br.com.evento.domain.port.out.UsuarioRepository;
 
 public class CadastrarUsuarioUseCase {
 
+    /** Política única de senha (site, desktop e API). */
+    public static final int SENHA_MINIMA = 8;
+
     private final UsuarioRepository usuarioRepository;
     private final PasswordHasher passwordHasher;
 
@@ -18,8 +22,26 @@ public class CadastrarUsuarioUseCase {
         this.usuarioRepository = usuarioRepository;
         this.passwordHasher = passwordHasher;
     }
-    public Usuario executar(String nome, String emailStr, String senhaTexto, String tipo) {
+
+    /**
+     * Cria uma conta. {@code solicitante} é {@code null} no cadastro público.
+     * §3/RN-18: participante é self-service; organizador e administrador só
+     * nascem de uma conta administradora (autorização no núcleo, não só na tela).
+     */
+    public Usuario executar(String nome, String emailStr, String senhaTexto, String tipo,
+                            Usuario solicitante) {
         Email email = new Email(emailStr);
+
+        if (senhaTexto == null || senhaTexto.length() < SENHA_MINIMA) {
+            throw new DomainException("A senha deve ter ao menos " + SENHA_MINIMA + " caracteres.");
+        }
+
+        boolean perfilDeGestao = "ORGANIZADOR".equalsIgnoreCase(tipo)
+                || "ADMINISTRADOR".equalsIgnoreCase(tipo);
+        if (perfilDeGestao && !(solicitante instanceof Administrador)) {
+            throw new DomainException(
+                    "Apenas administradores criam contas de organizador ou administrador.");
+        }
 
         if (usuarioRepository.existePorEmail(email)) {
             throw new DomainException("Já existe um usuário cadastrado com este e-mail.");
@@ -31,10 +53,12 @@ public class CadastrarUsuarioUseCase {
         Usuario usuario;
         if ("ORGANIZADOR".equalsIgnoreCase(tipo)) {
             usuario = new Organizador(null, nome, email, senhaHash);
+        } else if ("ADMINISTRADOR".equalsIgnoreCase(tipo)) {
+            usuario = new Administrador(null, nome, email, senhaHash);
         } else if ("PARTICIPANTE".equalsIgnoreCase(tipo)) {
             usuario = new Participante(null, nome, email, senhaHash);
         } else {
-            throw new DomainException("Tipo de usuário inválido. Use 'ORGANIZADOR' ou 'PARTICIPANTE'.");
+            throw new DomainException("Tipo de usuário inválido. Use 'ORGANIZADOR', 'ADMINISTRADOR' ou 'PARTICIPANTE'.");
         }
 
         return usuarioRepository.salvar(usuario);

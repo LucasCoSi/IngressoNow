@@ -9,6 +9,7 @@ import br.com.evento.domain.model.entity.Pergunta;
 import br.com.evento.domain.model.entity.Questionario;
 import br.com.evento.domain.model.entity.Resposta;
 import br.com.evento.domain.model.entity.TipoPergunta;
+import br.com.evento.domain.port.out.EventoRepository;
 import br.com.evento.domain.port.out.QuestionarioRepository;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
@@ -28,15 +29,17 @@ public class AvaliacaoHandler implements HttpHandler {
     private final SubmeterAvaliacaoUseCase submeter;
     private final ConsolidarAvaliacoesUseCase consolidar;
     private final QuestionarioRepository questionarios;
+    private final EventoRepository eventos;
     private final JwtAuth jwt;
 
     public AvaliacaoHandler(CriarQuestionarioUseCase criar, SubmeterAvaliacaoUseCase submeter,
                             ConsolidarAvaliacoesUseCase consolidar,
-                            QuestionarioRepository questionarios, JwtAuth jwt) {
+                            QuestionarioRepository questionarios, EventoRepository eventos, JwtAuth jwt) {
         this.criar = criar;
         this.submeter = submeter;
         this.consolidar = consolidar;
         this.questionarios = questionarios;
+        this.eventos = eventos;
         this.jwt = jwt;
     }
 
@@ -53,7 +56,10 @@ public class AvaliacaoHandler implements HttpHandler {
                         path.length() - "/questionarios".length());
                 eventoId = eventoId.replace("/", "");
                 if ("POST".equals(metodo)) {
-                    if (!Papeis.exigirOrganizador(logado, ex)) return;
+                    if (!Papeis.exigirGestor(logado, ex)) return;
+                    var evento = eventos.buscarPorId(eventoId)
+                            .orElseThrow(() -> new DomainException("Evento não encontrado."));
+                    if (!Papeis.exigirDonoEventoOuAdmin(logado, evento, ex)) return;
                     var req = Json.ler(HttpErrors.corpo(ex), CriarQuestionarioRequest.class);
                     if (req.perguntas() == null || req.perguntas().isEmpty()) {
                         throw new IllegalArgumentException("O questionário exige ao menos uma pergunta");
@@ -93,9 +99,14 @@ public class AvaliacaoHandler implements HttpHandler {
                 return;
             }
             if (path.startsWith("/api/questionarios/") && path.endsWith("/resultados") && "GET".equals(metodo)) {
-                if (!Papeis.exigirOrganizador(logado, ex)) return;
+                if (!Papeis.exigirGestor(logado, ex)) return;
                 String id = path.substring("/api/questionarios/".length(),
                         path.length() - "/resultados".length()).replace("/", "");
+                var questionario = questionarios.buscarPorId(id)
+                        .orElseThrow(() -> new DomainException("Questionário não encontrado."));
+                var evento = eventos.buscarPorId(questionario.getEventoId())
+                        .orElseThrow(() -> new DomainException("Evento não encontrado."));
+                if (!Papeis.exigirDonoEventoOuAdmin(logado, evento, ex)) return;
                 HttpErrors.json(ex, 200, consolidar.executar(id));
                 return;
             }

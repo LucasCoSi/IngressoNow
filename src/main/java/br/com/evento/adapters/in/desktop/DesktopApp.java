@@ -3,6 +3,7 @@ package br.com.evento.adapters.in.desktop;
 import br.com.evento.domain.model.entity.Atividade;
 import br.com.evento.domain.model.entity.Evento;
 import br.com.evento.domain.model.entity.Inscricao;
+import br.com.evento.domain.model.entity.Administrador;
 import br.com.evento.domain.model.entity.Organizador;
 import br.com.evento.domain.model.entity.Usuario;
 import br.com.evento.domain.model.vo.Periodo;
@@ -167,16 +168,16 @@ public class DesktopApp extends Application {
         var email = new TextField();
         email.setPromptText("e-mail");
         var senha = new PasswordField();
-        senha.setPromptText("senha (mín. conforme política)");
-        var tipo = new ChoiceBox<>(FXCollections.observableArrayList("PARTICIPANTE", "ORGANIZADOR"));
-        tipo.setValue("PARTICIPANTE");
+        senha.setPromptText("senha (mín. 8 caracteres)");
         var salvar = new Button("Criar conta");
         var voltar = new Button("Voltar");
         var msg = new Label();
+        var aviso = new Label("Contas de organizador são criadas pelo administrador.");
+        aviso.setWrapText(true);
         salvar.setOnAction(e -> {
             try {
                 logado = app.cadastrarUsuario.executar(
-                        nome.getText(), email.getText(), senha.getText(), tipo.getValue());
+                        nome.getText(), email.getText(), senha.getText(), "PARTICIPANTE", null);
                 mostrarPrincipal();
             } catch (Exception ex) {
                 msg.setText("Falha: " + mensagem(ex));
@@ -193,8 +194,7 @@ public class DesktopApp extends Application {
         grade.add(email, 1, 1);
         grade.add(new Label("Senha:"), 0, 2);
         grade.add(senha, 1, 2);
-        grade.add(new Label("Tipo:"), 0, 3);
-        grade.add(tipo, 1, 3);
+        grade.add(aviso, 1, 3);
         grade.add(salvar, 1, 4);
         grade.add(voltar, 1, 5);
         grade.add(msg, 1, 6);
@@ -223,7 +223,7 @@ public class DesktopApp extends Application {
     }
 
     private void montarShell() {
-        boolean org = isOrganizador();
+        boolean org = isGestor();
         navInicio = navGestao = navNovo = navProg = navInsc = navExplorar = null;
 
         // Sidebar navy (espelha o site: marca + navegação + sair).
@@ -274,7 +274,7 @@ public class DesktopApp extends Application {
         topo.setAlignment(javafx.geometry.Pos.CENTER_RIGHT);
         var quem = new Label(logado.getNome() + " • " + papel());
         quem.getStyleClass().add("subtitle");
-        var selo = new Label(org ? "ORGANIZADOR" : "PARTICIPANTE");
+        var selo = new Label(papel());
         selo.getStyleClass().add("badge");
         topo.getChildren().addAll(quem, selo);
 
@@ -303,17 +303,17 @@ public class DesktopApp extends Application {
     }
 
     private VBox conteudoInicio() {
-        boolean org = isOrganizador();
+        boolean gestor = isGestor();
         // Conteúdo: boas-vindas + resumo.
-        var papel = new Label(org ? "ORGANIZADOR" : "PARTICIPANTE");
+        var papel = new Label(papel());
         papel.getStyleClass().add("badge");
         var boas = titulo("Olá, " + logado.getNome());
         String resumo = "Operador IngressoNow — mesmo banco e mesmas regras da API/site (RN-19).";
-        if (org) {
+        if (gestor) {
             try {
-                int meus = app.listarEventosOrganizador.executar(logado.getId()).size();
+                int meus = eventosGerenciaveis().size();
                 int publ = app.listarEventosPublicados.executar().size();
-                resumo = "Você tem " + meus + " evento(s) • " + publ + " publicado(s) no catálogo.";
+                resumo = "Você gerencia " + meus + " evento(s) • " + publ + " publicado(s) no catálogo.";
             } catch (Exception ignored) {
                 // mantém texto padrão
             }
@@ -326,8 +326,8 @@ public class DesktopApp extends Application {
             }
         }
         var centro = new VBox(12, papel, boas, subtitulo(resumo),
-                subtitulo(org
-                        ? "Gestão isolada por dono (RN-18): só os próprios eventos."
+                subtitulo(gestor
+                        ? (isAdmin() ? "Administrador: todos os eventos." : "Gestão isolada por dono (RN-18): só os próprios eventos.")
                         : "Visão do participante: explorar e inscrever-se."));
         centro.setPadding(new Insets(32));
         return centro;
@@ -336,10 +336,10 @@ public class DesktopApp extends Application {
     // ---------- DSK-10: gestão do organizador ----------
 
     private void mostrarGestao() {
-        if (!exigirOrganizador()) return;
+        if (!exigirGestor()) return;
         List<Evento> meus;
         try {
-            meus = app.listarEventosOrganizador.executar(logado.getId());
+            meus = eventosGerenciaveis();
         } catch (Exception ex) {
             return;
         }
@@ -413,7 +413,7 @@ public class DesktopApp extends Application {
     }
 
     private void dialogoEvento(String eventoId) {
-        if (!exigirOrganizador()) return;
+        if (!exigirGestor()) return;
         Evento atual = null;
         if (eventoId != null) {
             atual = app.eventos.buscarPorId(eventoId).orElse(null);
@@ -544,9 +544,10 @@ public class DesktopApp extends Application {
 
     private void mostrarDetalhe(String eventoId, boolean veioDaGestao) {
         Evento evento = app.eventos.buscarPorId(eventoId).orElseThrow();
-        boolean souDono = logado instanceof Organizador
-                && evento.getOrganizador() != null
-                && logado.getId().equals(evento.getOrganizador().getId());
+        boolean souDono = isAdmin()
+                || (logado instanceof Organizador
+                        && evento.getOrganizador() != null
+                        && logado.getId().equals(evento.getOrganizador().getId()));
         var linhas = new VBox(4);
         linhas.setPadding(new Insets(12));
         linhas.getChildren().add(new Label(
@@ -1437,8 +1438,8 @@ public class DesktopApp extends Application {
     // ---------- DSK-13: programação com filtros (RF-09) ----------
 
     private void dialogoProgramacao() {
-        if (!exigirOrganizador()) return;
-        var eventos = app.listarEventosOrganizador.executar(logado.getId());
+        if (!exigirGestor()) return;
+        var eventos = eventosGerenciaveis();
         if (eventos.isEmpty()) {
             alerta("Você ainda não tem eventos. Crie um em Meus eventos.");
             return;
@@ -1536,8 +1537,8 @@ public class DesktopApp extends Application {
     // ---------- DSK-20/21/22: inscrições, vagas e agenda (RF-12–18, CA-02/03) ----------
 
     private void dialogoInscricoes() {
-        if (!exigirOrganizador()) return;
-        var eventos = app.listarEventosOrganizador.executar(logado.getId());
+        if (!exigirGestor()) return;
+        var eventos = eventosGerenciaveis();
         if (eventos.isEmpty()) {
             alerta("Você ainda não tem eventos.");
             return;
@@ -1667,20 +1668,31 @@ public class DesktopApp extends Application {
         });
     }
 
-    private boolean isOrganizador() {
-        return logado instanceof Organizador;
+    private boolean isGestor() {
+        return logado instanceof Organizador || logado instanceof Administrador;
+    }
+
+    private boolean isAdmin() {
+        return logado instanceof Administrador;
+    }
+
+    /** Admin gerencia todos (§3); organizador, só os próprios (RN-18). */
+    private List<Evento> eventosGerenciaveis() {
+        if (isAdmin()) return app.listarTodosEventos.executar();
+        return app.listarEventosOrganizador.executar(logado.getId());
     }
 
     private String papel() {
-        return isOrganizador() ? "ORGANIZADOR" : "PARTICIPANTE";
+        if (logado instanceof Administrador) return "ADMINISTRADOR";
+        return isGestor() ? "ORGANIZADOR" : "PARTICIPANTE";
     }
 
-    private boolean exigirOrganizador() {
+    private boolean exigirGestor() {
         if (logado == null) {
             mostrarLogin();
             return false;
         }
-        if (!isOrganizador()) {
+        if (!isGestor()) {
             alerta("Apenas organizadores.");
             return false;
         }
@@ -1688,6 +1700,7 @@ public class DesktopApp extends Application {
     }
 
     private void exigirDono(Evento evento) {
+        if (isAdmin()) return;
         if (evento.getOrganizador() == null
                 || !logado.getId().equals(evento.getOrganizador().getId())) {
             throw new IllegalStateException("Você só pode gerenciar os próprios eventos.");

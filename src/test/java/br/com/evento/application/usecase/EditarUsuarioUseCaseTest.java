@@ -46,13 +46,13 @@ class EditarUsuarioUseCaseTest {
         UsuarioRepository repo = mock(UsuarioRepository.class);
         PasswordHasher hasher = mock(PasswordHasher.class);
         when(repo.buscarPorId("u-1")).thenReturn(Optional.of(participante()));
-        when(hasher.hash("nova123")).thenReturn("hash-novo");
+        when(hasher.hash("nova1234")).thenReturn("hash-novo");
         when(repo.salvar(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        Usuario atualizado = useCase(repo, hasher).executar("u-1", null, "nova123");
+        Usuario atualizado = useCase(repo, hasher).executar("u-1", null, "nova1234");
 
         assertEquals("hash-novo", atualizado.getSenha().getHash());
-        verify(hasher).hash("nova123");
+        verify(hasher).hash("nova1234");
     }
 
     @Test

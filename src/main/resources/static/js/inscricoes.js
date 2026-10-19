@@ -349,16 +349,19 @@ document.addEventListener('DOMContentLoaded', async function() {
             const email = (escolha.valor || '').trim();
             if (!email) return;
 
-            const respUsuarios = await fetch('/api/usuarios', { headers: authHeaders() });
-            if (!respUsuarios.ok) throw new Error(`Falha ao listar usuários (HTTP ${respUsuarios.status})`);
-            const usuarios = await respUsuarios.json();
-            const alvo = usuarios.find(u =>
-                ((u.email || '').toLowerCase() === email.toLowerCase()));
-            if (!alvo) {
+            // Gestor localiza um usuário por e-mail sem listar a base (só admin lista).
+            const respUsuarios = await fetch(`/api/usuarios/buscar?email=${encodeURIComponent(email)}`, { headers: authHeaders() });
+            if (respUsuarios.status === 404) {
                 await avisar('Nova inscrição', `Nenhum usuário com o e-mail ${escapeHtml(email)}. Peça para ele se cadastrar em /cadastro primeiro.`);
                 return;
             }
+            if (!respUsuarios.ok) throw new Error(`Falha ao buscar usuário (HTTP ${respUsuarios.status})`);
+            const alvo = await respUsuarios.json();
             const participanteId = alvo.id || alvo.usuarioId;
+            if (!participanteId) {
+                await avisar('Nova inscrição', `Nenhum usuário com o e-mail ${escapeHtml(email)}. Peça para ele se cadastrar em /cadastro primeiro.`);
+                return;
+            }
             const resp = await fetch('/api/inscricoes', {
                 method: 'POST',
                 headers: { ...authHeaders(), 'Content-Type': 'application/json' },

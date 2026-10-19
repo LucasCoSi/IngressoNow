@@ -5,8 +5,12 @@ import br.com.evento.application.usecase.ConsultarAgendaUseCase;
 import br.com.evento.application.usecase.InscreverParticipanteUseCase;
 import br.com.evento.application.usecase.SelecionarAtividadeUseCase;
 import br.com.evento.domain.exception.DomainException;
+import br.com.evento.domain.model.entity.Administrador;
 import br.com.evento.domain.model.entity.AgendaDoParticipante;
+import br.com.evento.domain.model.entity.Evento;
 import br.com.evento.domain.model.entity.Inscricao;
+import br.com.evento.domain.model.entity.Organizador;
+import br.com.evento.domain.model.entity.Usuario;
 import br.com.evento.domain.port.out.EventoRepository;
 import br.com.evento.domain.port.out.InscricaoRepository;
 import br.com.evento.domain.port.out.UsuarioRepository;
@@ -62,16 +66,19 @@ public class InscricaoHandler implements HttpHandler {
                     // RNF-10: projeção leve (1 query com JOINs) em vez do
                     // agregado completo por linha.
                     if (params.containsKey("participanteId") && !params.get("participanteId").isBlank()) {
-                        // Próprias inscrições ou gestão.
-                        if (!Papeis.exigirDonoOuOrganizador(logado, params.get("participanteId"), ex)) return;
+                        // Próprias inscrições, admin, ou organizador via ?eventoId=.
+                        if (!Papeis.exigirDonoOuAdmin(logado, params.get("participanteId"), ex)) return;
                         HttpErrors.json(ex, 200, inscricoes
                                 .listarResumidoPorParticipante(params.get("participanteId")).stream()
                                 .map(r -> new InscricaoDTO(r.id(), r.participanteId(), r.participanteNome(),
                                         r.eventoId(), r.eventoTitulo(), r.dataInscricao().toString()))
                                 .toList());
                     } else {
-                        // Inscrições do evento: gestão.
-                        if (!Papeis.exigirOrganizador(logado, ex)) return;
+                        // Inscrições do evento: dono do evento ou admin (RN-18).
+                        String eventoId = params.getOrDefault("eventoId", "");
+                        Evento evento = eventos.buscarPorId(eventoId)
+                                .orElseThrow(() -> new DomainException("Evento não encontrado."));
+                        if (!Papeis.exigirDonoEventoOuAdmin(logado, evento, ex)) return;
                         HttpErrors.json(ex, 200, inscricoes
                                 .listarResumidoPorEvento(params.getOrDefault("eventoId", "")).stream()
                                 .map(r -> new InscricaoDTO(r.id(), r.participanteId(), r.participanteNome(),
@@ -86,7 +93,14 @@ public class InscricaoHandler implements HttpHandler {
                     if (req.eventoId() == null || req.eventoId().isBlank()) {
                         throw new IllegalArgumentException("O ID do evento é obrigatório");
                     }
-                    if (!Papeis.exigirDonoOuOrganizador(logado, req.participanteId(), ex)) return;
+                    // Inscrição manual: o próprio participante, admin, ou o
+                    // organizador dono do evento (gestão de inscritos).
+                    if (!logado.getId().equals(req.participanteId())
+                            && !(logado instanceof Administrador)) {
+                        Evento destino = eventos.buscarPorId(req.eventoId())
+                                .orElseThrow(() -> new DomainException("Evento não encontrado."));
+                        if (!Papeis.exigirDonoEventoOuAdmin(logado, destino, ex)) return;
+                    }
                     HttpErrors.json(ex, 200, dto(inscrever.executar(req.participanteId(), req.eventoId())));
                 } else {
                     HttpErrors.json(ex, 405, StandardError.de(405, "Method Not Allowed",
@@ -98,7 +112,7 @@ public class InscricaoHandler implements HttpHandler {
             if (partes.length == 1 && "DELETE".equals(metodo)) {
                 Inscricao alvo = inscricoes.buscarPorId(partes[0])
                         .orElseThrow(() -> new DomainException("Inscrição não encontrada."));
-                if (!Papeis.exigirDonoOuOrganizador(logado, alvo.getParticipanteId(), ex)) return;
+                if (!exigirAcessoInscricao(logado, alvo, ex)) return;
                 cancelar.executar(partes[0]);
                 HttpErrors.semConteudo(ex);
                 return;
@@ -106,13 +120,15 @@ public class InscricaoHandler implements HttpHandler {
             if (partes.length == 3 && "atividades".equals(partes[1]) && "POST".equals(metodo)) {
                 Inscricao alvo = inscricoes.buscarPorId(partes[0])
                         .orElseThrow(() -> new DomainException("Inscrição não encontrada."));
-                if (!Papeis.exigirDonoOuOrganizador(logado, alvo.getParticipanteId(), ex)) return;
+                if (!exigirAcessoInscricao(logado, alvo, ex)) return;
                 selecionar.executar(partes[0], partes[2]);
                 HttpErrors.json(ex, 200, Map.of("ok", true));
                 return;
             }
             if (partes.length == 2 && "agenda".equals(partes[1]) && "GET".equals(metodo)) {
-                if (!Papeis.exigirDonoOuOrganizador(logado, partes[0], ex)) return;
+                Inscricao alvoAgenda = inscricoes.buscarPorId(partes[0])
+                        .orElseThrow(() -> new DomainException("Inscrição não encontrada."));
+                if (!exigirAcessoInscricao(logado, alvoAgenda, ex)) return;
                 AgendaDoParticipante a = agenda.executar(partes[0]);
                 HttpErrors.json(ex, 200, new AgendaDTO(a.getParticipanteId(),
                         a.getAtividades().stream()
@@ -132,6 +148,25 @@ public class InscricaoHandler implements HttpHandler {
 
     private InscricaoDTO dto(Inscricao i) {
         return dto(i, new HashMap<>(), new HashMap<>());
+    }
+
+    /**
+     * Acesso a uma inscrição (§3/RN-18): o próprio participante, admin, ou o
+     * organizador dono do evento. Qualquer outro organizador recebe 403.
+     */
+    private boolean exigirAcessoInscricao(Usuario logado, Inscricao insc, HttpExchange ex)
+            throws IOException {
+        if (logado instanceof Administrador) return true;
+        if (logado.getId().equals(insc.getParticipanteId())) return true;
+        if (logado instanceof Organizador) {
+            var evento = eventos.buscarPorId(insc.getEventoId());
+            if (evento.isPresent()
+                    && Papeis.exigirDonoEventoOuAdmin(logado, evento.get(), ex)) return true;
+            return false;
+        }
+        HttpErrors.json(ex, 403, StandardError.de(403, "Forbidden",
+                "Você só pode acessar os próprios recursos.", ex.getRequestURI().getPath()));
+        return false;
     }
 
     private InscricaoDTO dto(Inscricao i, Map<String, String> nomes, Map<String, String> titulos) {
