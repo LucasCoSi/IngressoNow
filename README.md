@@ -1,5 +1,12 @@
 # IngressoNow — Plataforma de Gestão de Eventos (POO2)
 
+=======
+| Integrantes |
+| :--- |
+| Lucas Costa |
+| Johnathan Ramos |
+| Samuel Antonio |
+
 Plataforma de gestão de eventos acadêmicos e profissionais em **Java SE puro**,
 com foco em **Programação Orientada a Objetos, arquitetura hexagonal, SOLID,
 padrões de projeto, persistência, testes e integração entre aplicações**.
