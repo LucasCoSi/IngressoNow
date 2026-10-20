@@ -316,6 +316,21 @@ const UsuariosAPI = {
 };
 
 /**
+ * API de Parâmetros Gerais / Configurações (§3)
+ */
+const ConfiguracoesAPI = {
+    obter: () => get('/configuracoes'),
+    atualizar: (data) => put('/configuracoes', data),
+    // §3: admin consulta todos os eventos; organizador usa listarPorOrganizador.
+    listarEventos: (todos) => get(todos ? '/eventos?todos=true' : '/eventos'),
+    buscarCriterio: (eventoId) => get(`/eventos/${eventoId}/certificados/criterio`),
+    definirCriterio: (eventoId, percentualMinimo, obrigatorias) =>
+        post(`/eventos/${eventoId}/certificados/criterio`, { percentualMinimo, obrigatorias }),
+    definirPoliticaFrequencia: (eventoId, atividadeId, politicaFrequencia) =>
+        put(`/eventos/${eventoId}/atividades/${atividadeId}`, { politicaFrequencia })
+};
+
+/**
  * Exibe mensagem de erro amigável na UI
  */
 function exibirErro(error, containerId = 'error-container') {
@@ -402,6 +417,7 @@ window.API = {
     Inscricoes: InscricoesAPI,
     Controle: ControleAPI,
     Usuarios: UsuariosAPI,
+    Configuracoes: ConfiguracoesAPI,
     exibirErro,
     exibirSucesso,
     formatarData,

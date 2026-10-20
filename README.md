@@ -28,7 +28,7 @@ Projeto da disciplina **Programação Orientada a Objetos II**, baseado em
 - persistir em banco relacional com esquema reproduzível e dados de demonstração;
 - autenticar por JWT com senhas em hash apropriado e autorização no servidor;
 - cobrir regras centrais com testes automatizados independentes da interface;
-- documentar decisões (D-01–D-08), refatorações e rastreabilidade (RF × ROO).
+- documentar decisões (D-01–D-11), refatorações e rastreabilidade (RF × ROO).
 
 ---
 
@@ -55,7 +55,7 @@ Projeto da disciplina **Programação Orientada a Objetos II**, baseado em
 - conflito mesmo local + período sobreposto bloqueado com 422 e motivo (RF-07, RN-07);
 - pessoas vinculadas com papel livre (palestrante/apresentador/responsável), foto opcional (RF-08, RN-02);
 - programação filtrável por data, tipo, trilha e local — server-side (RF-09);
-- site público com catálogo, detalhe, grade e elenco reais (RF-10/11/12).
+- site público, **sem login**, com catálogo, detalhe, grade e elenco reais (RF-10/11/12).
 
 ### Inscrições e agenda (RF-13–18)
 
@@ -87,6 +87,16 @@ Projeto da disciplina **Programação Orientada a Objetos II**, baseado em
 - envio por SMTP registrado; sem SMTP → 422 claro, download preservado;
 - declaração para palestrante/apresentador refletindo o papel (RF-35).
 
+### Configurações e parâmetros (D-11)
+
+- `/configuracoes` com abas por papel: organizador vê regras, frequência e
+  certificados dos próprios eventos; administrador vê os de qualquer evento;
+- identidade da instituição (nome, sigla, contato, site) e percentual padrão de
+  certificado persistidos no servidor em `configuracoes_organizacao` (V14);
+- leitura liberada a gestores e escrita só do administrador (`PUT /api/configuracoes`);
+- percentual padrão vira fallback real na elegibilidade (RF-32/RN-16) quando o
+  evento não define critério; o nome da instituição alimenta o rodapé da navegação.
+
 ---
 
 ## Tecnologias utilizadas
@@ -108,8 +118,8 @@ Projeto da disciplina **Programação Orientada a Objetos II**, baseado em
 
 ### Infraestrutura
 
-- Docker e Docker Compose, `rodar.ps1` (sobe banco + app em um comando)
-- `MigradorSql` + `migrations.txt` (V1–V13), seeds V3
+- Docker e Docker Compose, `rodar.ps1` / `rodar.cmd` (sobe banco + app em um comando)
+- `MigradorSql` + `migrations.txt` (V1–V14), seeds V3
 
 ---
 
@@ -125,7 +135,7 @@ Hexagonal (Ports and Adapters) — referência §8.1 do documento:
                                │ usa
                 ┌──────────────▼────────────────┐
                 │          APPLICATION          │
-                │  21 use cases (orquestram o   │
+                │  24 use cases (orquestram o   │
                 │  domínio exclusivamente       │
                 │  através de portas)           │
                 └──────────────┬────────────────┘
@@ -138,7 +148,7 @@ Hexagonal (Ports and Adapters) — referência §8.1 do documento:
                                │ implementado por
                 ┌──────────────▼────────────────┐
                 │         ADAPTERS OUT          │
-                │  jdbc/ (7 repos)  security/  │
+                │  jdbc/ (8 repos)  security/  │
                 │  pdf/ (PDFBox)  email/ (SMTP) │
                 └──────────────┬────────────────┘
                                │ via
@@ -159,13 +169,13 @@ src/main/java/br/com/evento/
 │                          Questionario, Pergunta, Avaliacao, Politica*Strategy
 ├── domain/model/vo/       Email, Periodo, SenhaHash (imutáveis)
 ├── domain/port/           in/ (QrCodeService)  out/ (repositories, Email, Pdf)
-├── application/usecase/   21 casos de uso (falam só com portas)
+├── application/usecase/   24 casos de uso (falam só com portas)
 ├── application/service/   SimpleQrCodeService (QR opaco, validade 5 min)
 ├── adapters/in/http/      handlers /api/*, JwtAuth, HttpErrors
 ├── adapters/in/desktop/   JavaFX (mesmos use cases, sem HTTP)
 ├── adapters/out/          jdbc/, security/ (BCrypt), pdf/, email/
 └── infra/                 fiação manual (sem container DI)
-src/main/resources/static/ site (HTML/JS por página) + db/migration/ (V1–V13)
+src/main/resources/static/ site (HTML/JS por página) + db/migration/ (V1–V14)
 ```
 
 Regra: `domain/` não importa framework; `application/` não importa adapter;
@@ -218,7 +228,7 @@ responsabilidade (SRP).
 ## Persistência
 
 PostgreSQL com `MigradorSql` + manifesto `migrations.txt` (funciona no jar
-sombreado), ordem garantida V1–V13:
+sombreado), ordem garantida V1–V14:
 
 ```
 V1  esquema inicial (usuários, eventos, atividades)
@@ -228,6 +238,7 @@ V6  tipo/trilha           V7  origem/responsável do check-in (RN-12)
 V8  pessoas (RF-08)       V9  detalhes do evento, fuso (RN-20), flags RF-13
 V10 certificados (D)      V11 maxVagas por atividade      V12 índices (RNF-10)
 V13 terceiro perfil: Maria → administradora + organizadora seed (Ana)
+V14 parâmetros gerais da organização (D-11) + seed
 ```
 
 Upsert por ID + DELETE só de órfãs (DELETE geral acionava `ON DELETE CASCADE`
@@ -258,17 +269,17 @@ e apagava respostas — bug real corrigido, R-02). Seeds em `SEEDS_DADOS_INICIAI
   atividades/pessoas, programação com filtros, inscrições/agenda, frequência
   (QR com validade visível + manual com autoria), avaliações, relatórios CSV,
   certificados PDF/e-mail — mesmos use cases via `FabricaAplicacao` (RN-19).
-- **Site**: catálogo público, programação, área do participante, gestão
-  (`/inscricoes` com inscrição manual e exportação), `/configuracoes`
-  (preferências locais + regras do evento no servidor) e `/relatorios`
-  (gráficos SVG + CSV/XLSX/PDF). Páginas de apoio: `/termos`, `/privacidade`,
-  `/recuperar-senha`. Detalhes em `BACKLOG_DESKTOP.md`.
+- **Site**: catálogo público **antes do login**, programação, área do participante,
+  gestão (`/inscricoes` com inscrição manual e exportação), `/configuracoes`
+  (abas por papel: regras/frequência/certificados e parâmetros gerais persistidos
+  no servidor — D-11) e `/relatorios` (gráficos SVG + CSV/XLSX/PDF). Páginas de
+  apoio: `/termos`, `/privacidade`, `/recuperar-senha`. Detalhes em `BACKLOG_DESKTOP.md`.
 
 ---
 
 ## Testes
 
-34 arquivos / **122 testes, 0 falhas** (`mvn test`), independentes da interface
+35 arquivos / **128 testes, 0 falhas** (`mvn test`), independentes da interface
 (RNF-12, ROO-12). Cobrem:
 
 ```
@@ -277,7 +288,8 @@ Domínio: Evento, Atividade, Inscricao (seleção, conflito, agenda, anti-duplic
   Pessoa, CriterioCertificado, VOs (Email, Periodo, SenhaHash)
 Use cases (Mockito): inscrever/selecionar/cancelar, remarcar, vincular pessoa,
   check-in QR/manual (sucesso, inválido, duplicado), QR com validade e adulteração,
-  submeter/consolidar avaliações, relatórios, certificados, PDF real (%PDF)
+  submeter/consolidar avaliações, relatórios, certificados, configurações
+  (leitura por papel, escrita do admin, validação de percentual), PDF real (%PDF)
 ```
 
 Refatorações R-01–R-04 registradas em `REFATORACOES.md` (problema → alternativa → efeito).
@@ -290,13 +302,15 @@ Refatorações R-01–R-04 registradas em `REFATORACOES.md` (problema → altern
 ARQUITETURA.md              diagrama, modelo de domínio e mapa classe → RF/ROO
 DECISOES.md                 D-01 desktop · D-02 API/auth · D-03 banco · D-04 site ·
                             D-05 QR/validade/duplicidade · D-06 políticas ·
-                            D-07 padrões · D-08 testes/seeds
+                            D-07 padrões · D-08 testes/seeds · D-09 perfis ·
+                            D-10 navegação · D-11 configurações por papel
 ENDPOINTS.md                contratos /api/*, auth, papéis e exemplos curl
 MATRIZ_RASTREABILIDADE.md   RF × ROO × implementação × teste, CA-01–CA-08, coluna desktop
 BACKLOG_DESKTOP.md          DSK-00–DSK-62 (operador organizador)
 REFATORACOES.md             R-01–R-04 com evidência de melhoria
 SEEDS_DADOS_INICIAIS.md     massa de demonstração + SQLs de verificação
 HISTORICO_EVIDENCIAS_S1_S7.md  incrementos semanais S1–S8 (§9)
+SESSAO_2026-10-19.md        registro da sessão: configurações por papel + execução
 ```
 
 ---
@@ -311,8 +325,10 @@ JDK 25, Docker + Docker Compose (banco), PowerShell. Maven só para build/teste
 ### Via script (recomendado)
 
 ```powershell
-.\rodar.ps1             # API + desktop
-.\rodar.ps1 --headless  # só API (CI/sem display)
+.\rodar.cmd             # no cmd.exe — API + desktop
+.\rodar.cmd --headless  # no cmd.exe — só API (CI/sem display)
+.\rodar.ps1             # no PowerShell — API + desktop
+.\rodar.ps1 --headless  # no PowerShell — só API
 ```
 
 O script abre o Docker Desktop se preciso, sobe só o `postgres`, para o container
@@ -322,13 +338,17 @@ O script abre o Docker Desktop se preciso, sobe só o `postgres`, para o contain
 java --enable-native-access=ALL-UNNAMED -jar target\plataforma-eventos-0.0.1-SNAPSHOT.jar
 ```
 
-Se o PowerShell bloquear: `powershell -ExecutionPolicy Bypass -File .\rodar.ps1`.
+Se o PowerShell bloquear: use `.\rodar.cmd` (já chama com
+`-ExecutionPolicy Bypass`) ou `powershell -ExecutionPolicy Bypass -File .\rodar.ps1`.
+O script também confere as portas **5432** e **8080** antes de subir: se outro
+projeto estiver usando, avisa e para em vez de esperar 90s; se a 8080 estiver com
+uma instância do próprio app, mostra o `pid` para encerrá-la.
 
 ### Via Docker (app + banco em containers)
 
 ```bash
 docker-compose up -d --build
-docker logs poo2-app   # [Migrador] V1..V13 + [API] ouvindo em :8080/api
+docker logs poo2-app   # [Migrador] V1..V14 + [API] ouvindo em :8080/api
 ```
 
 Variáveis (o compose já define): `DB_URL`, `DB_USER`, `DB_PASS`,
@@ -338,7 +358,7 @@ Variáveis (o compose já define): `DB_URL`, `DB_USER`, `DB_PASS`,
 
 ```bash
 # Com Maven local (ou a distribuição em ~/.m2/wrapper/dists):
-mvn test      # 122 testes, 0 falhas (usa Postgres em localhost:5432)
+mvn test      # 128 testes, 0 falhas (usa Postgres em localhost:5432)
 mvn package   # shade ~22 MB com natives Windows do JavaFX
 
 # Sem Maven: via imagem Docker (na raiz do projeto)
@@ -390,7 +410,7 @@ a mesma massa de demonstração; caminho feliz + um erro relevante por cenário.
 | ROO-09 Hexagonal | domínio sem framework; JDBC/HTTP/JavaFX isolados em adapters |
 | ROO-10 Padrões | Strategy + Ports & Adapters (efeito real, sem ornamento) |
 | ROO-11 Erros do domínio | `DomainException` → 400/404/422 + `StandardError`, sem vazar dados |
-| ROO-12 Testes/refatoração | 102 testes sem interface + 4 refatorações registradas |
+| ROO-12 Testes/refatoração | 128 testes sem interface + 4 refatorações registradas |
 
 Rastreabilidade completa em `MATRIZ_RASTREABILIDADE.md`.
 
@@ -400,5 +420,7 @@ Rastreabilidade completa em `MATRIZ_RASTREABILIDADE.md`.
 
 Núcleo obrigatório (RF-01–RF-31, CA-01–CA-07) implementado e integrado; desejáveis
 (RF-32–35, CA-08) também entregues; social (RF-36, P) fora de escopo por decisão
-(§2.3). Dívidas declaradas: checagem de dono no handler (mover ao use case),
-`/configuracoes` com trechos locais, DSK-60/62 como polimento. Nada trava o núcleo.
+(§2.3). `/configuracoes` agora é por papel e persiste no servidor (D-11), e a
+suíte tem 128 testes. Dívidas declaradas: checagem de dono no handler (mover ao
+use case), DSK-60/62 como polimento e envio de e-mail desligado no MVP
+(recuperação assistida). Nada trava o núcleo.

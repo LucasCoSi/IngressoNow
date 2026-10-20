@@ -56,6 +56,10 @@ public class CertificadoHandler implements HttpHandler {
                     if (!Papeis.exigirGestor(logado, ex)) return;
                     if (!Papeis.exigirDonoEventoOuAdmin(logado, evento, ex)) return;
                 }
+                if ("/criterio".equals(sufixo) && "GET".equals(metodo)) {
+                    HttpErrors.json(ex, 200, CriterioDTO.from(gerenciar.buscarCriterio(eventoId)));
+                    return;
+                }
                 if ("/criterio".equals(sufixo) && "POST".equals(metodo)) {
                     var req = Json.ler(HttpErrors.corpo(ex), CriterioRequest.class);
                     CriterioCertificado c = gerenciar.definirCriterio(eventoId,

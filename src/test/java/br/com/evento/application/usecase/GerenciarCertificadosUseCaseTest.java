@@ -175,6 +175,31 @@ class GerenciarCertificadosUseCaseTest {
     }
 
     @Test
+    void deveAplicarPercentualPadraoDaOrganizacaoQuandoEventoSemCriterio() {
+        Evento evento = eventoDuasAtividades();
+        Inscricao inscricao = inscricaoComCheckIn("a-1"); // 50% de 2
+        EventoRepository eventos = mock(EventoRepository.class);
+        InscricaoRepository inscricoes = mock(InscricaoRepository.class);
+        CertificadoRepository certs = mock(CertificadoRepository.class);
+        when(eventos.buscarPorId("e-1")).thenReturn(Optional.of(evento));
+        when(inscricoes.buscarPorId("i-1")).thenReturn(Optional.of(inscricao));
+        when(certs.buscarCriterioPorEvento("e-1")).thenReturn(Optional.empty());
+        br.com.evento.domain.port.out.ConfiguracaoOrganizacaoRepository cfg =
+                mock(br.com.evento.domain.port.out.ConfiguracaoOrganizacaoRepository.class);
+        when(cfg.buscar()).thenReturn(Optional.of(new br.com.evento.domain.model.entity.ConfiguracaoOrganizacao(
+                "Centro de Eventos Sul", "CES", null, null, 75)));
+
+        GerenciarCertificadosUseCase uc = new GerenciarCertificadosUseCase(eventos,
+                inscricoes, mock(UsuarioRepository.class), mock(PessoaRepository.class),
+                certs, mock(PdfCertificadoService.class), mock(EmailService.class), cfg);
+
+        DomainException ex = assertThrows(DomainException.class, () ->
+                uc.emitirParaParticipante("e-1", "i-1"));
+
+        assertTrue(ex.getMessage().contains("75%"));
+    }
+
+    @Test
     void deveRejeitarEnvioSemSmtpConfigurado() {
         br.com.evento.adapters.out.email.SmtpEmailService semSmtp =
                 new br.com.evento.adapters.out.email.SmtpEmailService("", 587, "", "", "");

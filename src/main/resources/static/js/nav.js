@@ -440,6 +440,29 @@
         }
     }
 
+    // §3: o rodapé da gestão mostra o nome da instituição configurado pelo
+    // admin em /api/configuracoes. Falha silenciosa mantém o texto do HTML.
+    async function atualizarIdentidadeOrganizacao() {
+        const papel = papelUsuario();
+        if (papel !== 'ORGANIZADOR' && papel !== 'ADMINISTRADOR') return;
+        const auth = window.Auth;
+        const token = auth && auth.getToken ? auth.getToken() : null;
+        if (!token) return;
+        try {
+            const resp = await fetch('/api/configuracoes', {
+                headers: { 'Accept': 'application/json', 'Authorization': 'Bearer ' + token }
+            });
+            if (!resp.ok) return;
+            const cfg = await resp.json();
+            if (!cfg || !cfg.nomeInstituicao) return;
+            document.querySelectorAll('.sidebar .org strong').forEach(el => {
+                el.textContent = cfg.nomeInstituicao;
+            });
+        } catch (ignorado) {
+            // Mantém o texto estático do HTML.
+        }
+    }
+
     function ligarNav() {
         // Logo → página principal de cada papel: organizador volta ao
         // dashboard; participante/visitante volta aos Eventos disponíveis (/).
@@ -490,6 +513,7 @@
             garantirFavicon();
             ligarNav();
             configurarPerfil();
+            atualizarIdentidadeOrganizacao();
         });
     } else {
         aplicarControleAcesso();
@@ -497,5 +521,6 @@
         garantirFavicon();
         ligarNav();
         configurarPerfil();
+        atualizarIdentidadeOrganizacao();
     }
 })();

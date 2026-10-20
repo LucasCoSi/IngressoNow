@@ -85,6 +85,7 @@ curl -X PUT /api/eventos/{id} -H "Authorization: Bearer $T" \
   -d '{"titulo":"...","descricao":"..."}'  # só RASCUNHO
 curl -X DELETE /api/eventos/{id} -H "Authorization: Bearer $T"
 # → 204 (422 se há inscrições)
+curl "/api/eventos?todos=true" -H "Authorization: Bearer $T"   # admin: todos os eventos/status (§3)
 curl -X POST /api/eventos/{id}/publicar -H "Authorization: Bearer $T"
 curl -X POST /api/eventos/{id}/encerrar -H "Authorization: Bearer $T"
 ```
@@ -184,6 +185,8 @@ curl /api/controle/relatorio/inscritos/{eventoId} -H "Authorization: Bearer $T"
 ## Certificados — RF-32/33/35 (D, JWT; escrita = organizador)
 
 ```bash
+curl /api/eventos/{id}/certificados/criterio -H "Authorization: Bearer $T"
+# -> 200 {percentualMinimo, obrigatorias} (critério vigente; vazio = sem critério)
 curl -X POST /api/eventos/{id}/certificados/criterio -H "Authorization: Bearer $T" \
   -d '{"percentualMinimo":75,"obrigatorias":[]}'
 # → 200 critério configurado (RF-32)
@@ -202,6 +205,23 @@ curl /api/eventos/{id}/certificados -H "Authorization: Bearer $T"  # → 200 [..
 curl '/api/certificados?participanteId=...' -H "Authorization: Bearer $T"
 curl '/api/certificados?codigo=...' -H "Authorization: Bearer $T"  # validação do identificador
 ```
+
+## Configuracoes da organizacao - §3 (JWT)
+
+Organizador e administrador leem; somente o administrador escreve.
+
+```bash
+curl /api/configuracoes -H "Authorization: Bearer $T"
+# -> {nomeInstituicao, sigla, emailContato, site, percentualCertificadoPadrao, atualizadoEm}
+curl -X PUT /api/configuracoes -H "Authorization: Bearer $T" \
+  -d '{"nomeInstituicao":"Centro de Eventos Sul","sigla":"CES","emailContato":"contato@x.br","percentualCertificadoPadrao":75}'
+# -> 200 (403 para organizador; 422 nome curto / percentual fora de 0..100)
+```
+
+O `percentualCertificadoPadrao` e aplicado como fallback quando o evento nao
+tem criterio proprio (RF-32). A edicao do criterio de presenca por atividade
+(RF-19) usa `PUT /api/eventos/{id}/atividades/{atId}` com
+`{"politicaFrequencia":"UNICA"|"ENTRADA_SAIDA"}` (sem exigir inicio/fim/local).
 
 ## Erros
 

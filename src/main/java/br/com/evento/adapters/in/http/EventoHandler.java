@@ -4,7 +4,7 @@ import br.com.evento.application.usecase.AdicionarAtividadeUseCase;
 import br.com.evento.application.usecase.CadastrarEventoUseCase;
 import br.com.evento.application.usecase.ListarEventosOrganizadorUseCase;
 import br.com.evento.application.usecase.ListarEventosPublicadosUseCase;
-import br.com.evento.application.usecase.RemarcarAtividadeUseCase;
+import br.com.evento.application.usecase.ListarTodosEventosUseCase;
 import br.com.evento.application.usecase.VincularPessoaUseCase;
 import br.com.evento.domain.exception.DomainException;
 import br.com.evento.domain.model.entity.Atividade;
@@ -29,9 +29,9 @@ public class EventoHandler implements HttpHandler {
 
     private final ListarEventosPublicadosUseCase listar;
     private final ListarEventosOrganizadorUseCase listarOrganizador;
+    private final ListarTodosEventosUseCase listarTodos;
     private final CadastrarEventoUseCase cadastrar;
     private final AdicionarAtividadeUseCase adicionarAtividade;
-    private final RemarcarAtividadeUseCase remarcarAtividade;
     private final VincularPessoaUseCase vincularPessoa;
     private final EventoRepository eventos;
     private final InscricaoRepository inscricoes;
@@ -39,15 +39,16 @@ public class EventoHandler implements HttpHandler {
     private final JwtAuth jwt;
 
     public EventoHandler(ListarEventosPublicadosUseCase listar, ListarEventosOrganizadorUseCase listarOrganizador,
+                         ListarTodosEventosUseCase listarTodos,
                          CadastrarEventoUseCase cadastrar,
-                         AdicionarAtividadeUseCase adicionarAtividade, RemarcarAtividadeUseCase remarcarAtividade,
+                         AdicionarAtividadeUseCase adicionarAtividade,
                          VincularPessoaUseCase vincularPessoa, EventoRepository eventos,
                          InscricaoRepository inscricoes, PessoaRepository pessoas, JwtAuth jwt) {
         this.listar = listar;
         this.listarOrganizador = listarOrganizador;
+        this.listarTodos = listarTodos;
         this.cadastrar = cadastrar;
         this.adicionarAtividade = adicionarAtividade;
-        this.remarcarAtividade = remarcarAtividade;
         this.vincularPessoa = vincularPessoa;
         this.eventos = eventos;
         this.inscricoes = inscricoes;
@@ -65,7 +66,21 @@ public class EventoHandler implements HttpHandler {
                 if ("GET".equals(metodo)) {
                     // ?organizadorId= — gestão admin: todos os status do organizador (exige JWT do dono).
                     // Sem o parâmetro: lista pública (só PUBLICADO/INSCRICOES_ABERTAS).
-                    String organizadorId = InscricaoHandler.query(ex.getRequestURI().getRawQuery()).get("organizadorId");
+                    // ?todos=true — §3: administrador consulta todos os eventos.
+                    Map<String, String> params = InscricaoHandler.query(ex.getRequestURI().getRawQuery());
+                    if ("true".equalsIgnoreCase(params.get("todos"))) {
+                        var logadoTodos = jwt.autenticar(ex);
+                        if (logadoTodos.isEmpty()) {
+                            HttpErrors.json(ex, 401, StandardError.de(401, "Unauthorized",
+                                    "Autenticação exigida.", ex.getRequestURI().getPath()));
+                            return;
+                        }
+                        if (!Papeis.exigirAdministrador(logadoTodos.get(), ex)) return;
+                        HttpErrors.json(ex, 200, listarTodos.executar().stream()
+                                .map(EventoDTO::from).toList());
+                        return;
+                    }
+                    String organizadorId = params.get("organizadorId");
                     if (organizadorId != null && !organizadorId.isBlank()) {
                         var logado = jwt.autenticar(ex);
                         if (logado.isEmpty()) {
@@ -211,25 +226,36 @@ public class EventoHandler implements HttpHandler {
                 }
                 return;
             }
-            // RF-07: PUT /api/eventos/{id}/atividades/{atId} (remarcar com revalidação)
+            // RF-07/RF-19: PUT /api/eventos/{id}/atividades/{atId}
+            // Remarca (inicio/fim/local) e/ou troca o critério de presença.
             if (partes.length == 3 && "atividades".equals(partes[1]) && "PUT".equals(metodo)) {
                 if (!jwt.exigir(ex)) return;
                 var logadoRem = jwt.autenticar(ex)
                         .orElseThrow(() -> new DomainException("Autenticação exigida."));
                 if (!Papeis.exigirGestor(logadoRem, ex)) return;
                 var req = Json.ler(HttpErrors.corpo(ex), RemarcarRequest.class);
-                if (req.inicio() == null || req.fim() == null) {
-                    throw new IllegalArgumentException("Início e fim são obrigatórios");
+                boolean temRemarcacao = !vazio(req.inicio()) && !vazio(req.fim())
+                        && !vazio(req.local());
+                boolean temCriterio = !vazio(req.politicaFrequencia());
+                if (!temRemarcacao && !temCriterio) {
+                    throw new IllegalArgumentException(
+                            "Informe o período/local ou o critério de presença");
                 }
-                if (req.local() == null || req.local().isBlank()) {
-                    throw new IllegalArgumentException("O local é obrigatório");
-                }
-                if (!Papeis.exigirDonoEventoOuAdmin(logadoRem, buscar(id), ex)) return;
-                remarcarAtividade.executar(id, partes[2],
-                        LocalDateTime.parse(req.inicio()), LocalDateTime.parse(req.fim()), req.local());
-                HttpErrors.json(ex, 200, AtividadeDTO.from(buscar(id).getAtividades().stream()
+                Evento evento = buscar(id);
+                if (!Papeis.exigirDonoEventoOuAdmin(logadoRem, evento, ex)) return;
+                Atividade alvo = evento.getAtividades().stream()
                         .filter(a -> a.getId().equals(partes[2])).findFirst()
-                        .orElseThrow(() -> new DomainException("Atividade não encontrada."))));
+                        .orElseThrow(() -> new DomainException("Atividade não encontrada."));
+                if (temCriterio) alvo.definirPoliticaFrequencia(req.politicaFrequencia());
+                if (temRemarcacao) {
+                    evento.remarcarAtividade(partes[2],
+                            new br.com.evento.domain.model.vo.Periodo(
+                                    LocalDateTime.parse(req.inicio()),
+                                    LocalDateTime.parse(req.fim())),
+                            req.local());
+                }
+                eventos.salvar(evento);
+                HttpErrors.json(ex, 200, AtividadeDTO.from(alvo));
                 return;
             }
             // RF-08: POST/GET /api/eventos/{id}/atividades/{atId}/pessoas + DELETE /pessoas/{pId}
@@ -306,6 +332,10 @@ public class EventoHandler implements HttpHandler {
         if (req.maxVagas() != null && req.maxVagas() <= 0) {
             throw new IllegalArgumentException("O número de vagas da atividade deve ser positivo");
         }
+    }
+
+    private static boolean vazio(String valor) {
+        return valor == null || valor.isBlank();
     }
 
     public record DetalhesEvento(String periodoInicio, String periodoFim, String local, String fuso,
@@ -387,7 +417,8 @@ public class EventoHandler implements HttpHandler {
         }
     }
 
-    public record RemarcarRequest(String inicio, String fim, String local) {
+    public record RemarcarRequest(String inicio, String fim, String local,
+                                  String politicaFrequencia) {
     }
 
     public record VincularPessoaRequest(String nome, String papel) {

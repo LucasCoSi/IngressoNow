@@ -1,297 +1,551 @@
 /**
- * configuracoes.js - Regras de inscrição/frequência por evento (organizador).
- * Integracao da aba "Regras de Inscrição & Frequência" com:
- * GET /api/eventos/{id}, PUT /api/eventos/{id} (detalhes RF-04/13, fuso RN-20).
- * Demais abas (perfil org, certificados, SMTP, webhooks) são decorativas no MVP.
+ * configuracoes.js — Configurações por papel (§3).
+ *
+ * Organizador: regras do evento (RF-04/RF-13), critério de presença por
+ * atividade (RF-19) e elegibilidade de certificado (RF-32); identidade da
+ * organização em modo leitura.
+ * Administrador: tudo acima (em qualquer evento) + parâmetros gerais da
+ * organização (identidade + percentual padrão de certificado).
+ *
+ * Persistência: /api/eventos (regras), /api/eventos/{id}/atividades/{atId}
+ * (frequência), /api/eventos/{id}/certificados/criterio (RF-32) e
+ * /api/configuracoes (parâmetros gerais, PUT só do admin).
  */
+document.addEventListener('DOMContentLoaded', async function () {
+    const API = window.API;
+    const Auth = window.Auth;
+    const user = Auth && Auth.getUser ? Auth.getUser() : null;
+    const tipo = String((user && user.tipo) || '').toUpperCase();
+    const isAdmin = tipo === 'ADMINISTRADOR';
+    const isOrganizador = tipo === 'ORGANIZADOR';
 
-document.addEventListener('DOMContentLoaded', async function() {
-    console.log('[Configuracoes] Inicializando...');
+    // O nav.js já redireciona quem não é gestor; por segurança, não renderiza.
+    if (!isAdmin && !isOrganizador) return;
 
-    const eventSelect = document.getElementById('event-select')
-        || document.querySelector('[data-od-id="event-dropdown"]');
-    const saveBtn = document.querySelector('[data-od-id="save-settings-cta"]');
-    const restoreBtn = document.querySelector('[data-od-id="restore-defaults-btn"]');
-    const freqTab = document.querySelector('[data-od-id="tab-content-frequency"]');
+    const state = { config: null, eventos: [], evento: null, criterio: null };
 
-    // Preferências locais (MVP): o backend do §11 não tem endpoint de
-    // configurações globais nem upload de imagens (RN-02: foto opcional,
-    // sem bloqueio). Logo/assinatura ficam como preferência deste
-    // navegador com preview; regras de evento vão ao servidor (PUT /api/eventos).
-    const PREFS_KEY = 'cfgPrefs';
-    const LOGO_MAX = 5 * 1024 * 1024;
-    const ASS_MAX = 2 * 1024 * 1024;
+    const el = (id) => document.getElementById(id);
 
-    function lerPrefs() {
-        try {
-            return JSON.parse(localStorage.getItem(PREFS_KEY) || '{}');
-        } catch (e) {
-            return {};
-        }
-    }
-
-    function aplicarPreferencias() {
-        const p = lerPrefs();
-        const setVal = (id, v) => { const el = document.getElementById(id); if (el && v != null) el.value = v; };
-        setVal('cfg-org-nome', p.orgNome);
-        setVal('cfg-org-cnpj', p.orgCnpj);
-        setVal('cfg-org-tel', p.orgTel);
-        setVal('cfg-org-email', p.orgEmail);
-        setVal('cfg-reserva', p.reserva);
-        const setToggle = (odId, v) => {
-            const el = document.querySelector(`[data-od-id="${odId}"]`);
-            if (el && v != null) el.classList.toggle('active', !!v);
-        };
-        setToggle('toggle-frequency', p.tglFrequency);
-        setToggle('toggle-manual-checkin', p.tglManual);
-        setToggle('toggle-late-enrollment', p.tglLate);
-        if (p.certTpl) {
-            document.querySelectorAll('.cert-card').forEach(c =>
-                c.classList.toggle('active', c.dataset.tpl === p.certTpl));
-        }
-        if (p.orgNome) {
-            document.querySelectorAll('.org strong').forEach(el => { el.textContent = p.orgNome; });
-        }
-        mostrarPreview('logo-dropzone', p.logo, 'PNG, JPG (máx. 5MB)');
-        mostrarPreview('signature-dropzone', p.assinatura, 'PNG com fundo transparente (máx. 2MB)');
-    }
-
-    function mostrarPreview(odId, dataUrl, hint) {
-        const dz = document.querySelector(`[data-od-id="${odId}"]`);
-        if (!dz) return;
-        let img = dz.querySelector('img.cfg-preview');
-        if (dataUrl) {
-            if (!img) {
-                img = document.createElement('img');
-                img.className = 'cfg-preview';
-                img.style.cssText = 'max-height:120px;max-width:100%;border-radius:4px;margin-bottom:8px';
-                dz.prepend(img);
-            }
-            img.src = dataUrl;
-            const hintEl = dz.querySelector('.dropzone-hint');
-            if (hintEl) hintEl.textContent = 'Imagem carregada (preferência local deste navegador).';
-        } else if (img) {
-            img.remove();
-            const hintEl = dz.querySelector('.dropzone-hint');
-            if (hintEl && hint) hintEl.textContent = hint;
-        }
-    }
-
-    function salvarPreferencias() {
-        const val = (id) => { const el = document.getElementById(id); return el ? el.value : ''; };
-        const tgl = (odId) => {
-            const el = document.querySelector(`[data-od-id="${odId}"]`);
-            return el ? el.classList.contains('active') : null;
-        };
-        const p = lerPrefs();
-        p.orgNome = val('cfg-org-nome');
-        p.orgCnpj = val('cfg-org-cnpj');
-        p.orgTel = val('cfg-org-tel');
-        p.orgEmail = val('cfg-org-email');
-        p.reserva = val('cfg-reserva');
-        p.tglFrequency = tgl('toggle-frequency');
-        p.tglManual = tgl('toggle-manual-checkin');
-        p.tglLate = tgl('toggle-late-enrollment');
-        const ativo = document.querySelector('.cert-card.active');
-        if (ativo) p.certTpl = ativo.dataset.tpl;
-        try {
-            localStorage.setItem(PREFS_KEY, JSON.stringify(p));
-        } catch (e) {
-            window.API.exibirErro(new window.API.APIError(
-                'Não coube no armazenamento local (imagem grande demais?). Preferências de texto foram mantidas.', 400));
-            return false;
-        }
-        if (p.orgNome) {
-            document.querySelectorAll('.org strong').forEach(el => { el.textContent = p.orgNome; });
-        }
-        return true;
-    }
-
-    function configurarDropzone(odId, chave, maxBytes, tipos) {
-        const dz = document.querySelector(`[data-od-id="${odId}"]`);
-        if (!dz || dz.dataset.wired) return;
-        dz.dataset.wired = '1';
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = tipos.join(',');
-        input.style.display = 'none';
-        dz.appendChild(input);
-        const tratar = (file) => {
-            if (!file) return;
-            if (!tipos.some(t => file.type === t || file.name.toLowerCase().endsWith(t.replace('image/', '.')))) {
-                alert('Formato inválido. Use PNG ou JPG.');
-                return;
-            }
-            if (file.size > maxBytes) {
-                alert(`Arquivo maior que ${Math.round(maxBytes / 1024 / 1024)}MB.`);
-                return;
-            }
-            const reader = new FileReader();
-            reader.onload = () => {
-                const p = lerPrefs();
-                p[chave] = reader.result;
-                try {
-                    localStorage.setItem(PREFS_KEY, JSON.stringify(p));
-                } catch (e) {
-                    alert('Imagem carregada no preview, mas grande demais para salvar localmente.');
-                    p[chave] = null;
-                }
-                aplicarPreferencias();
-            };
-            reader.readAsDataURL(file);
-        };
-        dz.addEventListener('click', () => input.click());
-        input.addEventListener('change', () => tratar(input.files[0]));
-        ['dragover', 'dragenter'].forEach(ev => dz.addEventListener(ev, (e) => e.preventDefault()));
-        dz.addEventListener('drop', (e) => {
-            e.preventDefault();
-            if (e.dataTransfer.files.length > 0) tratar(e.dataTransfer.files[0]);
-        });
-    }
-
-    function escapeHtml(text) {
+    function esc(valor) {
         const div = document.createElement('div');
-        div.textContent = text == null ? '' : String(text);
+        div.textContent = valor == null ? '' : String(valor);
         return div.innerHTML;
     }
 
-    function authHeaders() {
-        const h = { 'Accept': 'application/json', 'Content-Type': 'application/json' };
-        const t = window.Auth ? window.Auth.getToken() : null;
-        if (t) h['Authorization'] = 'Bearer ' + t;
-        return h;
+    function vazio(mensagem) {
+        const div = document.createElement('div');
+        div.className = 'empty';
+        div.textContent = mensagem;
+        return div;
     }
 
-    // Injeta form funcional na aba de regras (se ainda não existe)
-    function garantirForm() {
-        if (!freqTab || document.getElementById('regras-evento-form')) return;
-        const form = document.createElement('form');
-        form.id = 'regras-evento-form';
-        form.style.cssText = 'display:grid;gap:10px;max-width:520px;margin-top:12px';
-        form.innerHTML = `
-            <label style="font-size:12px">Período início (yyyy-MM-ddTHH:mm, vazio = manter)
-                <input id="cfg-periodo-inicio" style="width:100%;padding:8px"></label>
-            <label style="font-size:12px">Período fim (yyyy-MM-ddTHH:mm, vazio = manter)
-                <input id="cfg-periodo-fim" style="width:100%;padding:8px"></label>
-            <label style="font-size:12px">Local / modalidade
-                <input id="cfg-local" style="width:100%;padding:8px"></label>
-            <label style="font-size:12px">Fuso (IANA, ex: America/Sao_Paulo)
-                <input id="cfg-fuso" style="width:100%;padding:8px"></label>
-            <label style="font-size:12px"><input id="cfg-exige" type="checkbox">
-                Exigir escolha de atividades na inscrição (RF-13)</label>
-            <label style="font-size:12px"><input id="cfg-vagas-at" type="checkbox">
-                Vagas controladas por atividade (RF-13)</label>
-            <button class="secondary" type="submit" style="justify-self:start">Salvar regras do evento</button>`;
-        freqTab.appendChild(form);
-        form.addEventListener('submit', salvarRegras);
+    function secao(titulo, descricao, corpoHtml) {
+        const sec = document.createElement('section');
+        sec.className = 'settings-section';
+        sec.innerHTML = `<h2>${esc(titulo)}</h2><p>${esc(descricao)}</p>${corpoHtml}`;
+        return sec;
     }
 
-    async function salvarRegras(ev) {
-        ev.preventDefault();
-        const eventoId = eventSelect ? eventSelect.value : null;
-        if (!eventoId) {
-            window.API.exibirErro(new window.API.APIError('Selecione um evento.', 400));
-            return;
-        }
-        const body = {};
-        const pi = document.getElementById('cfg-periodo-inicio').value.trim();
-        const pf = document.getElementById('cfg-periodo-fim').value.trim();
-        const local = document.getElementById('cfg-local').value.trim();
-        const fuso = document.getElementById('cfg-fuso').value.trim();
-        if (pi) body.periodoInicio = pi;
-        if (pf) body.periodoFim = pf;
-        if (local) body.local = local;
-        if (fuso) body.fuso = fuso;
-        body.exigeEscolhaAtividades = document.getElementById('cfg-exige').checked;
-        body.vagasPorAtividade = document.getElementById('cfg-vagas-at').checked;
-        try {
-            const resp = await fetch(`/api/eventos/${encodeURIComponent(eventoId)}`, {
-                method: 'PUT', headers: authHeaders(), body: JSON.stringify(body)
-            });
-            if (!resp.ok) {
-                const err = await resp.json().catch(() => ({}));
-                throw new window.API.APIError(err.message || `HTTP ${resp.status}`, resp.status);
-            }
-            const evento = await resp.json();
-            preencher(evento);
-            window.API.exibirSucesso('Regras salvas!');
-        } catch (error) {
-            window.API.exibirErro(error);
+    function quando(iso) {
+        if (!iso) return '';
+        const d = new Date(iso);
+        return isNaN(d.getTime()) ? iso : d.toLocaleString('pt-BR');
+    }
+
+    const TABS = isAdmin
+        ? [
+            ['geral', 'Parâmetros Gerais'],
+            ['evento', 'Regras do Evento'],
+            ['frequencia', 'Frequência'],
+            ['certificados', 'Certificados']
+        ]
+        : [
+            ['evento', 'Regras do Evento'],
+            ['frequencia', 'Frequência'],
+            ['certificados', 'Certificados'],
+            ['organizacao', 'Organização']
+        ];
+    let abaAtiva = TABS[0][0];
+    // Permite abrir direto em uma aba (ex.: /configuracoes?aba=certificados).
+    const abaPedida = new URLSearchParams(window.location.search).get('aba');
+    if (abaPedida && TABS.some(([id]) => id === abaPedida)) abaAtiva = abaPedida;
+
+    // ------------------------------------------------------------------
+    // Cabeçalho / abas
+    // ------------------------------------------------------------------
+    function cabecalho() {
+        if (isAdmin) {
+            el('cfg-context-label').textContent = 'Administração do sistema';
+            el('cfg-title').textContent = 'Configurações do Sistema';
+            el('cfg-subtitle').textContent =
+                'Parâmetros gerais da organização e regras de inscrição, frequência e certificados dos eventos.';
+            document.title = 'Configurações do Sistema - IngressoNow';
+        } else {
+            el('cfg-context-label').textContent = 'Gestão de eventos';
+            el('cfg-title').textContent = 'Configurações dos Eventos';
+            el('cfg-subtitle').textContent =
+                'Regras de inscrição, critério de presença e elegibilidade de certificado dos seus eventos.';
+            document.title = 'Configurações dos Eventos - IngressoNow';
         }
     }
 
-    function preencher(evento) {
-        if (!evento) return;
-        const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
-        set('cfg-periodo-inicio', evento.periodoInicio);
-        set('cfg-periodo-fim', evento.periodoFim);
-        set('cfg-local', evento.local);
-        set('cfg-fuso', evento.fuso);
-        const exige = document.getElementById('cfg-exige');
-        const vagas = document.getElementById('cfg-vagas-at');
-        if (exige) exige.checked = !!evento.exigeEscolhaAtividades;
-        if (vagas) vagas.checked = !!evento.vagasPorAtividade;
+    function renderTabs() {
+        const host = el('cfg-tabs');
+        host.innerHTML = '';
+        TABS.forEach(([id, rotulo]) => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'settings-tab' + (id === abaAtiva ? ' active' : '');
+            btn.setAttribute('role', 'tab');
+            btn.setAttribute('data-od-id', 'tab-' + id);
+            btn.textContent = rotulo;
+            btn.addEventListener('click', () => trocarAba(id));
+            host.appendChild(btn);
+        });
+    }
+
+    async function trocarAba(id) {
+        abaAtiva = id;
+        renderTabs();
+        await renderPainel();
+    }
+
+    // ------------------------------------------------------------------
+    // Dados
+    // ------------------------------------------------------------------
+    function atualizarIdentidade() {
+        const nome = state.config && state.config.nomeInstituicao;
+        if (!nome) return;
+        const alvo = document.querySelector('[data-od-id="sidebar-org"]')
+            || document.querySelector('.sidebar .org strong');
+        if (alvo) alvo.textContent = nome;
+    }
+
+    async function carregarConfig() {
+        state.config = await API.Configuracoes.obter();
+        atualizarIdentidade();
     }
 
     async function carregarEventos() {
-        try {
-            // Gestão enxerga rascunhos: prefere a lista do organizador logado.
-            const user = window.Auth ? window.Auth.getUser() : null;
-            const eventos = (user && user.usuarioId)
-                ? await window.API.Eventos.listarPorOrganizador(user.usuarioId).catch(
-                    () => window.API.Eventos.listar())
-                : await window.API.Eventos.listar();
-            if (eventSelect && eventSelect.tagName === 'SELECT') {
-                eventSelect.innerHTML = eventos.map(e =>
-                    `<option value="${e.id}">${escapeHtml(e.titulo)}</option>`).join('');
-                if (eventos.length > 0) {
-                    const detalhe = await window.API.Eventos.buscar(eventos[0].id);
-                    preencher(detalhe);
-                }
-            }
-        } catch (error) {
-            window.API.exibirErro(error);
+        const listaBruta = isAdmin
+            ? await API.Configuracoes.listarEventos(true).catch(() => API.Eventos.listar())
+            : await API.Eventos.listarPorOrganizador(user.usuarioId)
+                .catch(() => API.Eventos.listar());
+        state.eventos = Array.isArray(listaBruta) ? listaBruta : [];
+        if (state.eventos.length > 0) {
+            await selecionarEvento(state.eventos[0].id);
+        } else {
+            state.evento = null;
+            state.criterio = null;
         }
     }
 
-    garantirForm();
-    configurarDropzone('logo-dropzone', 'logo', LOGO_MAX, ['image/png', 'image/jpeg']);
-    configurarDropzone('signature-dropzone', 'assinatura', ASS_MAX, ['image/png']);
-    document.querySelectorAll('.cert-card').forEach(card => {
-        card.addEventListener('click', () => {
-            document.querySelectorAll('.cert-card').forEach(c => c.classList.remove('active'));
-            card.classList.add('active');
-        });
-    });
-    aplicarPreferencias();
-    if (saveBtn) {
-        saveBtn.addEventListener('click', () => {
-            if (salvarPreferencias()) window.API.exibirSucesso('Preferências salvas neste navegador!');
-            const form = document.getElementById('regras-evento-form');
-            if (form) form.requestSubmit();
-        });
-    }
-    if (restoreBtn) {
-        restoreBtn.addEventListener('click', () => {
-            localStorage.removeItem(PREFS_KEY);
-            ['cfg-org-nome', 'cfg-org-cnpj', 'cfg-org-tel', 'cfg-org-email', 'cfg-reserva']
-                .forEach(id => { const el = document.getElementById(id); if (el) el.value = el.defaultValue; });
-            document.querySelectorAll('.toggle').forEach((t, i) => t.classList.toggle('active', i < 2));
-            document.querySelectorAll('.cert-card').forEach((c, i) => c.classList.toggle('active', i === 0));
-            mostrarPreview('logo-dropzone', null, 'PNG, JPG (máx. 5MB)');
-            mostrarPreview('signature-dropzone', null, 'PNG com fundo transparente (máx. 2MB)');
-            window.API.exibirSucesso('Padrões restaurados.');
-        });
-    }
-    if (eventSelect) {
-        eventSelect.addEventListener('change', async () => {
-            try {
-                preencher(await window.API.Eventos.buscar(eventSelect.value));
-            } catch (error) {
-                window.API.exibirErro(error);
-            }
-        });
+    async function selecionarEvento(id) {
+        if (!id) {
+            state.evento = null;
+            state.criterio = null;
+            return;
+        }
+        state.evento = await API.Eventos.buscar(id);
+        state.criterio = null;
     }
 
-    await carregarEventos();
+    async function garantirCriterio() {
+        if (!state.evento || state.criterio !== null) return;
+        try {
+            state.criterio = await API.Configuracoes.buscarCriterio(state.evento.id);
+        } catch (erro) {
+            state.criterio = { obrigatorias: [] };
+            API.exibirErro(erro);
+        }
+    }
+
+    function barraEvento() {
+        const wrap = document.createElement('div');
+        wrap.className = 'event-bar';
+        const grupo = document.createElement('div');
+        grupo.className = 'form-group';
+        const label = document.createElement('label');
+        label.className = 'form-label';
+        label.setAttribute('for', 'cfg-evento');
+        label.textContent = 'Evento';
+        const select = document.createElement('select');
+        select.className = 'form-select';
+        select.id = 'cfg-evento';
+        if (state.eventos.length === 0) {
+            select.innerHTML = '<option value="">Nenhum evento disponível</option>';
+            select.disabled = true;
+        } else {
+            select.innerHTML = state.eventos.map(e =>
+                `<option value="${esc(e.id)}">${esc(e.titulo)} — ${esc(e.status)}</option>`).join('');
+            select.value = state.evento ? state.evento.id : state.eventos[0].id;
+        }
+        select.addEventListener('change', async () => {
+            try {
+                await selecionarEvento(select.value);
+                await renderPainel();
+            } catch (erro) {
+                API.exibirErro(erro);
+            }
+        });
+        grupo.append(label, select);
+        wrap.appendChild(grupo);
+        return wrap;
+    }
+
+    // ------------------------------------------------------------------
+    // Painéis
+    // ------------------------------------------------------------------
+    async function renderPainel() {
+        if (abaAtiva === 'certificados') await garantirCriterio();
+        const host = el('cfg-panels');
+        host.innerHTML = '';
+        switch (abaAtiva) {
+            case 'geral': host.appendChild(painelGeral()); break;
+            case 'evento': await painelEvento(host); break;
+            case 'frequencia': await painelFrequencia(host); break;
+            case 'certificados': await painelCertificados(host); break;
+            case 'organizacao': host.appendChild(painelOrganizacao()); break;
+            default: host.appendChild(vazio('Aba não encontrada.'));
+        }
+    }
+
+    // ---- Parâmetros gerais (admin) ----
+    function painelGeral() {
+        const c = state.config || {};
+        const percentual = c.percentualCertificadoPadrao == null ? '' : c.percentualCertificadoPadrao;
+        const atualizado = c.atualizadoEm
+            ? `<p class="form-hint" style="margin-top:14px">Última atualização: ${esc(quando(c.atualizadoEm))}</p>`
+            : '';
+        const sec = secao('Parâmetros Gerais da Organização',
+            'Informações da instituição e padrões aplicados aos eventos. Somente o administrador altera.',
+            `
+            <div class="form-group">
+                <label class="form-label" for="cfg-nome">Nome da instituição</label>
+                <input class="form-input" id="cfg-nome" value="${esc(c.nomeInstituicao)}" placeholder="Ex.: Universidade Federal do Sul">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label" for="cfg-sigla">Sigla</label>
+                    <input class="form-input" id="cfg-sigla" maxlength="20" value="${esc(c.sigla)}" placeholder="Ex.: UFS">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="cfg-email">E-mail de contato</label>
+                    <input class="form-input" id="cfg-email" type="email" value="${esc(c.emailContato)}" placeholder="contato@instituicao.br">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label" for="cfg-site">Site</label>
+                    <input class="form-input" id="cfg-site" value="${esc(c.site)}" placeholder="https://...">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="cfg-pct">Percentual padrão de certificado (%)</label>
+                    <input class="form-input" id="cfg-pct" type="number" min="0" max="100" value="${esc(percentual)}">
+                    <p class="form-hint">Aplicado quando o evento não define critério próprio. Vazio = sem padrão.</p>
+                </div>
+            </div>
+            <div class="form-actions">
+                <button class="primary" id="cfg-salvar-geral" type="button">Salvar parâmetros</button>
+            </div>
+            ${atualizado}
+            <div class="notice" style="margin-top:20px">
+                <strong>Acesso administrativo.</strong> A criação/edição de usuários organizadores e a redefinição
+                de senhas ficam em <a href="/usuarios">Usuários</a>. Não há criação de administrador pela interface.
+            </div>`);
+        sec.querySelector('#cfg-salvar-geral').addEventListener('click', salvarGeral);
+        return sec;
+    }
+
+    async function salvarGeral() {
+        const nome = el('cfg-nome').value.trim();
+        if (nome.length < 3) {
+            API.exibirErro(new API.APIError('Informe o nome da instituição (mínimo 3 caracteres).', 400));
+            return;
+        }
+        const pctTexto = el('cfg-pct').value.trim();
+        let percentual = null;
+        if (pctTexto !== '') {
+            percentual = Number(pctTexto);
+            if (!Number.isInteger(percentual) || percentual < 0 || percentual > 100) {
+                API.exibirErro(new API.APIError('O percentual padrão deve ser um inteiro entre 0 e 100.', 400));
+                return;
+            }
+        }
+        try {
+            state.config = await API.Configuracoes.atualizar({
+                nomeInstituicao: nome,
+                sigla: el('cfg-sigla').value.trim() || null,
+                emailContato: el('cfg-email').value.trim() || null,
+                site: el('cfg-site').value.trim() || null,
+                percentualCertificadoPadrao: percentual
+            });
+            atualizarIdentidade();
+            API.exibirSucesso('Parâmetros gerais salvos.');
+            await renderPainel();
+        } catch (erro) {
+            API.exibirErro(erro);
+        }
+    }
+
+    // ---- Regras do evento (RF-04/RF-13) ----
+    async function painelEvento(host) {
+        if (!state.evento) {
+            host.appendChild(vazio('Nenhum evento disponível para configurar.'));
+            return;
+        }
+        host.appendChild(barraEvento());
+        const e = state.evento;
+        const inicio = (e.periodoInicio || '').slice(0, 16);
+        const fim = (e.periodoFim || '').slice(0, 16);
+        const sec = secao('Regras do Evento',
+            'RF-04/RF-13 — período, local, fuso e como a inscrição controla atividades e vagas.',
+            `
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label" for="cfg-inicio">Início do evento</label>
+                    <input class="form-input" id="cfg-inicio" type="datetime-local" value="${esc(inicio)}">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="cfg-fim">Fim do evento</label>
+                    <input class="form-input" id="cfg-fim" type="datetime-local" value="${esc(fim)}">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label" for="cfg-local">Local / modalidade</label>
+                    <input class="form-input" id="cfg-local" value="${esc(e.local)}" placeholder="Ex.: Auditório central / Online">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="cfg-fuso">Fuso horário (IANA)</label>
+                    <input class="form-input" id="cfg-fuso" value="${esc(e.fuso)}" placeholder="America/Sao_Paulo">
+                </div>
+            </div>
+            <div class="check-list" style="margin-bottom:18px">
+                <label class="check-item">
+                    <input type="checkbox" id="cfg-exige" ${e.exigeEscolhaAtividades ? 'checked' : ''}>
+                    <span>Exigir escolha de atividades na inscrição</span>
+                </label>
+                <label class="check-item">
+                    <input type="checkbox" id="cfg-vagas-at" ${e.vagasPorAtividade ? 'checked' : ''}>
+                    <span>Controlar vagas por atividade (RF-13)</span>
+                </label>
+            </div>
+            <div class="form-actions">
+                <button class="primary" id="cfg-salvar-evento" type="button">Salvar regras do evento</button>
+            </div>`);
+        sec.querySelector('#cfg-salvar-evento').addEventListener('click', salvarEvento);
+        host.appendChild(sec);
+    }
+
+    async function salvarEvento() {
+        if (!state.evento) return;
+        const inicio = el('cfg-inicio').value.trim();
+        const fim = el('cfg-fim').value.trim();
+        if ((inicio && !fim) || (!inicio && fim)) {
+            API.exibirErro(new API.APIError('Informe o início e o fim do evento juntos.', 400));
+            return;
+        }
+        const body = {
+            exigeEscolhaAtividades: el('cfg-exige').checked,
+            vagasPorAtividade: el('cfg-vagas-at').checked
+        };
+        if (inicio) body.periodoInicio = inicio;
+        if (fim) body.periodoFim = fim;
+        const local = el('cfg-local').value.trim();
+        const fuso = el('cfg-fuso').value.trim();
+        if (local) body.local = local;
+        if (fuso) body.fuso = fuso;
+        try {
+            state.evento = await API.Eventos.atualizar(state.evento.id, body);
+            API.exibirSucesso('Regras do evento salvas.');
+            await renderPainel();
+        } catch (erro) {
+            API.exibirErro(erro);
+        }
+    }
+
+    // ---- Frequência (RF-19) ----
+    async function painelFrequencia(host) {
+        if (!state.evento) {
+            host.appendChild(vazio('Nenhum evento disponível para configurar.'));
+            return;
+        }
+        host.appendChild(barraEvento());
+        const atividades = state.evento.atividades || [];
+        if (atividades.length === 0) {
+            host.appendChild(vazio('Cadastre atividades no evento para definir o critério de presença.'));
+            return;
+        }
+        const linhas = atividades.map(a => {
+            const politica = a.politicaFrequencia || 'UNICA';
+            return `<tr>
+                <td><strong>${esc(a.titulo)}</strong><br><small>${esc(API.formatarDataHora(a.inicio))} — ${esc(a.local)}</small></td>
+                <td><span class="badge">${esc(a.tipo || 'Sem tipo')}</span></td>
+                <td>
+                    <select class="form-select" data-atividade="${esc(a.id)}">
+                        <option value="UNICA" ${politica === 'UNICA' ? 'selected' : ''}>Check-in único</option>
+                        <option value="ENTRADA_SAIDA" ${politica === 'ENTRADA_SAIDA' ? 'selected' : ''}>Entrada e saída</option>
+                    </select>
+                </td>
+            </tr>`;
+        }).join('');
+        const sec = secao('Critério de Presença por Atividade',
+            'RF-19 — escolha como a presença é validada em cada atividade do evento.',
+            `
+            <div class="notice">
+                <strong>Atenção:</strong> trocar o critério não reescreve o histórico já consolidado.
+                <em>Check-in único</em>: uma leitura por atividade. <em>Entrada e saída</em>: duas leituras (par).
+            </div>
+            <table class="table">
+                <thead><tr><th>Atividade</th><th>Tipo</th><th>Critério</th></tr></thead>
+                <tbody>${linhas}</tbody>
+            </table>
+            <div class="form-actions" style="margin-top:16px">
+                <button class="primary" id="cfg-salvar-freq" type="button">Salvar critérios</button>
+            </div>`);
+        sec.querySelector('#cfg-salvar-freq').addEventListener('click', salvarFrequencia);
+        host.appendChild(sec);
+    }
+
+    async function salvarFrequencia() {
+        if (!state.evento) return;
+        const seletores = Array.from(document.querySelectorAll('#cfg-panels select[data-atividade]'));
+        const original = new Map((state.evento.atividades || []).map(a =>
+            [a.id, a.politicaFrequencia || 'UNICA']));
+        const alterados = seletores.filter(s => s.value !== original.get(s.dataset.atividade));
+        if (alterados.length === 0) {
+            API.exibirSucesso('Nenhuma alteração de critério.');
+            return;
+        }
+        try {
+            for (const s of alterados) {
+                await API.Configuracoes.definirPoliticaFrequencia(
+                    state.evento.id, s.dataset.atividade, s.value);
+            }
+            state.evento = await API.Eventos.buscar(state.evento.id);
+            API.exibirSucesso('Critérios de presença salvos.');
+            await renderPainel();
+        } catch (erro) {
+            API.exibirErro(erro);
+        }
+    }
+
+    // ---- Certificados (RF-32) ----
+    async function painelCertificados(host) {
+        if (!state.evento) {
+            host.appendChild(vazio('Nenhum evento disponível para configurar.'));
+            return;
+        }
+        host.appendChild(barraEvento());
+        const criterio = state.criterio || { obrigatorias: [] };
+        const obrigatorias = criterio.obrigatorias || [];
+        const atividades = state.evento.atividades || [];
+        const percentual = criterio.percentualMinimo == null ? '' : criterio.percentualMinimo;
+        const padrao = state.config && state.config.percentualCertificadoPadrao;
+        const avisoPadrao = padrao == null
+            ? 'A organização não definiu percentual padrão. Vale apenas o critério salvo abaixo.'
+            : `Padrão da organização: <strong>${padrao}%</strong>, usado apenas quando este evento não tem critério próprio.`;
+        const checks = atividades.length === 0
+            ? '<span class="form-hint">Evento sem atividades.</span>'
+            : atividades.map(a => `
+                <label class="check-item">
+                    <input type="checkbox" value="${esc(a.id)}" ${obrigatorias.includes(a.id) ? 'checked' : ''}>
+                    <span>${esc(a.titulo)}</span>
+                    <small>${esc(API.formatarDataHora(a.inicio))}</small>
+                </label>`).join('');
+        const sec = secao('Elegibilidade para Certificado',
+            'RF-32 — percentual mínimo de presença e/ou atividades obrigatórias. Tudo opcional.',
+            `
+            <div class="notice">${avisoPadrao}</div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label" for="cfg-cert-pct">Percentual mínimo de presença (%)</label>
+                    <input class="form-input" id="cfg-cert-pct" type="number" min="0" max="100" value="${esc(percentual)}">
+                    <p class="form-hint">Vazio = sem mínimo por percentual.</p>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Atividades obrigatórias</label>
+                <div class="check-list" id="cfg-cert-ats">${checks}</div>
+                <p class="form-hint">Marque as atividades em que a presença é obrigatória para emitir o certificado.</p>
+            </div>
+            <div class="form-actions">
+                <button class="primary" id="cfg-salvar-cert" type="button">Salvar critério</button>
+            </div>`);
+        sec.querySelector('#cfg-salvar-cert').addEventListener('click', salvarCriterio);
+        host.appendChild(sec);
+    }
+
+    async function salvarCriterio() {
+        if (!state.evento) return;
+        const texto = el('cfg-cert-pct').value.trim();
+        let percentual = null;
+        if (texto !== '') {
+            percentual = Number(texto);
+            if (!Number.isInteger(percentual) || percentual < 0 || percentual > 100) {
+                API.exibirErro(new API.APIError('O percentual deve ser um inteiro entre 0 e 100.', 400));
+                return;
+            }
+        }
+        const obrigatorias = Array.from(document.querySelectorAll('#cfg-cert-ats input:checked'))
+            .map(i => i.value);
+        try {
+            state.criterio = await API.Configuracoes.definirCriterio(
+                state.evento.id, percentual, obrigatorias);
+            API.exibirSucesso('Critério de certificado salvo.');
+            await renderPainel();
+        } catch (erro) {
+            API.exibirErro(erro);
+        }
+    }
+
+    // ---- Organização (somente leitura p/ organizador) ----
+    function painelOrganizacao() {
+        const c = state.config || {};
+        const percentual = c.percentualCertificadoPadrao == null
+            ? 'Sem padrão definido'
+            : `${c.percentualCertificadoPadrao}%`;
+        return secao('Identidade da Organização',
+            'Parâmetros gerais definidos pelo administrador do sistema.',
+            `
+            <dl class="kv">
+                <dt>Nome da instituição</dt><dd>${esc(c.nomeInstituicao || '—')}</dd>
+                <dt>Sigla</dt><dd>${esc(c.sigla || '—')}</dd>
+                <dt>E-mail de contato</dt><dd>${esc(c.emailContato || '—')}</dd>
+                <dt>Site</dt><dd>${esc(c.site || '—')}</dd>
+                <dt>Percentual padrão de certificado</dt><dd>${esc(percentual)}</dd>
+            </dl>
+            <div class="notice" style="margin-top:18px">
+                Somente o administrador altera estes parâmetros.
+            </div>`);
+    }
+
+    // ------------------------------------------------------------------
+    // Inicialização
+    // ------------------------------------------------------------------
+    cabecalho();
+    renderTabs();
+    try {
+        await carregarConfig();
+    } catch (erro) {
+        API.exibirErro(erro);
+    }
+    try {
+        await carregarEventos();
+    } catch (erro) {
+        API.exibirErro(erro);
+    }
+    await renderPainel();
+
+    el('cfg-recarregar').addEventListener('click', async () => {
+        try {
+            await carregarConfig();
+            await carregarEventos();
+            await renderPainel();
+            API.exibirSucesso('Dados recarregados.');
+        } catch (erro) {
+            API.exibirErro(erro);
+        }
+    });
 });

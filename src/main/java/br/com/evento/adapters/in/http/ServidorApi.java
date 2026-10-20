@@ -22,8 +22,9 @@ public class ServidorApi {
 
     public void iniciar(int porta) throws IOException {
         JwtAuth jwt = new JwtAuth(app.config.jwtSecret(), app.config.jwtExpirationMs(), app.usuarios);
-        EventoHandler eventoHandler = new EventoHandler(app.listarEventosPublicados, app.listarEventosOrganizador, app.cadastrarEvento,
-                app.adicionarAtividade, app.remarcarAtividade, app.vincularPessoa,
+        EventoHandler eventoHandler = new EventoHandler(app.listarEventosPublicados, app.listarEventosOrganizador,
+                app.listarTodosEventos,
+                app.cadastrarEvento, app.adicionarAtividade, app.vincularPessoa,
                 app.eventos, app.inscricoes, app.pessoas, jwt);
         AvaliacaoHandler avaliacaoHandler = new AvaliacaoHandler(app.criarQuestionario,
                 app.submeterAvaliacao, app.consolidarAvaliacoes, app.questionarios, app.eventos, jwt);
@@ -53,6 +54,8 @@ public class ServidorApi {
         server.createContext("/api/certificados", envolver(certificadoHandler));
         server.createContext("/api/usuarios", envolver(
                 new UsuarioHandler(app.atualizarUsuario, app.gerenciarUsuarios, app.usuarios, jwt)));
+        server.createContext("/api/configuracoes", envolver(
+                new ConfiguracaoHandler(app.gerenciarConfiguracoes, jwt)));
         // Site estático (System Design + login/cadastro + js/css) — último, pega o resto
         server.createContext("/", envolver(new StaticHandler()));
         server.setExecutor(Executors.newCachedThreadPool());

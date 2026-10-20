@@ -124,3 +124,26 @@ participante não muda. O menu de conta oferece “Painel de gestão”.
 pós-cadastro apontavam para `/eventos` (gestão); como o cadastro público só cria
 PARTICIPANTE, o guard rebatia de volta e o clique parecia “não fazer nada”.
 Agora apontam para `/` (catálogo público).
+
+## D-11 configurações: por papel, persistidas no servidor por organização
+
+A tela `/configuracoes` deixou de ser um protótipo com abas decorativas
+(localStorage/SMTP/webhooks) e passou a refletir as competências do §3:
+
+- **Organizador** (próprios eventos): "Regras do Evento" (RF-04/RF-13 →
+  `PUT /api/eventos/{id}`), "Frequência" (RF-19 → critério por atividade,
+  `PUT /api/eventos/{id}/atividades/{atId}`) e "Certificados" (RF-32 →
+  `GET/POST /api/eventos/{id}/certificados/criterio`). "Organização" é
+  somente leitura.
+- **Administrador**: tudo acima em qualquer evento (`GET /api/eventos?todos=true`,
+  nova rota admin) **e** "Parâmetros Gerais" (identidade da instituição +
+  percentual padrão de certificado), persistidos no servidor em
+  `configuracoes_organizacao` (V14) via `GET/PUT /api/configuracoes` —
+  leitura para gestores, escrita só do admin.
+
+O percentual padrão funciona de verdade: sem critério próprio, o evento herda
+o percentual da organização no cálculo de elegibilidade (RF-32/RN-16). O nome
+da instituição alimenta o rodapé da gestão (`nav.js`). As abas fictícias de
+upload de logo, SMTP e webhooks foram removidas (SMTP segue desligado no MVP).
+"Usuários" continua sendo o caminho para criar organizadores e redefinir
+senhas; não há criação de administrador pela interface (D-09).

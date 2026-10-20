@@ -2,11 +2,13 @@ package br.com.evento.application.usecase;
 
 import br.com.evento.domain.exception.DomainException;
 import br.com.evento.domain.model.entity.Certificado;
+import br.com.evento.domain.model.entity.ConfiguracaoOrganizacao;
 import br.com.evento.domain.model.entity.CriterioCertificado;
 import br.com.evento.domain.model.entity.Evento;
 import br.com.evento.domain.model.entity.Inscricao;
 import br.com.evento.domain.model.entity.Pessoa;
 import br.com.evento.domain.port.out.CertificadoRepository;
+import br.com.evento.domain.port.out.ConfiguracaoOrganizacaoRepository;
 import br.com.evento.domain.port.out.DadosCertificado;
 import br.com.evento.domain.port.out.EmailMsg;
 import br.com.evento.domain.port.out.EmailService;
@@ -37,6 +39,8 @@ public class GerenciarCertificadosUseCase {
     private final CertificadoRepository certificadoRepository;
     private final PdfCertificadoService pdfService;
     private final EmailService emailService;
+    /** Opcional: parâmetros gerais (§3) para o percentual padrão de certificado. */
+    private final ConfiguracaoOrganizacaoRepository configuracoes;
 
     public GerenciarCertificadosUseCase(EventoRepository eventoRepository,
                                         InscricaoRepository inscricaoRepository,
@@ -45,6 +49,18 @@ public class GerenciarCertificadosUseCase {
                                         CertificadoRepository certificadoRepository,
                                         PdfCertificadoService pdfService,
                                         EmailService emailService) {
+        this(eventoRepository, inscricaoRepository, usuarioRepository, pessoaRepository,
+                certificadoRepository, pdfService, emailService, null);
+    }
+
+    public GerenciarCertificadosUseCase(EventoRepository eventoRepository,
+                                        InscricaoRepository inscricaoRepository,
+                                        UsuarioRepository usuarioRepository,
+                                        PessoaRepository pessoaRepository,
+                                        CertificadoRepository certificadoRepository,
+                                        PdfCertificadoService pdfService,
+                                        EmailService emailService,
+                                        ConfiguracaoOrganizacaoRepository configuracoes) {
         this.eventoRepository = eventoRepository;
         this.inscricaoRepository = inscricaoRepository;
         this.usuarioRepository = usuarioRepository;
@@ -52,6 +68,32 @@ public class GerenciarCertificadosUseCase {
         this.certificadoRepository = certificadoRepository;
         this.pdfService = pdfService;
         this.emailService = emailService;
+        this.configuracoes = configuracoes;
+    }
+
+    /** Critério vigente do evento (para a tela de configurações: RF-32). */
+    public CriterioCertificado buscarCriterio(String eventoId) {
+        eventoRepository.buscarPorId(eventoId)
+                .orElseThrow(() -> new DomainException("Evento não encontrado."));
+        return certificadoRepository.buscarCriterioPorEvento(eventoId)
+                .orElse(new CriterioCertificado(eventoId));
+    }
+
+    /**
+     * Critério efetivo: o do evento, se existir. Sem critério próprio, aplica
+     * o percentual padrão dos parâmetros gerais (§3) — quando configurado.
+     */
+    private CriterioCertificado criterioEfetivo(String eventoId) {
+        Optional<CriterioCertificado> proprio =
+                certificadoRepository.buscarCriterioPorEvento(eventoId);
+        if (proprio.isPresent()) return proprio.get();
+        CriterioCertificado padrao = new CriterioCertificado(eventoId);
+        if (configuracoes != null) {
+            configuracoes.buscar()
+                    .map(ConfiguracaoOrganizacao::getPercentualCertificadoPadrao)
+                    .ifPresent(padrao::definirPercentualMinimo);
+        }
+        return padrao;
     }
 
     public CriterioCertificado definirCriterio(String eventoId, Integer percentualMinimo,
@@ -76,8 +118,7 @@ public class GerenciarCertificadosUseCase {
         if (!inscricao.getEventoId().equals(eventoId)) {
             throw new DomainException("Inscrição não pertence a este evento.");
         }
-        CriterioCertificado criterio = certificadoRepository.buscarCriterioPorEvento(eventoId)
-                .orElse(new CriterioCertificado(eventoId));
+        CriterioCertificado criterio = criterioEfetivo(eventoId);
         Optional<String> motivo = criterio.verificar(inscricao, evento);
         if (motivo.isPresent()) {
             throw new DomainException("Participante inelegível: " + motivo.get());

@@ -4,6 +4,7 @@ import br.com.evento.adapters.out.jdbc.JdbcAvaliacaoRepository;
 import br.com.evento.adapters.out.jdbc.JdbcEventoRepository;
 import br.com.evento.adapters.out.jdbc.JdbcInscricaoRepository;
 import br.com.evento.adapters.out.jdbc.JdbcCertificadoRepository;
+import br.com.evento.adapters.out.jdbc.JdbcConfiguracaoOrganizacaoRepository;
 import br.com.evento.adapters.out.jdbc.JdbcPessoaRepository;
 import br.com.evento.adapters.out.jdbc.JdbcQuestionarioRepository;
 import br.com.evento.adapters.out.jdbc.JdbcUsuarioRepository;
@@ -21,6 +22,7 @@ import br.com.evento.application.usecase.ConsolidarAvaliacoesUseCase;
 import br.com.evento.application.usecase.ConsultarAgendaUseCase;
 import br.com.evento.application.usecase.CriarQuestionarioUseCase;
 import br.com.evento.application.usecase.GerenciarCertificadosUseCase;
+import br.com.evento.application.usecase.GerenciarConfiguracoesUseCase;
 import br.com.evento.application.usecase.GerenciarUsuariosUseCase;
 import br.com.evento.application.usecase.GerarRelatorioInscritosUseCase;
 import br.com.evento.application.usecase.GerarRelatorioPresencaUseCase;
@@ -40,6 +42,7 @@ import br.com.evento.domain.port.out.EventoRepository;
 import br.com.evento.domain.port.out.PdfCertificadoService;
 import br.com.evento.domain.port.out.InscricaoRepository;
 import br.com.evento.domain.port.out.CertificadoRepository;
+import br.com.evento.domain.port.out.ConfiguracaoOrganizacaoRepository;
 import br.com.evento.domain.port.out.PasswordHasher;
 import br.com.evento.domain.port.out.PessoaRepository;
 import br.com.evento.domain.port.out.QuestionarioRepository;
@@ -61,6 +64,7 @@ public class FabricaAplicacao {
     public final AvaliacaoRepository avaliacoes;
     public final PessoaRepository pessoas;
     public final CertificadoRepository certificados;
+    public final ConfiguracaoOrganizacaoRepository configuracoesOrganizacao;
     public final PasswordHasher hasher;
     public final SimpleQrCodeService qrCodeService;
     public final PdfCertificadoService pdfService;
@@ -78,6 +82,7 @@ public class FabricaAplicacao {
     public final RemarcarAtividadeUseCase remarcarAtividade;
     public final VincularPessoaUseCase vincularPessoa;
     public final GerenciarCertificadosUseCase gerenciarCertificados;
+    public final GerenciarConfiguracoesUseCase gerenciarConfiguracoes;
     public final InscreverParticipanteUseCase inscreverParticipante;
     public final CancelarInscricaoUseCase cancelarInscricao;
     public final SelecionarAtividadeUseCase selecionarAtividade;
@@ -106,6 +111,7 @@ public class FabricaAplicacao {
         this.avaliacoes = new JdbcAvaliacaoRepository(connections);
         this.pessoas = new JdbcPessoaRepository(connections);
         this.certificados = new JdbcCertificadoRepository(connections);
+        this.configuracoesOrganizacao = new JdbcConfiguracaoOrganizacaoRepository(connections);
         this.hasher = new BCryptHasher();
         this.qrCodeService = new SimpleQrCodeService();
         this.pdfService = new PdfBoxCertificadoService();
@@ -124,7 +130,9 @@ public class FabricaAplicacao {
         this.remarcarAtividade = new RemarcarAtividadeUseCase(eventos);
         this.vincularPessoa = new VincularPessoaUseCase(eventos, pessoas);
         this.gerenciarCertificados = new GerenciarCertificadosUseCase(
-                eventos, inscricoes, usuarios, pessoas, certificados, pdfService, emailService);
+                eventos, inscricoes, usuarios, pessoas, certificados, pdfService, emailService,
+                configuracoesOrganizacao);
+        this.gerenciarConfiguracoes = new GerenciarConfiguracoesUseCase(configuracoesOrganizacao);
         this.inscreverParticipante = new InscreverParticipanteUseCase(eventos, usuarios, inscricoes);
         this.cancelarInscricao = new CancelarInscricaoUseCase(inscricoes, eventos);
         this.selecionarAtividade = new SelecionarAtividadeUseCase(inscricoes, eventos);
