@@ -20,10 +20,38 @@ function Compose($c) {
   else { Calmo { docker compose @c } | Out-Null }
 }
 
+# Localiza o Docker Desktop: instalacao por maquina (Program Files) ou por
+# usuario (%LOCALAPPDATA%\Programs\DockerDesktop) — o caminho varia por versao.
+function AcharDockerDesktop {
+  $cands = @(
+    (Join-Path $env:LOCALAPPDATA 'Programs\DockerDesktop\Docker Desktop.exe'),
+    (Join-Path $env:LOCALAPPDATA 'Programs\Docker\Docker\Docker Desktop.exe'),
+    (Join-Path $env:LOCALAPPDATA 'Docker\Docker Desktop.exe'),
+    (Join-Path $env:APPDATA 'Docker\Docker Desktop.exe'),
+    (Join-Path $env:ProgramFiles 'Docker\Docker\Docker Desktop.exe')
+  )
+  if (${env:ProgramFiles(x86)}) { $cands += Join-Path ${env:ProgramFiles(x86)} 'Docker\Docker\Docker Desktop.exe' }
+  foreach ($k in @('HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*',
+                   'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*',
+                   'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*')) {
+    Get-ItemProperty -Path $k -ErrorAction SilentlyContinue |
+      Where-Object { $_.DisplayName -like 'Docker Desktop*' -and $_.InstallLocation } |
+      ForEach-Object { $cands += Join-Path $_.InstallLocation 'Docker Desktop.exe' }
+  }
+  $dc = Get-Command docker -ErrorAction SilentlyContinue
+  if ($dc -and $dc.Source) {
+    $cands += Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $dc.Source))) 'Docker Desktop.exe'
+  }
+  Get-Process -Name 'Docker Desktop' -ErrorAction SilentlyContinue |
+    ForEach-Object { if ($_.Path) { $cands += $_.Path } }
+  $cands | Where-Object { $_ -and (Test-Path -LiteralPath $_) } | Select-Object -First 1
+}
+
 # 1) Docker daemon no ar (tenta abrir o Docker Desktop se estiver parado)
 if (Calmo { docker info } -ne 0) {
-  $dd = 'C:\Program Files\Docker\Docker\Docker Desktop.exe'
-  if (Test-Path -LiteralPath $dd) { Write-Host 'Abrindo Docker Desktop...'; Start-Process $dd }
+  $dd = AcharDockerDesktop
+  if ($dd) { Write-Host "Abrindo Docker Desktop ($dd)..."; Start-Process $dd }
+  else { Write-Host 'Docker Desktop nao encontrado; abra manualmente. Aguardando o motor...' -ForegroundColor Yellow }
   $t = 0
   while ((Calmo { docker info } -ne 0) -and ($t -lt 180)) { Start-Sleep -Seconds 5; $t += 5 }
   if (Calmo { docker info } -ne 0) { throw 'Docker indisponivel. Abra o Docker Desktop e rode de novo.' }
